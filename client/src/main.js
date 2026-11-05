@@ -371,6 +371,32 @@ function makeRemote(id,data={}){
  for(const [p,s] of [[leftArm,-1],[rightArm,1]]){cap(p,undersuit,s*.025,-.21,0,.105,.3);const upper=ell(p,armor,s*.025,-.22,-.015,.145,.235,.145);upper.rotation.z=s*-.1;cap(p,undersuit,s*.035,-.49,-.035,.09,.27);const bracer=ell(p,armorLight,s*.035,-.49,-.115,.12,.205,.12);bracer.rotation.z=s*-.08;ell(p,graphite,s*.035,-.65,-.12,.105,.09,.1);ell(p,accent,s*.035,-.5,-.215,.055,.1,.025);ell(p,rubber,s*.035,-.72,-.09,.095,.12,.105);}
  const leftLeg=new THREE.Group();leftLeg.position.set(-.15,.72,0);group.add(leftLeg);const rightLeg=new THREE.Group();rightLeg.position.set(.15,.72,0);group.add(rightLeg);
  for(const [p,s] of [[leftLeg,-1],[rightLeg,1]]){cap(p,undersuit,0,-.245,0,.12,.39);const thigh=ell(p,armor,0,-.235,-.015,.155,.255,.16);thigh.rotation.z=s*.025;ell(p,armorLight,0,-.49,-.105,.145,.12,.115);ell(p,graphite,0,-.53,-.02,.13,.105,.13);cap(p,undersuit,0,-.72,-.015,.105,.28);const shin=ell(p,armor,0,-.72,-.105,.13,.205,.12);shin.rotation.x=-.08;ell(p,accent,s*.055,-.7,-.205,.055,.105,.025);ell(p,rubber,0,-.91,-.11,.15,.085,.245);ell(p,graphite,0,-.91,-.23,.12,.055,.12);}
+ // Angular armour overlays: hard panel breaks and raised bevels replace the soft blended silhouette.
+ const panelMat=new THREE.MeshPhysicalMaterial({color:0x91a477,metalness:.62,roughness:.28,clearcoat:.55});
+ const panelDark=new THREE.MeshStandardMaterial({color:0x34483d,metalness:.72,roughness:.3});
+ const panelEdge=new THREE.LineBasicMaterial({color:0x172329,transparent:true,opacity:.95});
+ const makePlate=(parent,mat,x,y,z,points,depth=.065)=>{
+  const sh=new THREE.Shape();sh.moveTo(points[0][0],points[0][1]);for(let n=1;n<points.length;n++)sh.lineTo(points[n][0],points[n][1]);sh.closePath();
+  const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.018,bevelThickness:.018,curveSegments:1});
+  geo.translate(0,0,-depth/2);
+  const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
+  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),panelEdge));return mesh;
+ };
+ // Split chest into left/right breastplates with a central armored spine.
+ makePlate(group,panelMat,0,1.34,-.305,[[-.27,.12],[-.21,.22],[-.035,.16],[-.025,-.09],[-.18,-.14],[-.27,-.02]],.075);
+ makePlate(group,panelMat,0,1.34,-.305,[[.27,.12],[.21,.22],[.035,.16],[.025,-.09],[.18,-.14],[.27,-.02]],.075);
+ makePlate(group,panelDark,0,1.33,-.35,[[-.035,.18],[.035,.18],[.045,-.17],[-.045,-.17]],.035);
+ for(let n=0;n<3;n++){const y=1.04-n*.105,w=.19-n*.012;makePlate(group,n===1?panelMat:armor,0,y,-.27,[[-w,.045],[-w*.78,-.045],[0,-.07],[w*.78,-.045],[w,.045],[0,.075]],.055);}
+ // Angular shoulder shells, forearm shields, thigh guards and shin plates.
+ for(const side of [-1,1]){
+  makePlate(group,panelMat,side*.405,1.4,-.235,[[0,.21],[side*.17,.13],[side*.18,-.035],[side*.07,-.19],[-side*.12,-.15],[-side*.19,.035]],.075);
+  makePlate(group,accent,side*.405,1.4,-.282,[[0,.075],[side*.075,.035],[side*.04,-.045],[-side*.04,-.045],[-side*.075,.025]],.025);
+  const arm=side<0?leftArm:rightArm,leg=side<0?leftLeg:rightLeg;
+  makePlate(arm,panelMat,side*.025,-.49,-.235,[[-.085,.17],[.065,.19],[.11,.035],[.065,-.16],[-.06,-.19],[-.12,-.035]],.06);
+  makePlate(leg,panelMat,0,-.235,-.235,[[-.13,.2],[.075,.23],[.15,.08],[.105,-.17],[-.04,-.22],[-.145,-.055]],.06);
+  makePlate(leg,panelMat,0,-.72,-.225,[[-.105,.18],[.08,.18],[.12,.02],[.075,-.17],[-.055,-.2],[-.13,-.035]],.06);
+  makePlate(leg,accent,0,-.49,-.19,[[-.09,.055],[.09,.055],[.08,-.055],[0,-.1],[-.08,-.055]],.025);
+ }
  const gun=new THREE.Group();gun.position.set(.25,1.02,-.31);gun.rotation.x=-.08;group.add(gun);ell(gun,graphite,0,0,-.1,.115,.105,.26);ell(gun,armor,0,.035,-.09,.09,.075,.22);const barrel=cap(gun,steel,0,.005,-.39,.035,.24);barrel.rotation.x=Math.PI/2;ell(gun,accent,0,.075,-.17,.052,.025,.12);const grip=cap(gun,graphite,0,-.13,.04,.045,.13);grip.rotation.x=-.18;
  const shadow=new THREE.Mesh(new THREE.CircleGeometry(.43,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
  const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=64;const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(5,12,18,.7)';ctx.fillRect(12,10,232,44);ctx.strokeStyle='#9fc4b1';ctx.strokeRect(12,10,232,44);ctx.fillStyle='#eef4ef';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(String(data.name||'SPARTAN').slice(0,18),128,39);const tex=new THREE.CanvasTexture(labelCanvas);const label=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));label.scale.set(1.35,.34,1);label.position.set(0,2.22,0);group.add(label);
