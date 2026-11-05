@@ -130,6 +130,47 @@ function makeStreetFurniture(x,z){
  detailBox(x,.79,z,.9,.06,.45,materials.trim);
  detailBox(x,.9,z-.04,.68,.08,.03,materials.amber);
 }
+function makeStorefront(x,z,w=7,accent=0xc58a4d,rotation=0){
+ const wall=new THREE.MeshStandardMaterial({color:0x3b454c,roughness:.88});
+ const sign=new THREE.MeshStandardMaterial({color:accent,emissive:accent,emissiveIntensity:.22,roughness:.55});
+ const add=(geo,mat,px,py,pz)=>{const m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);m.rotation.y=rotation;m.castShadow=true;m.receiveShadow=true;scene.add(m);mapObjects.push(m);return m;};
+ add(new THREE.BoxGeometry(w,.22,2.8),materials.dark,x,1.35,z);
+ add(new THREE.BoxGeometry(w,.12,3.1),materials.trim,x,2.85,z);
+ add(new THREE.BoxGeometry(w,.18,.22),wall,x,3.02,z+1.35);
+ add(new THREE.BoxGeometry(w*.68,.62,.08),sign,x,2.42,z+1.49);
+ add(new THREE.BoxGeometry(w*.72,.12,1.2),sign,x,1.82,z+1.85);
+ for(let i=-1;i<=1;i++)add(new THREE.BoxGeometry(.08,.95,.08),materials.dark,x+i*w*.22,1.18,z+1.42);
+ for(const side of [-1,1]){const post=box(x+side*(w/2-.2),1.3,z,.16,2.6,.18,wall);post.rotation.y=rotation;}
+ box(x,.12,z+2.25,w*.8,.24,.5,materials.dark);
+}
+function makeMarketCanopy(x,z,rotation=0,tint=0x8b654a){
+ const cloth=new THREE.MeshStandardMaterial({color:tint,roughness:.9,side:THREE.DoubleSide});
+ for(const sx of [-1,1])for(const sz of [-1,1]){const p=detailBox(x+sx*1.65,1.25,z+sz*1.25,.09,2.5,.09,materials.dark);p.rotation.y=rotation;}
+ const canopy=detailBox(x,2.55,z,3.7,.16,3.0,cloth);canopy.rotation.y=rotation;
+ const counter=box(x,.58,z,3.1,1.16,.72,materials.crate);counter.rotation.y=rotation;
+ for(let i=0;i<5;i++){const bin=detailBox(x-1.25+i*.62,.95,z-.12,.42,.38,.48,i%2?materials.amber:materials.trim);bin.rotation.y=rotation;}
+ const valance=detailBox(x,2.25,z+1.48,3.45,.42,.1,cloth);valance.rotation.y=rotation;
+}
+function makeRooftopMachinery(x,z,scale=1){
+ box(x,.7*scale,z,1.8*scale,1.4*scale,1.25*scale,materials.dark);
+ detailBox(x,.77*scale,z,1.55*scale,.12*scale,1.05*scale,materials.trim);
+ for(let i=-1;i<=1;i++)detailBox(x+i*.42*scale,1.25*scale,z+.64*scale,.08*scale,.75*scale,.08*scale,materials.amber);
+}
+function makeRoadsideBarrier(x,z,length=5,rotation=0){
+ const b=box(x,.48,z,length,.96,.42,materials.concrete);b.rotation.y=rotation;
+ const stripe=detailBox(x,.98,z,length-.15,.07,.43,materials.amber);stripe.rotation.y=rotation;
+ for(const side of [-1,1]){const end=detailBox(x+Math.cos(rotation)*side*length*.48,.55,z-Math.sin(rotation)*side*length*.48,.2,1.1,.58,materials.dark);end.rotation.y=rotation;}
+}
+function makeCableSpool(x,z,scale=1){
+ const drum=new THREE.Mesh(new THREE.CylinderGeometry(.72*scale,.72*scale,.85*scale,14),new THREE.MeshStandardMaterial({color:0x65523e,roughness:.92}));
+ drum.rotation.z=Math.PI/2;drum.position.set(x,.72*scale,z);drum.castShadow=true;scene.add(drum);mapObjects.push(drum);
+ for(const side of [-1,1]){const disc=new THREE.Mesh(new THREE.CylinderGeometry(.92*scale,.92*scale,.12*scale,14),materials.trim);disc.rotation.z=Math.PI/2;disc.position.set(x+side*.48*scale,.72*scale,z);disc.castShadow=true;scene.add(disc);mapObjects.push(disc);}
+ colliders.push(new THREE.Box3(new THREE.Vector3(x-1.05*scale,0,z-.95*scale),new THREE.Vector3(x+1.05*scale,1.5*scale,z+.95*scale)));
+}
+function makeIndustrialStair(x,z,width=3,steps=8,rise=2.4,rotation=0){
+ for(let i=0;i<steps;i++){const h=rise*(i+1)/steps,depth=width/steps,offset=(i-(steps-1)/2)*depth;const px=x+Math.sin(rotation)*offset,pz=z+Math.cos(rotation)*offset;const step=detailBox(px,h/2,pz,width,h/steps,depth+.04,materials.concrete);step.rotation.y=rotation;}
+ makeRamp(x,z,width,width,rise,rotation);
+}
 function makeIndustrialLight(x,y,z){
  detailBox(x,y,z,.28,.12,.28,materials.dark);
  const glow=new THREE.PointLight(0xe5b77e,1.15,13,2);glow.position.set(x,y-.18,z);scene.add(glow);mapObjects.push(glow);
@@ -169,6 +210,15 @@ function buildDistrict(){
  for(let i=0;i<12;i++){const x=-42+(i*17)%84,z=-39+((i*29)%78);detailBox(x,.08,z,.18,.12,.55,materials.trim);}
  // Sheltered courtyard and small cover pieces.
  for(const [x,z] of [[-16,0],[16,0],[0,-16],[0,16]]){box(x,.7,z,3,1.4,1.2,materials.dark);box(x,.18,z,3.3,.25,1.5,materials.trim,false);}
+ // New neighbourhood layer: shopfronts, covered market, service alleys and rooftop silhouettes.
+ for(const [x,z,w,c,r] of [[-34,-20,7,0xb77b4b,0],[-34,20,7,0x6e9b9e,Math.PI],[34,-20,7,0x9b7652,Math.PI],[34,20,7,0x8c9b70,0],[-20,-34,8,0x8d765e,Math.PI/2],[20,34,8,0x7b9aa0,-Math.PI/2]])makeStorefront(x,z,w,c,r);
+ for(const [x,z,r,c] of [[-5,28,0,0x8b5547],[5,28,0,0x536d78],[-5,-28,Math.PI,0x9b744a],[5,-28,Math.PI,0x687b63]])makeMarketCanopy(x,z,r,c);
+ for(const [x,z] of [[-29,-28],[-29,28],[29,-28],[29,28],[-14,-35],[14,35]])makeRooftopMachinery(x,z,.9);
+ for(const [x,z,l,r] of [[-27,-8,5,Math.PI/2],[27,8,5,Math.PI/2],[-8,-39,6,0],[8,39,6,0],[-39,0,5,0],[39,0,5,0]])makeRoadsideBarrier(x,z,l,r);
+ for(const [x,z] of [[-23,0],[23,0],[0,-37],[0,37]]){makeStreetLamp(x,z);makeStreetFurniture(x+2,z+1);}
+ for(const [x,z] of [[-42,-24],[-42,24],[42,-24],[42,24]]){box(x,3.1,z,.18,6.2,.18,materials.dark);detailBox(x,6.05,z,2.4,.12,.12,materials.trim);for(let k=-1;k<=1;k++)detailBox(x+k*.75,5.8,z,.08,.5,.08,materials.amber);}
+ for(const [x,z] of [[-30,10],[30,-10],[-10,-30],[10,30]]){makeCrate(x,z,1.05);makeCableSpool(x+2,z+1,.72);}
+ for(const [x,z] of [[-38,-8],[-38,8],[38,-8],[38,8],[-8,-38],[8,38]]){box(x,.32,z,4.2,.64,1.3,materials.dark);detailBox(x,.68,z,4.0,.08,1.15,materials.trim);for(let k=-1;k<=1;k++)makeTree(x+k*1.25,z,.48);}
  player.pos.set(0,1.7,7);player.yaw=Math.PI;updateCamera();
 }
 function makeWarehouse(x,z,w=28,d=22,h=10,face=1,label='FREIGHT'){
@@ -314,6 +364,20 @@ function buildIndustrial(){
   if(Math.abs(x)<5&&Math.abs(z)<8)continue;
   detailBox(x,.09,z,.55+((i%3)*.2),.16,.35,materials.dark);
  }
+ // Freight-yard expansion: crane gantry, fenced utility compound, stacked cargo and maintenance clutter.
+ for(const x of [-36,36]){box(x,7,0,.42,14,.42,materials.dark);detailBox(x,14,0,.9,.22,.9,materials.trim);for(const z of [-18,18]){box(x,7,z,.3,14,.3,materials.dark);detailBox(x,14,z,.7,.18,.7,materials.amber);}}
+ box(0,13.4,0,74,.55,.65,materials.dark);detailBox(0,13.72,0,72,.08,.78,materials.trim);
+ for(let x=-32;x<=32;x+=8){detailBox(x,13.05,0,.16,.35,.16,materials.amber);detailBox(x,12.65,0,.55,.12,.55,materials.dark);}
+ // Utility cabinets and fenced generator yard in the east service lane.
+ box(39,.12,0,10,.24,16,materials.dark,false);
+ for(const side of [-1,1]){box(39+side*5,1.35,0,.12,2.7,16,materials.trim,false);for(let z=-7;z<=7;z+=2)detailBox(39+side*5,1.35,z,.12,2.7,.12,materials.dark);}
+ for(const z of [-8,8])box(39,1.35,z,10,.12,.12,materials.trim,false);
+ for(const [x,z] of [[37,-4],[41,-4],[37,4],[41,4]]){box(x,1.0,z,1.35,2,.9,materials.dark);detailBox(x,2.05,z,1.18,.12,.75,materials.amber);for(let k=0;k<4;k++)detailBox(x-.42+k*.28,.95,z+.47,.035,1.35,.035,materials.trim);}
+ for(const [x,z,c] of [[-40,-20,0x59666b],[40,20,0x665548],[-40,20,0x4e6267],[40,-20,0x5b6551],[-8,-39,0x665448],[8,39,0x53636b]]){makeContainer(x,z,6,2.2,Math.PI/2,c);makeCableSpool(x+3,z+2,.72);for(let k=0;k<3;k++){const p=box(x-2+k*.62,.42,z+2,.55,.84,.55,materials.crate);p.rotation.y=(k%2)*.12;}}
+ for(const [x,z,r] of [[-29,-20,0],[29,-20,Math.PI],[-29,20,0],[29,20,Math.PI]]){makeIndustrialStair(x,z,2.6,7,2.1,r);for(const side of [-1,1])box(x+side*2,.55,z,.22,1.1,.22,materials.amber);}
+ for(const [x,z] of [[-44,-8],[-44,8],[44,-8],[44,8],[0,-44],[0,44]])for(let k=-2;k<=2;k++){box(x+k*.65,.55,z,.18,1.1,.18,materials.amber);detailBox(x+k*.65,1.12,z,.2,.08,.2,materials.trim);}
+ for(const [x,z] of [[-31,-12],[31,12],[-31,12],[31,-12],[0,-31],[0,31]]){makeCableSpool(x,z,.95);makeCrate(x+2,z+1,.85);}
+ for(const [x,z] of [[-36,-8],[36,8],[-36,8],[36,-8]]){detailBox(x,.24,z,1.5,.48,1.5,materials.dark);for(let k=0;k<5;k++)detailBox(x-.55+k*.27,.5,z,.06,.04,1.1,materials.trim);const glow=new THREE.PointLight(0xe6a96b,.45,7);glow.position.set(x,.7,z);scene.add(glow);mapObjects.push(glow);}
  player.pos.set(0,1.7,8);player.yaw=Math.PI;updateCamera();
 }
 function createEclipse(){
@@ -349,9 +413,11 @@ function makeRemote(id, data = {}) {
  const group = new THREE.Group();
  const teamColors = [0x83b9c8, 0xc79a65, 0x8eaa83, 0xb28ebd];
  const accentColor = data.team === null || data.team === undefined ? 0xc58a4d : teamColors[data.team % teamColors.length];
- const armor = new THREE.MeshStandardMaterial({ color: 0x303b43, metalness: .32, roughness: .72 });
- const fabric = new THREE.MeshStandardMaterial({ color: 0x18232b, roughness: .96 });
- const trim = new THREE.MeshStandardMaterial({ color: 0x59656b, metalness: .48, roughness: .58 });
+ const armor = new THREE.MeshStandardMaterial({ color: 0x35434b, metalness: .38, roughness: .62 });
+ const fabric = new THREE.MeshStandardMaterial({ color: 0x111a20, roughness: .94 });
+ const trim = new THREE.MeshStandardMaterial({ color: 0x718087, metalness: .58, roughness: .46 });
+ const rubber = new THREE.MeshStandardMaterial({color:0x0a1015,roughness:.98});
+ const darkMetal = new THREE.MeshStandardMaterial({color:0x202b32,metalness:.72,roughness:.34});
  const accent = new THREE.MeshStandardMaterial({ color: accentColor, emissive: accentColor, emissiveIntensity: .16, roughness: .7 });
  const visor = new THREE.MeshStandardMaterial({ color: 0x9ac0c9, metalness: .72, roughness: .2, emissive: 0x16343b, emissiveIntensity: .35 });
  const add = (parent, geometry, material, x, y, z) => { const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x,y,z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh; };
@@ -360,12 +426,39 @@ function makeRemote(id, data = {}) {
  add(group,new THREE.BoxGeometry(.48,.42,.25),fabric,0,1.18,.015);
  add(group,new THREE.BoxGeometry(.38,.24,.31),armor,0,1.12,-.12);
  add(group,new THREE.BoxGeometry(.17,.23,.12),accent,0,1.2,-.285);
+ // Layered chest rig, reinforced collar and segmented helmet.
  add(group,new THREE.BoxGeometry(.24,.32,.24),fabric,0,1.27,.27);
  add(group,new THREE.BoxGeometry(.3,.12,.28),armor,0,1.43,.27);
- add(group,new THREE.SphereGeometry(.19,12,10),fabric,0,1.66,0);
- add(group,new THREE.SphereGeometry(.215,12,10),armor,0,1.78,.005);
+ add(group,new THREE.CylinderGeometry(.145,.17,.13,10),darkMetal,0,1.51,0);
+ add(group,new THREE.SphereGeometry(.19,16,12),fabric,0,1.66,0);
+ add(group,new THREE.SphereGeometry(.215,16,12),armor,0,1.78,.005);
+ add(group,new THREE.BoxGeometry(.31,.12,.25),darkMetal,0,1.91,.015);
  add(group,new THREE.BoxGeometry(.29,.095,.035),visor,0,1.68,-.183);
- add(group,new THREE.BoxGeometry(.26,.07,.23),accent,0,1.91,.01);
+ add(group,new THREE.BoxGeometry(.26,.07,.23),accent,0,1.98,.01);
+ for(const side of [-1,1]){
+  add(group,new THREE.BoxGeometry(.09,.2,.16),trim,side*.205,1.73,.01);
+  add(group,new THREE.BoxGeometry(.11,.12,.18),accent,side*.235,1.58,.015);
+  add(group,new THREE.BoxGeometry(.13,.12,.19),darkMetal,side*.245,1.12,.01);
+  add(group,new THREE.BoxGeometry(.16,.19,.2),armor,side*.23,.74,-.015);
+  add(group,new THREE.BoxGeometry(.13,.12,.12),accent,side*.24,.74,-.13);
+ }
+ for(const side of [-1,1]){
+  const pad=add(group,new THREE.SphereGeometry(.19,12,9),armor,side*.39,1.34,0);pad.scale.set(1.12,.72,1.0);
+  add(group,new THREE.BoxGeometry(.22,.1,.2),accent,side*.39,1.44,-.015);
+  add(group,new THREE.BoxGeometry(.18,.28,.1),darkMetal,side*.39,.96,-.12);
+  add(group,new THREE.BoxGeometry(.13,.12,.08),trim,side*.39,.82,-.13);
+ }
+ // Hard-shell backpack and radio antenna.
+ add(group,new THREE.BoxGeometry(.38,.55,.2),fabric,0,1.22,.31);
+ add(group,new THREE.BoxGeometry(.32,.36,.12),armor,0,1.27,.43);
+ add(group,new THREE.BoxGeometry(.08,.24,.08),accent,-.12,1.57,.35);
+ add(group,new THREE.CylinderGeometry(.012,.018,.38,6),trim,.19,1.66,.34);
+ for(let side of [-1,1]){
+  add(group,new THREE.BoxGeometry(.13,.18,.1),trim,side*.16,1.18,-.17);
+  add(group,new THREE.BoxGeometry(.11,.12,.035),accent,side*.16,1.19,-.23);
+  add(group,new THREE.BoxGeometry(.055,.48,.045),darkMetal,side*.12,1.22,-.19);
+ }
+ add(group,new THREE.BoxGeometry(.12,.09,.035),visor,0,1.36,-.205);
  const leftArm = new THREE.Group(); leftArm.position.set(-.34,1.35,0); group.add(leftArm);
  const rightArm = new THREE.Group(); rightArm.position.set(.34,1.35,0); group.add(rightArm);
  for (const [pivot, side] of [[leftArm,-1],[rightArm,1]]) {
@@ -373,6 +466,8 @@ function makeRemote(id, data = {}) {
   const fore=add(pivot,new THREE.CapsuleGeometry(.085,.28,3,7),fabric,side*.035,-.48,-.095);fore.rotation.z=side*-.08;
   add(pivot,new THREE.BoxGeometry(.13,.12,.14),trim,side*.035,-.65,-.13);
   add(pivot,new THREE.BoxGeometry(.19,.13,.2),accent,side*.025,-.25,-.01);
+  add(pivot,new THREE.BoxGeometry(.16,.2,.11),darkMetal,side*.035,-.47,-.16);
+  add(pivot,new THREE.BoxGeometry(.13,.1,.08),accent,side*.035,-.62,-.16);
  }
  const leftLeg = new THREE.Group(); leftLeg.position.set(-.145,.73,0); group.add(leftLeg);
  const rightLeg = new THREE.Group(); rightLeg.position.set(.145,.73,0); group.add(rightLeg);
@@ -380,6 +475,9 @@ function makeRemote(id, data = {}) {
   add(pivot,new THREE.CapsuleGeometry(.125,.48,3,7),fabric,0,-.27,0);
   add(pivot,new THREE.BoxGeometry(.2,.16,.34),armor,0,-.59,-.055);
   add(pivot,new THREE.BoxGeometry(.12,.12,.07),accent,side*.035,-.1,-.12);
+  add(pivot,new THREE.BoxGeometry(.18,.15,.12),darkMetal,0,-.42,-.105);
+  add(pivot,new THREE.BoxGeometry(.2,.12,.34),rubber,0,-.65,-.1);
+  add(pivot,new THREE.BoxGeometry(.14,.08,.08),accent,side*.045,-.36,-.17);
  }
  // A compact sidearm/carbine silhouette is held in front of the chest.
  const gun = new THREE.Group(); gun.position.set(.27,1.02,-.28); gun.rotation.x=-.08; group.add(gun);
