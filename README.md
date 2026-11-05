@@ -1,6 +1,13 @@
-# PROJECT: ECLIPSE — Prototype 0.7.0
+# PROJECT: ECLIPSE — Prototype 0.8.0
 
 A browser-based atmospheric multiplayer FPS prototype with Free-for-All, Duos and Trios, DISTRICT, a rebuilt INDUSTRIAL freight-yard arena, solo training, and a Node.js WebSocket service.
+
+## Prototype 0.8.0 — Arena and Operator Overhaul
+
+- Expand DISTRICT with storefronts, covered market stalls, rooftop utility details, street furniture, roadside barriers, planters, trees and additional environmental silhouettes.
+- Expand INDUSTRIAL with a large gantry landmark, fenced generator compound, more cargo variety, cable spools, loading-area details, stair/ramp access and additional industrial lighting.
+- Upgrade remote operator models with layered armor, shoulder protection, helmet modules, backpack/radio, chest rig, forearm guards, knee protection and more detailed boots.
+- Preserve the existing two-map selection, movement, collision system, multiplayer state format and minimap coordinate bounds.
 
 ## Requirements
 - Node.js 20 or newer
