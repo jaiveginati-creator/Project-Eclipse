@@ -1,0 +1,21 @@
+{
+  "name": "project-eclipse",
+  "version": "0.6.0",
+  "private": true,
+  "description": "A browser-based multiplayer arena FPS prototype with a rebuilt industrial freight-yard map",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "server": "node server/server.js",
+    "start": "concurrently -k \"npm:server\" \"npm:dev\"",
+    "start:production": "node server/server.js"
+  },
+  "dependencies": {
+    "three": "^0.180.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "^7.1.12"
+  }
+}
