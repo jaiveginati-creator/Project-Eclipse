@@ -83,6 +83,9 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Tightened WebSocket heartbeat checks from 30 seconds to 10 seconds. A connection that misses a heartbeat is terminated sooner, allowing the existing close handler to remove its player from the lobby and refresh the player list.
 - Added per-connection WebSocket error logging to help diagnose abnormal disconnects.
 
+- Added a live top-right tactical minimap: the local operator is shown with a facing arrow, opponents appear as red contacts, and squadmates appear cyan in Duos/Trios.
+- Added an impassable perimeter boundary on both maps, enforced by client collision and matching server-side movement bounds.
+
 ## Current implementation limits
 - The server validates shot direction, origin proximity, range, cooldown and player hit regions, but server-side line-of-sight against every map wall/prop is not yet implemented. Some shots may still pass through cover.
 - Player movement is not fully server-authoritative against map collision; a modified client could still attempt invalid movement within the broad server bounds.
