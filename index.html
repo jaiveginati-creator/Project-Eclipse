@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080d14" />
+  <title>PROJECT: ECLIPSE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/client/styles.css" />
+</head>
+<body>
+  <div id="game-root">
+    <canvas id="world"></canvas>
+    <div class="vignette"></div>
+    <div id="menu" class="screen active">
+      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.4.0</div></div>
+      <div class="menu-content">
+        <div class="eyebrow"><span></span> MULTIPLAYER TACTICAL EXPERIENCE</div>
+        <h1>WHEN THE<br><em>LIGHT</em> FADES.</h1>
+        <p class="intro">The city has gone quiet. Your team hasn't.<br>Deploy, adapt, and outplay the opposition.</p>
+        <div class="mode-panel">
+          <div class="panel-label">SELECT OPERATION</div>
+          <div class="mode-grid">
+            <button class="mode-card selected" data-mode="ffa"><span class="mode-number">01</span><strong>FREE FOR ALL</strong><small>EVERY OPERATOR FOR THEMSELVES</small><span class="mode-count">1—8 PLAYERS</span></button>
+            <button class="mode-card" data-mode="duos"><span class="mode-number">02</span><strong>DUOS</strong><small>PAIRS. TRUST. SURVIVE.</small><span class="mode-count">2 PLAYERS / TEAM</span></button>
+            <button class="mode-card" data-mode="trios"><span class="mode-number">03</span><strong>TRIOS</strong><small>THREE OPERATORS. ONE UNIT.</small><span class="mode-count">3 PLAYERS / TEAM</span></button>
+          </div>
+          <div class="map-row"><div><span class="panel-label">DEPLOYMENT ZONE</span><strong id="map-name">DISTRICT</strong></div><div class="map-switch"><button class="map-choice active" data-map="district">01 / DISTRICT</button><button class="map-choice" data-map="industrial">02 / INDUSTRIAL</button></div></div>
+          <div class="connect-row"><label for="server-url">SERVER</label><input id="server-url" value="" placeholder="Auto-detect server or paste WSS URL" spellcheck="false"><span class="server-status"><i id="server-dot"></i><span id="server-label">OFFLINE / LOCAL</span></span></div>
+          <button id="deploy" class="deploy-button"><span>DEPLOY TO OPERATION</span><b>→</b></button>
+          <button id="training" class="training-button">ENTER SOLO TRAINING <span>↗</span></button>
+        </div>
+      </div>
+      <div class="menu-footer"><span>TACTICAL PLAY. CLEAR COMMS. ADAPT.</span><span>INDEPENDENT PROTOTYPE · 2026</span></div>
+    </div>
+    <div id="lobby" class="screen">
+      <div class="lobby-card"><div class="eyebrow"><span></span> OPERATION PREPARATION</div><h2 id="lobby-title">FREE FOR ALL</h2><p id="lobby-subtitle">Waiting for operators to connect...</p><div class="lobby-meta"><div><small>MAP</small><b id="lobby-map">DISTRICT</b></div><div><small>MODE</small><b id="lobby-mode">FFA</b></div><div><small>OPERATORS</small><b id="lobby-count">1 / 8</b></div></div><div id="player-list" class="player-list"></div><div class="lobby-actions"><button id="back-menu" class="secondary-button">BACK</button><button id="start-match" class="deploy-button"><span>START MATCH</span><b>→</b></button></div><p class="lobby-note">Share this lobby link with friends. Everyone must use the same server, mode and map.</p></div>
+    </div>
+    <div id="hud" class="hud hidden">
+      <div class="hud-top"><div class="match-chip"><span class="live-dot"></span><span id="hud-mode">FREE FOR ALL</span><i></i><span id="hud-map">DISTRICT</span></div><div class="timer" id="timer">08:00</div><div class="score-chip" id="scoreboard-mini">YOU <b>0</b> <i>—</i> TOP <b>0</b></div></div>
+      <div class="crosshair"><span></span><i></i></div>
+      <div id="hit-marker" class="hit-marker">×</div>
+      <div class="hud-bottom"><div class="player-status"><div class="status-icon">E</div><div><small>OPERATOR</small><strong id="player-name">ECLIPSE-01</strong></div><div class="health-track"><div id="health-fill"></div></div><b id="health-value">100</b></div><div class="objective-hint" id="objective-hint">ELIMINATIONS WIN THE OPERATION</div><div class="weapon-status"><div class="weapon-label"><small>ACTIVE WEAPON</small><strong><span id="weapon-name">PULSE CARBINE</span></strong><small id="weapon-class">MK.01 · BALANCED</small></div><div class="ammo"><b id="ammo">12</b><i>/</i><span id="reserve">48</span></div></div></div>
+      <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1/2/3 WEAPONS <i>·</i> CLICK FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> ESC MENU</div>
+      <div id="feed" class="feed"></div>
+      <div id="team-panel" class="team-panel hidden"></div>
+    </div>
+    <div id="pause" class="screen overlay-screen"><div class="pause-card"><div class="eyebrow"><span></span> OPERATION PAUSED</div><h2>TAKE A<br><em>BREATHER.</em></h2><button id="resume" class="deploy-button"><span>RESUME OPERATION</span><b>→</b></button><button id="leave-match" class="secondary-button">LEAVE MATCH</button></div></div>
+    <div id="results" class="screen overlay-screen"><div class="results-card"><div class="eyebrow"><span></span> OPERATION COMPLETE</div><h2 id="result-title">FIELD REPORT</h2><div class="result-stat-grid"><div><small>ELIMINATIONS</small><b id="result-kills">0</b></div><div><small>PLACEMENT</small><b id="result-place">—</b></div><div><small>XP EARNED</small><b id="result-xp">0</b></div></div><div id="results-list" class="results-list"></div><button id="return-menu" class="deploy-button"><span>RETURN TO BASE</span><b>→</b></button></div></div>
+    <div id="toast" class="toast"></div>
+  </div>
+  <script type="module" src="/client/src/main.js"></script>
+</body>
+</html>
