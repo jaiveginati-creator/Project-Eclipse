@@ -9,6 +9,8 @@ const TICK_MS = 50;
 const MATCH_SECONDS = 480;
 const MAP_BOUNDS = 49;
 const MAX_HEALTH = 100;
+const HEALTH_REGEN_DELAY_MS = 4000;
+const HEALTH_REGEN_PER_SECOND = 12;
 const RESPAWN_DELAY_MS = 2800;
 const WEAPONS = {
   pulse: { cooldown: 220, damage: 34, range: 42 },
@@ -24,7 +26,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.6.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.7.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -170,6 +172,7 @@ function resolvePulseHit(shooter, shot) {
 
   const target = best.target;
   target.health = Math.max(0, target.health - weapon.damage);
+  target.lastDamageAt = Date.now();
   const eliminated = target.health <= 0;
   send(shooter.ws, {
     type: 'hitConfirm', targetId: target.id, targetName: target.name,
@@ -196,7 +199,7 @@ function resolvePulseHit(shooter, shot) {
       if (!current || current.room !== room || !match?.active) return;
       const spawn = spawnForSlot(Math.floor(Math.random() * 8));
       current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
-      current.health = MAX_HEALTH; current.alive = true;
+      current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true;
       current.moving = false; current.crouching = false;
       send(current.ws, { type: 'respawned', x: current.x, y: current.y, z: current.z, health: current.health });
       sendRoomState(room, 'players');
@@ -212,7 +215,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse',
-    lastMove: Date.now(), lastShot: Object.create(null)
+    lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null)
   };
 
   ws.on('message', raw => {
@@ -234,7 +237,7 @@ wss.on('connection', ws => {
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
       const spawn = spawnForSlot(members(room).length);
       c.x = spawn.x; c.y = spawn.y; c.z = spawn.z; c.yaw = 0; c.pitch = 0;
-      c.score = 0; c.health = MAX_HEALTH; c.alive = true; c.moving = false; c.crouching = false;
+      c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
       send(ws, { type: 'welcome', id: c.id, team: c.team, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
@@ -290,13 +293,15 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score = 0; player.health = MAX_HEALTH; player.alive = true; }
+      for (const player of roomPlayers) { player.score = 0; player.health = MAX_HEALTH; player.lastDamageAt = 0; player.alive = true; }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });
       return;
     }
   });
+
+  ws.on('error', err => console.warn('[websocket] client error:', err.message));
 
   ws.on('close', () => {
     if (!c.room) return;
@@ -308,8 +313,16 @@ wss.on('connection', ws => {
 });
 
 setInterval(() => {
+  const now = Date.now();
   for (const [room, match] of matches) {
-    if (match.active && Date.now() - match.startedAt >= match.duration * 1000) endMatch(room);
+    if (match.active && now - match.startedAt >= match.duration * 1000) endMatch(room);
+    if (match.active) {
+      for (const player of members(room)) {
+        if (player.alive && player.health < MAX_HEALTH && now - player.lastDamageAt >= HEALTH_REGEN_DELAY_MS) {
+          player.health = Math.min(MAX_HEALTH, player.health + HEALTH_REGEN_PER_SECOND * TICK_MS / 1000);
+        }
+      }
+    }
     if (members(room).length) broadcast(room, { type: 'state', players: publicPlayers(room) });
   }
 }, TICK_MS);
@@ -325,7 +338,7 @@ const heartbeat = setInterval(() => {
     ws.isAlive = false;
     ws.ping();
   }
-}, 30000);
+}, 10000);
 wss.on('connection', ws => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
