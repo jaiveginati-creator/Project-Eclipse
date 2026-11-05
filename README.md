@@ -1,8 +1,15 @@
-# PROJECT: ECLIPSE — Prototype 0.8.0
+# PROJECT: ECLIPSE — Prototype 0.9.0
 
-A browser-based atmospheric multiplayer FPS prototype with Free-for-All, Duos and Trios, DISTRICT, a rebuilt INDUSTRIAL freight-yard arena, solo training, and a Node.js WebSocket service.
+A browser-based multiplayer FPS prototype with two rebuilt science-fiction arenas, rounded powered-armor operators, solo training, and a Node.js WebSocket service.
 
-## Prototype 0.8.0 — Arena and Operator Overhaul
+## Prototype 0.9.0 — Complete Visual Rebuild
+
+- Rebuilt DISTRICT as a futuristic orbital settlement with a circular transit plaza, curved illuminated towers, skybridges, habitat modules, landing pads, holographic beacons and new routes.
+- Rebuilt INDUSTRIAL as a spacecraft shipyard with massive hangars, twin gantry cranes, a central reactor column, cargo lanes, pipe racks, pressure vessels and walkable catwalks.
+- Replaced the angular placeholder operator with rounded powered armour: smooth helmet, gold visor, sculpted chest, curved shoulder pauldrons, articulated gauntlets, greaves and backpack power unit.
+- Retained multiplayer protocol, weapons, interpolation, minimap bounds, health regeneration and match flow.
+
+## Previous 0.8.0 visual pass (superseded)
 
 - Expand DISTRICT with storefronts, covered market stalls, rooftop utility details, street furniture, roadside barriers, planters, trees and additional environmental silhouettes.
 - Expand INDUSTRIAL with a large gantry landmark, fenced generator compound, more cargo variety, cable spools, loading-area details, stair/ramp access and additional industrial lighting.
