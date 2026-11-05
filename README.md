@@ -1,4 +1,4 @@
-# PROJECT: ECLIPSE — Prototype 0.6.0
+# PROJECT: ECLIPSE — Prototype 0.7.0
 
 A browser-based atmospheric multiplayer FPS prototype with Free-for-All, Duos and Trios, DISTRICT, a rebuilt INDUSTRIAL freight-yard arena, solo training, and a Node.js WebSocket service.
 
@@ -76,6 +76,12 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Replaced the placeholder capsule remote player with a multi-part operator model: helmet/visor, armor, vest, backpack, limbs, boots, held weapon, callsign and ground shadow.
 - Added remote movement interpolation, walk/run limb animation, crouch scaling and remote firing feedback.
 - Replicated movement, vertical position, crouch state and equipped weapon at 20 Hz.
+
+## 0.7.0 changes — recovery and connection cleanup
+- Added server-authoritative health regeneration during active multiplayer matches: after 4 seconds without taking damage, living players recover 12 health per second up to 100.
+- Health regeneration is replicated through the existing player-state updates, so every client sees the same health value.
+- Tightened WebSocket heartbeat checks from 30 seconds to 10 seconds. A connection that misses a heartbeat is terminated sooner, allowing the existing close handler to remove its player from the lobby and refresh the player list.
+- Added per-connection WebSocket error logging to help diagnose abnormal disconnects.
 
 ## Current implementation limits
 - The server validates shot direction, origin proximity, range, cooldown and player hit regions, but server-side line-of-sight against every map wall/prop is not yet implemented. Some shots may still pass through cover.
