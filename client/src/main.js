@@ -322,10 +322,23 @@ function createEclipse(){
 function updateCamera(){camera.position.copy(player.pos);camera.rotation.order='YXZ';camera.rotation.y=player.yaw;camera.rotation.x=player.pitch;}
 function buildViewWeapon(){
  if(viewWeapon){camera.remove(viewWeapon);viewWeapon.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
- const w=weapons[weaponIndex],g=new THREE.Group();const dark=new THREE.MeshStandardMaterial({color:0x202a32,metalness:.72,roughness:.32}),body=new THREE.MeshStandardMaterial({color:weaponIndex===1?0x263b45:weaponIndex===2?0x3a2927:0x343b42,metalness:.58,roughness:.38}),glow=new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:1.1,metalness:.2,roughness:.25});
- const add=(geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;};
- add(new THREE.BoxGeometry(.22,.18,.48),body,0,0,0);add(new THREE.BoxGeometry(.13,.12,.27),dark,0,.015,-.31);add(new THREE.CylinderGeometry(.035,.045,.36,10),dark,0,.02,-.48).rotation.x=Math.PI/2;add(new THREE.BoxGeometry(.1,.2,.16),dark,0,-.16,.08);add(new THREE.BoxGeometry(.045,.035,.24),glow,0,.105,-.05);add(new THREE.BoxGeometry(.08,.035,.09),dark,0,.12,-.22);
- const handMat=new THREE.MeshStandardMaterial({color:0x34383c,roughness:.9});add(new THREE.BoxGeometry(.13,.22,.16),handMat,-.13,-.12,.12);
+ const w=weapons[weaponIndex],g=new THREE.Group();
+ const dark=new THREE.MeshStandardMaterial({color:0x17242b,metalness:.78,roughness:.28}),body=new THREE.MeshStandardMaterial({color:weaponIndex===1?0x29444d:weaponIndex===2?0x49342e:0x3c5148,metalness:.58,roughness:.34}),glow=new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:1.15,metalness:.25,roughness:.2});
+ const armor=new THREE.MeshPhysicalMaterial({color:0x667d56,metalness:.48,roughness:.35,clearcoat:.4}),glove=new THREE.MeshStandardMaterial({color:0x101719,roughness:.92}),trim=new THREE.MeshStandardMaterial({color:0x94a5a0,metalness:.76,roughness:.3});
+ const add=(parent,geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m;};
+ const ell=(parent,mat,x,y,z,sx,sy,sz)=>{const m=add(parent,new THREE.SphereGeometry(1,20,14),mat,x,y,z);m.scale.set(sx,sy,sz);return m;};
+ const cap=(parent,mat,x,y,z,r,len)=>add(parent,new THREE.CapsuleGeometry(r,len,5,12),mat,x,y,z);
+ // Rounded first-person powered-armour sleeves and articulated gloves frame the rifle.
+ const leftSleeve=cap(g,armor,-.27,-.25,.13,.105,.34);leftSleeve.rotation.z=.38;const rightSleeve=cap(g,armor,.28,-.25,.15,.11,.36);rightSleeve.rotation.z=-.42;
+ ell(g,trim,-.27,-.43,.02,.12,.055,.12);ell(g,trim,.28,-.43,.03,.125,.055,.125);
+ ell(g,glove,-.16,-.16,-.05,.105,.085,.14);ell(g,glove,.18,-.16,-.06,.11,.09,.15);
+ ell(g,armor,-.16,-.14,-.12,.095,.055,.12);ell(g,armor,.18,-.14,-.13,.1,.06,.13);
+ // Compact sci-fi pulse rifle built from curved receiver, energy cell and a rounded barrel.
+ ell(g,body,0,0,0,.17,.14,.31);ell(g,dark,0,.015,-.23,.115,.1,.18);ell(g,body,0,-.08,.12,.12,.16,.13);
+ const barrel=cap(g,dark,0,.015,-.43,.043,.28);barrel.rotation.x=Math.PI/2;
+ ell(g,glow,0,.09,-.13,.075,.035,.14);ell(g,glow,0,.015,-.56,.055,.055,.045);
+ const sight=cap(g,trim,0,.14,-.12,.025,.1);sight.rotation.x=Math.PI/2;
+ const grip=cap(g,dark,0,-.16,.12,.045,.16);grip.rotation.x=-.18;
  g.position.set(.43,-.34,-.72);g.rotation.set(-.04,-.08,0);camera.add(g);viewWeapon=g;
  $('weapon-name').textContent=w.name;$('weapon-class').textContent=w.className;syncAmmo();
 }
