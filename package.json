@@ -1,8 +1,8 @@
 {
   "name": "project-eclipse",
-  "version": "0.9.0",
+  "version": "0.11.0",
   "private": true,
-  "description": "A browser-based multiplayer arena FPS prototype with two fully rebuilt sci-fi arenas and rounded powered-armor operators",
+  "description": "A browser-based multiplayer arena FPS prototype with two sci-fi arenas, angular powered-armor operators, distinct weapons and customizable crosshairs",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
