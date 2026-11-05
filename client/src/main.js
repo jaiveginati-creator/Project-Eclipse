@@ -210,6 +210,8 @@ function buildDistrict(){
  for(let i=0;i<12;i++){const x=-42+(i*17)%84,z=-39+((i*29)%78);detailBox(x,.08,z,.18,.12,.55,materials.trim);}
  // Sheltered courtyard and small cover pieces.
  for(const [x,z] of [[-16,0],[16,0],[0,-16],[0,16]]){box(x,.7,z,3,1.4,1.2,materials.dark);box(x,.18,z,3.3,.25,1.5,materials.trim,false);}
+ // Two larger residential blocks give the outer district a stronger skyline and more enclosed streets.
+ makeBuilding(-10,-39,12,10,10,6);makeBuilding(10,39,12,10,11,7);
  // New neighbourhood layer: shopfronts, covered market, service alleys and rooftop silhouettes.
  for(const [x,z,w,c,r] of [[-34,-20,7,0xb77b4b,0],[-34,20,7,0x6e9b9e,Math.PI],[34,-20,7,0x9b7652,Math.PI],[34,20,7,0x8c9b70,0],[-20,-34,8,0x8d765e,Math.PI/2],[20,34,8,0x7b9aa0,-Math.PI/2]])makeStorefront(x,z,w,c,r);
  for(const [x,z,r,c] of [[-5,28,0,0x8b5547],[5,28,0,0x536d78],[-5,-28,Math.PI,0x9b744a],[5,-28,Math.PI,0x687b63]])makeMarketCanopy(x,z,r,c);
@@ -364,6 +366,8 @@ function buildIndustrial(){
   if(Math.abs(x)<5&&Math.abs(z)<8)continue;
   detailBox(x,.09,z,.55+((i%3)*.2),.16,.35,materials.dark);
  }
+ // West-side operations/control hall creates a major interior landmark and a new route through the yard.
+ makeWarehouse(-40,0,14,18,14,1,'CONTROL');
  // Freight-yard expansion: crane gantry, fenced utility compound, stacked cargo and maintenance clutter.
  for(const x of [-36,36]){box(x,7,0,.42,14,.42,materials.dark);detailBox(x,14,0,.9,.22,.9,materials.trim);for(const z of [-18,18]){box(x,7,z,.3,14,.3,materials.dark);detailBox(x,14,z,.7,.18,.7,materials.amber);}}
  box(0,13.4,0,74,.55,.65,materials.dark);detailBox(0,13.72,0,72,.08,.78,materials.trim);
