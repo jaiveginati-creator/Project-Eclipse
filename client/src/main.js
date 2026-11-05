@@ -321,7 +321,7 @@ function createEclipse(){
 }
 function updateCamera(){camera.position.copy(player.pos);camera.rotation.order='YXZ';camera.rotation.y=player.yaw;camera.rotation.x=player.pitch;}
 function buildViewWeapon(){
- if(viewWeapon){camera.remove(viewWeapon);viewWeapon.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
+ if(viewWeapon){camera.remove(viewWeapon);viewWeapon.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});}
  const w=weapons[weaponIndex],g=new THREE.Group();
  const dark=new THREE.MeshStandardMaterial({color:0x17242b,metalness:.78,roughness:.28}),body=new THREE.MeshStandardMaterial({color:weaponIndex===1?0x29444d:weaponIndex===2?0x49342e:0x3c5148,metalness:.58,roughness:.34}),glow=new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:1.15,metalness:.25,roughness:.2});
  const armor=new THREE.MeshPhysicalMaterial({color:0x667d56,metalness:.48,roughness:.35,clearcoat:.4}),glove=new THREE.MeshStandardMaterial({color:0x101719,roughness:.92}),trim=new THREE.MeshStandardMaterial({color:0x94a5a0,metalness:.76,roughness:.3});
