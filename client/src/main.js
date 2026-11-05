@@ -335,7 +335,7 @@ function buildViewWeapon(){
 function syncAmmo(){const a=weaponAmmo[weaponIndex];ammo=a.ammo;reserve=a.reserve;$('ammo').textContent=ammo;$('reserve').textContent=reserve;}
 function switchWeapon(index){if(index<0||index>=weapons.length||index===weaponIndex)return;if(reloadTimer){clearTimeout(reloadTimer);reloadTimer=null;}weaponAmmo[weaponIndex].ammo=ammo;weaponAmmo[weaponIndex].reserve=reserve;weaponIndex=index;reloading=false;buildViewWeapon();toast(weapons[index].name);}
 
-function collides(pos){const pbox=new THREE.Box3(new THREE.Vector3(pos.x-.32,pos.y-1.55,pos.z-.32),new THREE.Vector3(pos.x+.32,pos.y+.05,pos.z+.32));return colliders.some(b=>b.intersectsBox(pbox));}
+function collides(pos){if(Math.abs(pos.x)>47.8||Math.abs(pos.z)>47.8)return true;const pbox=new THREE.Box3(new THREE.Vector3(pos.x-.32,pos.y-1.55,pos.z-.32),new THREE.Vector3(pos.x+.32,pos.y+.05,pos.z+.32));return colliders.some(b=>b.intersectsBox(pbox));}
 function movePlayer(dt){
  if(health<=0){updateCamera();return;}
  const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw)),right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));let dir=new THREE.Vector3();if(keys.KeyW)dir.add(forward);if(keys.KeyS)dir.sub(forward);if(keys.KeyD)dir.add(right);if(keys.KeyA)dir.sub(right);if(dir.lengthSq())dir.normalize();
@@ -461,6 +461,39 @@ function handleNetwork(m){
  if(m.type==='matchEnd')showResults(m.results||[]);
  if(m.type==='error')toast(m.message||'Server error');
 }
+
+// Top-down tactical radar. World coordinates stay north-up; the player marker shows facing.
+function drawMinimap(){
+ const canvas=$('minimap-canvas');if(!canvas)return;
+ const ctx=canvas.getContext('2d');if(!ctx)return;
+ const size=canvas.width, pad=10, span=100, scale=(size-pad*2)/span;
+ const px=x=>pad+(x+50)*scale, py=z=>pad+(z+50)*scale;
+ ctx.clearRect(0,0,size,size);
+ ctx.fillStyle='rgba(5,12,19,.91)';ctx.fillRect(0,0,size,size);
+ ctx.strokeStyle='rgba(188,205,218,.12)';ctx.lineWidth=1;
+ for(let v=-40;v<=40;v+=20){ctx.beginPath();ctx.moveTo(px(v),pad);ctx.lineTo(px(v),size-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py(v));ctx.lineTo(size-pad,py(v));ctx.stroke();}
+ // Map perimeter: movement is blocked just inside this line.
+ ctx.strokeStyle='rgba(230,168,91,.9)';ctx.lineWidth=2;ctx.strokeRect(px(-47.8),py(-47.8),95.6*scale,95.6*scale);
+ // A few orientation/road references keep the radar readable without clutter.
+ ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(px(-7.5),py(-45));ctx.lineTo(px(-7.5),py(45));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(px(-45),py(-7));ctx.lineTo(px(45),py(-7));ctx.stroke();
+ // Teammates are cyan; opponents are red. Training has no network contacts.
+ for(const p of players){
+  if(p.id===myId||p.alive===false)continue;
+  const friendly=selectedMode!=='ffa'&&p.team===teamId;
+  const x=px(THREE.MathUtils.clamp(Number(p.x)||0,-49,49));
+  const y=py(THREE.MathUtils.clamp(Number(p.z)||0,-49,49));
+  ctx.beginPath();ctx.arc(x,y,friendly?4.1:4.6,0,Math.PI*2);
+  ctx.fillStyle=friendly?'#69d5e8':'#ff5656';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;ctx.fill();ctx.shadowBlur=0;
+ }
+ const x=px(player.pos.x),y=py(player.pos.z),a=player.yaw;
+ ctx.save();ctx.translate(x,y);ctx.rotate(-a);
+ ctx.fillStyle='#f5c27d';ctx.strokeStyle='#fff0d8';ctx.lineWidth=1.2;ctx.shadowColor='#f5c27d';ctx.shadowBlur=8;
+ ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(5.5,6);ctx.lineTo(0,3.5);ctx.lineTo(-5.5,6);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+ ctx.fillStyle='rgba(226,235,241,.7)';ctx.font='bold 8px Inter,Arial';ctx.fillText('N',size/2-3,9);
+}
+
 function updateHealthHud(){health=Math.max(0,Math.min(100,health));$('health-fill').style.width=`${health}%`;$('health-value').textContent=String(Math.round(health));}
 
 function renderPlayers(){const list=$('player-list');if(!list)return;list.innerHTML='';players.forEach(p=>{const row=document.createElement('div');row.className='player-row';const name=document.createElement('span');name.textContent=p.name+(p.id===myId?'  (YOU)':'');if(p.id===myId)name.className='self';const role=document.createElement('small');role.textContent=p.team!==null&&p.team!==undefined?'SQUAD '+(p.team+1):'SOLO';row.append(name,role);list.append(row);});$('lobby-count').textContent=`${players.length} / ${selectedMode==='ffa'?8:selectedMode==='duos'?8:12}`;updateTeamPanel();}
@@ -479,7 +512,7 @@ function resumeGame(){paused=false;$('pause').classList.remove('active');canvas.
 function showResults(results=[]){running=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('results').classList.add('active');$('result-kills').textContent=kills;$('result-place').textContent=results.findIndex(p=>p.id===myId)+1||'—';$('result-xp').textContent=kills*100+250;const list=$('results-list');list.innerHTML='';results.forEach((p,i)=>{const row=document.createElement('div');row.className='results-row';row.innerHTML=`<span>${i+1}. ${escapeHtml(p.name)}</span><b>${p.score||0}</b>`;list.append(row);});}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function backToMenu(){running=false;paused=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('pause').classList.remove('active');$('results').classList.remove('active');$('lobby').classList.remove('active');$('menu').classList.add('active');if(socket){socket.close();socket=null;}for(const id of remotePlayers.keys())removeRemote(id);}
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running&&!paused){movePlayer(dt);if(mouseHeld&&weapons[weaponIndex].id==='volt')fire();updateProjectiles(dt);updateRemoteModels(dt);remaining-=dt;if(remaining<=0){remaining=0;if(training)showResults([]);else send('endMatch');}const mins=Math.floor(remaining/60),secs=Math.floor(remaining%60);$('timer').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;if(!training&&performance.now()-lastMoveSend>=50){lastMoveSend=performance.now();send('move',{x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw:player.yaw,pitch:player.pitch,moving:player.moving,crouching:player.crouching,weapon:weapons[weaponIndex].id});}}else {updateProjectiles(dt);updateRemoteModels(dt);}renderer.render(scene,camera);}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running&&!paused){movePlayer(dt);if(mouseHeld&&weapons[weaponIndex].id==='volt')fire();updateProjectiles(dt);updateRemoteModels(dt);remaining-=dt;if(remaining<=0){remaining=0;if(training)showResults([]);else send('endMatch');}const mins=Math.floor(remaining/60),secs=Math.floor(remaining%60);$('timer').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;if(!training&&performance.now()-lastMoveSend>=50){lastMoveSend=performance.now();send('move',{x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw:player.yaw,pitch:player.pitch,moving:player.moving,crouching:player.crouching,weapon:weapons[weaponIndex].id});}}else {updateProjectiles(dt);updateRemoteModels(dt);}drawMinimap();renderer.render(scene,camera);}
 
 $('mode-grid');document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedMode=b.dataset.mode;}));
 document.querySelectorAll('.map-choice').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.map-choice').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMap=b.dataset.map;$('map-name').textContent=selectedMap.toUpperCase();}));
