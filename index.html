@@ -29,6 +29,13 @@
           </div>
           <div class="map-row"><div><span class="panel-label">DEPLOYMENT ZONE</span><strong id="map-name">DISTRICT</strong></div><div class="map-switch"><button class="map-choice active" data-map="district">01 / DISTRICT</button><button class="map-choice" data-map="industrial">02 / INDUSTRIAL</button></div></div>
           <div class="connect-row"><label for="server-url">SERVER</label><input id="server-url" value="" placeholder="Auto-detect server or paste WSS URL" spellcheck="false"><span class="server-status"><i id="server-dot"></i><span id="server-label">OFFLINE / LOCAL</span></span></div>
+          <div class="crosshair-settings"><div><span class="panel-label">CROSSHAIR</span><small>PERSONALIZE YOUR AIM</small></div><div class="crosshair-options">
+            <button class="crosshair-choice selected" data-crosshair="standard" aria-label="Regular crosshair"><i class="crosshair-preview" data-style="standard"></i><span>REGULAR</span></button>
+            <button class="crosshair-choice" data-crosshair="red" aria-label="Red crosshair"><i class="crosshair-preview" data-style="red"></i><span>RED</span></button>
+            <button class="crosshair-choice" data-crosshair="dot" aria-label="Dot crosshair"><i class="crosshair-preview" data-style="dot"></i><span>DOT</span></button>
+            <button class="crosshair-choice" data-crosshair="green" aria-label="Green precision crosshair"><i class="crosshair-preview" data-style="green"></i><span>PRECISION</span></button>
+            <button class="crosshair-choice" data-crosshair="amber" aria-label="Amber circle crosshair"><i class="crosshair-preview" data-style="amber"></i><span>CIRCLE</span></button>
+          </div></div>
           <button id="deploy" class="deploy-button"><span>DEPLOY TO OPERATION</span><b>→</b></button>
           <button id="training" class="training-button">ENTER SOLO TRAINING <span>↗</span></button>
         </div>
@@ -40,7 +47,7 @@
     </div>
     <div id="hud" class="hud hidden">
       <div class="hud-top"><div class="match-chip"><span class="live-dot"></span><span id="hud-mode">FREE FOR ALL</span><i></i><span id="hud-map">DISTRICT</span></div><div class="timer" id="timer">08:00</div><div class="score-chip" id="scoreboard-mini">YOU <b>0</b> <i>—</i> TOP <b>0</b></div></div>
-      <div class="minimap" aria-label="Tactical minimap"><div class="minimap-heading">TACTICAL RADAR <span>LIVE</span></div><canvas id="minimap-canvas" width="200" height="200"></canvas><div class="minimap-legend"><span><i class="you"></i> YOU</span><span><i class="enemy"></i> ENEMY</span><span><i class="ally"></i> ALLY</span></div></div><div class="crosshair"><span></span><i></i></div>
+      <div class="minimap" aria-label="Tactical minimap"><div class="minimap-heading">TACTICAL RADAR <span>LIVE</span></div><canvas id="minimap-canvas" width="200" height="200"></canvas><div class="minimap-legend"><span><i class="you"></i> YOU</span><span><i class="enemy"></i> ENEMY</span><span><i class="ally"></i> ALLY</span></div></div><div id="game-crosshair" class="crosshair" data-style="standard"><span></span><i></i></div>
       <div id="hit-marker" class="hit-marker">×</div>
       <div class="hud-bottom"><div class="player-status"><div class="status-icon">E</div><div><small>OPERATOR</small><strong id="player-name">ECLIPSE-01</strong></div><div class="health-track"><div id="health-fill"></div></div><b id="health-value">100</b></div><div class="objective-hint" id="objective-hint">ELIMINATIONS WIN THE OPERATION</div><div class="weapon-status"><div class="weapon-label"><small>ACTIVE WEAPON</small><strong><span id="weapon-name">PULSE CARBINE</span></strong><small id="weapon-class">MK.01 · BALANCED</small></div><div class="ammo"><b id="ammo">12</b><i>/</i><span id="reserve">48</span></div></div></div>
       <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1/2/3 WEAPONS <i>·</i> CLICK FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> ESC MENU</div>
