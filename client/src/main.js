@@ -529,7 +529,8 @@ function setCrosshair(style,save=true){
  document.querySelectorAll('[data-crosshair]').forEach(b=>b.classList.toggle('selected',b.dataset.crosshair===chosen));
  if(save){try{localStorage.setItem('eclipse-crosshair',chosen);}catch{}}
 }
-\nfunction updateHealthHud(){health=Math.max(0,Math.min(100,health));$('health-fill').style.width=`${health}%`;$('health-value').textContent=String(Math.round(health));}
+
+function updateHealthHud(){health=Math.max(0,Math.min(100,health));$('health-fill').style.width=`${health}%`;$('health-value').textContent=String(Math.round(health));}
 
 function renderPlayers(){const list=$('player-list');if(!list)return;list.innerHTML='';players.forEach(p=>{const row=document.createElement('div');row.className='player-row';const name=document.createElement('span');name.textContent=p.name+(p.id===myId?'  (YOU)':'');if(p.id===myId)name.className='self';const role=document.createElement('small');role.textContent=p.team!==null&&p.team!==undefined?'SQUAD '+(p.team+1):'SOLO';row.append(name,role);list.append(row);});$('lobby-count').textContent=`${players.length} / ${selectedMode==='ffa'?8:selectedMode==='duos'?8:12}`;updateTeamPanel();}
 function updateTeamPanel(){const panel=$('team-panel');panel.innerHTML='';if(selectedMode==='ffa'){panel.classList.add('hidden');return;}panel.classList.remove('hidden');players.filter(p=>p.team===teamId).forEach(p=>{const el=document.createElement('div');el.className='team-member';el.textContent=(p.id===myId?'YOU':p.name);panel.append(el);});}
