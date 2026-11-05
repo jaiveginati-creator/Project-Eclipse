@@ -185,42 +185,32 @@ function addRoadMarkings(){
   for(let k=0;k<5;k++)detailBox(x-.45+k*.22,.03,z,.035,.012,.72,materials.trim);
  }
 }
+function addVisualMesh(geometry,material,x,y,z,solid=false){const m=new THREE.Mesh(geometry,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);mapObjects.push(m);if(solid){m.updateMatrixWorld(true);colliders.push(new THREE.Box3().setFromObject(m));}return m;}
+function mapLight(x,y,z,color=0x62d9eb,intensity=1,range=16){const l=new THREE.PointLight(color,intensity,range,2);l.position.set(x,y,z);scene.add(l);mapObjects.push(l);addVisualMesh(new THREE.SphereGeometry(.14,12,8),new THREE.MeshBasicMaterial({color}),x,y,z);}
+function makeArcTower(x,z,r,h,color=0x354e5a,glow=0x58d5e6){const metal=new THREE.MeshStandardMaterial({color,metalness:.62,roughness:.34});addVisualMesh(new THREE.CylinderGeometry(r*.82,r,h,24),metal,x,h/2,z,true);addVisualMesh(new THREE.CylinderGeometry(r*1.22,r*1.3,.65,24),materials.dark,x,.32,z,true);const lit=new THREE.MeshStandardMaterial({color:glow,emissive:glow,emissiveIntensity:.75,metalness:.4,roughness:.25});for(const y of [h*.25,h*.55,h*.83]){const ring=addVisualMesh(new THREE.TorusGeometry(r*1.04,.13,8,48),lit,x,y,z);ring.rotation.x=Math.PI/2;}for(let i=0;i<8;i++){const a=i*Math.PI/4,m=addVisualMesh(new THREE.BoxGeometry(.22,h*.78,.28),materials.trim,x+Math.cos(a)*(r+.08),h*.52,z+Math.sin(a)*(r+.08),true);m.rotation.y=-a;}mapLight(x,h*.7,z,glow,.85,Math.max(12,h));}
+function makeHabitat(x,z,w,d,h,color=0x4b626d,glow=0x55d4e4){const shell=new THREE.MeshStandardMaterial({color,metalness:.5,roughness:.52});box(x,h/2,z,w,h,d,shell,true);for(const side of [-1,1])detailBox(x+side*(w/2+.03),h*.55,z,.08,.2,d*.78,new THREE.MeshBasicMaterial({color:glow}));for(let k=-1;k<=1;k++)detailBox(x+k*w*.25,h*.58,z-d/2-.05,w*.15,.8,.08,new THREE.MeshStandardMaterial({color:0x8ed7e2,emissive:glow,emissiveIntensity:.25,metalness:.4,roughness:.2}));detailBox(x,.95,z+d/2+.06,w*.22,1.9,.1,materials.dark);}
+function makeShield(x,z,rotation=0,color=0x526d78){const m=addVisualMesh(new THREE.CapsuleGeometry(.82,1.35,6,14),new THREE.MeshStandardMaterial({color,metalness:.52,roughness:.42}),x,1.05,z,true);m.scale.set(1.3,1.1,.55);m.rotation.z=Math.PI/2;m.rotation.y=rotation;const stripe=detailBox(x,1.2,z-.32,1.5,.12,.07,new THREE.MeshBasicMaterial({color:0x61ddeb}));stripe.rotation.y=rotation;}
 function buildDistrict(){
- clearMap();scene.background.set(0x121b27);scene.fog.color.set(0x1a2633);scene.fog.density=.012;
- hemi.color.set(0x9aaec5);hemi.groundColor.set(0x20232a);hemi.intensity=1.35;moonLight.color.set(0xffd4a1);moonLight.intensity=2.1;moonLight.position.set(-35,55,-20);fill.color.set(0x6382a7);fill.intensity=.45;
- box(0,-.18,0,100,.3,100,materials.ground,false);
- box(0,-.06,0,15,.12,90,materials.asphalt,false);box(0,-.055,0,90,.11,14,materials.asphalt,false);
- for(let i=-40;i<=40;i+=5){box(i,.012,0,.08,.015,88,materials.trim,false);box(0,.012,i,88,.015,.08,materials.trim,false);}
- const blocks=[[-18,-18,17,16,13],[0,-20,15,17,18],[18,-18,17,16,15],[-19,18,17,17,17],[0,20,15,16,12],[19,18,17,17,20],[-33,-2,11,15,11],[33,1,11,15,12]];
- blocks.forEach((b,i)=>makeBuilding(...b,i));
- for(let i=0;i<18;i++){const x=(i%6-2.5)*5.4,z=(Math.floor(i/6)-1)*7.2;makeCrate(x,z,.75+(i%3)*.15);}
- // More broken sightlines: kiosks, dumpsters, low walls and tucked-away cover pockets.
- for(const [x,z] of [[-7,-11],[7,11],[-11,7],[11,-7],[-25,0],[25,0],[-7,25],[7,-25]])addCoverCluster(x,z);
- for(const [x,z] of [[-12,-5],[12,5],[-5,12],[5,-12]]){box(x,.48,z,2.8,.96,.42,materials.concrete);detailBox(x,.99,z,2.7,.08,.38,materials.trim);}
- // Short access ramps connect the street to raised loading platforms and roof-adjacent walkways.
- makeRamp(-10,2,4.8,7,1.9,0);makeRamp(10,-2,4.8,7,1.9,Math.PI);makeRamp(0,-6,5,7,1.7,Math.PI/2);
- for(const p of [[-9,-9],[-9,9],[9,-9],[9,9],[-35,-18],[35,18]])makeStreetLamp(...p);
- addRoadMarkings();
- // Pavement edges, planted courtyards, trees and street furniture add scale to the district.
- for(const side of [-1,1]){detailBox(side*9,.12,0,1.1,.24,88,materials.concrete);detailBox(0,.12,side*9,88,.24,1.1,materials.concrete);}
- for(const [x,z] of [[-34,-34],[34,-34],[-34,34],[34,34],[-17,-34],[17,34]]){
-  box(x,.28,z,3.8,.56,2.6,materials.dark);detailBox(x,.58,z,3.65,.08,2.45,materials.trim);makeTree(x,z,1.05);
- }
- for(const [x,z] of [[-13,-4],[13,4],[-4,13],[4,-13],[-34,8],[34,-8]])makeStreetFurniture(x,z);
- for(let i=0;i<12;i++){const x=-42+(i*17)%84,z=-39+((i*29)%78);detailBox(x,.08,z,.18,.12,.55,materials.trim);}
- // Sheltered courtyard and small cover pieces.
- for(const [x,z] of [[-16,0],[16,0],[0,-16],[0,16]]){box(x,.7,z,3,1.4,1.2,materials.dark);box(x,.18,z,3.3,.25,1.5,materials.trim,false);}
- // Two larger residential blocks give the outer district a stronger skyline and more enclosed streets.
- makeBuilding(-10,-39,12,10,10,6);makeBuilding(10,39,12,10,11,7);
- // New neighbourhood layer: shopfronts, covered market, service alleys and rooftop silhouettes.
- for(const [x,z,w,c,r] of [[-34,-20,7,0xb77b4b,0],[-34,20,7,0x6e9b9e,Math.PI],[34,-20,7,0x9b7652,Math.PI],[34,20,7,0x8c9b70,0],[-20,-34,8,0x8d765e,Math.PI/2],[20,34,8,0x7b9aa0,-Math.PI/2]])makeStorefront(x,z,w,c,r);
- for(const [x,z,r,c] of [[-5,28,0,0x8b5547],[5,28,0,0x536d78],[-5,-28,Math.PI,0x9b744a],[5,-28,Math.PI,0x687b63]])makeMarketCanopy(x,z,r,c);
- for(const [x,z] of [[-29,-28],[-29,28],[29,-28],[29,28],[-14,-35],[14,35]])makeRooftopMachinery(x,z,.9);
- for(const [x,z,l,r] of [[-27,-8,5,Math.PI/2],[27,8,5,Math.PI/2],[-8,-39,6,0],[8,39,6,0],[-39,0,5,0],[39,0,5,0]])makeRoadsideBarrier(x,z,l,r);
- for(const [x,z] of [[-23,0],[23,0],[0,-37],[0,37]]){makeStreetLamp(x,z);makeStreetFurniture(x+2,z+1);}
- for(const [x,z] of [[-42,-24],[-42,24],[42,-24],[42,24]]){box(x,3.1,z,.18,6.2,.18,materials.dark);detailBox(x,6.05,z,2.4,.12,.12,materials.trim);for(let k=-1;k<=1;k++)detailBox(x+k*.75,5.8,z,.08,.5,.08,materials.amber);}
- for(const [x,z] of [[-30,10],[30,-10],[-10,-30],[10,30]]){makeCrate(x,z,1.05);makeCableSpool(x+2,z+1,.72);}
- for(const [x,z] of [[-38,-8],[-38,8],[38,-8],[38,8],[-8,-38],[8,38]]){box(x,.32,z,4.2,.64,1.3,materials.dark);detailBox(x,.68,z,4.0,.08,1.15,materials.trim);for(let k=-1;k<=1;k++)makeTree(x+k*1.25,z,.48);}
+ clearMap();scene.background.set(0x172b3b);scene.fog.color.set(0x203849);scene.fog.density=.008;
+ hemi.color.set(0xa8d5e2);hemi.groundColor.set(0x17232d);hemi.intensity=1.48;moonLight.color.set(0xffd7a4);moonLight.intensity=2.35;moonLight.position.set(-32,58,-26);fill.color.set(0x55b8d1);fill.intensity=.7;
+ const pavement=new THREE.MeshStandardMaterial({color:0x3b4b54,roughness:.84,metalness:.16}),road=new THREE.MeshStandardMaterial({color:0x17242d,roughness:.72,metalness:.24});
+ box(0,-.28,0,104,.48,104,pavement,false);box(0,-.015,0,17,.08,100,road,false);box(0,-.012,0,100,.08,17,road,false);
+ for(const s of [-1,1]){detailBox(s*9.3,.05,0,.75,.12,100,materials.trim);detailBox(0,.05,s*9.3,100,.12,.75,materials.trim);for(let p=-44;p<=44;p+=8){detailBox(s*5.6,.035,p,.12,.025,2.8,new THREE.MeshBasicMaterial({color:0x54c9d9}));detailBox(p,.035,s*5.6,2.8,.025,.12,new THREE.MeshBasicMaterial({color:0x54c9d9}));}}
+ addVisualMesh(new THREE.CylinderGeometry(14.5,15.5,.34,64),new THREE.MeshStandardMaterial({color:0x243742,metalness:.5,roughness:.45}),0,.12,0);
+ const ring=addVisualMesh(new THREE.TorusGeometry(12.7,.22,10,96),new THREE.MeshStandardMaterial({color:0x55d5e7,emissive:0x16899e,emissiveIntensity:.9}),0,.35,0);ring.rotation.x=Math.PI/2;
+ addVisualMesh(new THREE.CylinderGeometry(7.2,7.8,.18,48),new THREE.MeshStandardMaterial({color:0x657982,metalness:.58,roughness:.3}),0,.34,0);
+ for(const [x,z,r] of [[-18,-18,0],[18,-18,Math.PI/2],[-18,18,-Math.PI/2],[18,18,Math.PI]])makeShield(x,z,r);
+ const towers=[[-37,-34,4.8,19],[-22,-39,3.5,13],[37,-34,5.2,22],[23,-39,3.6,15],[-37,34,5.1,21],[-22,39,3.7,14],[37,34,4.8,19],[23,39,3.5,13]];
+ towers.forEach((t,i)=>makeArcTower(...t,i%2?0x405b67:0x344b58,i%2?0x65c9df:0x53e0d0));
+ const habitats=[[-29,-17,11,8,5],[-7,-33,10,8,5],[29,-17,11,8,5],[7,-33,10,8,5],[-29,17,11,8,5],[7,33,10,8,5],[29,17,11,8,5],[-7,33,10,8,5]];
+ habitats.forEach((h,i)=>makeHabitat(...h,i%2?0x526773:0x465c67,i%2?0x58d6e4:0x8be0d5));
+ for(const z of [-27,27]){const tube=addVisualMesh(new THREE.CylinderGeometry(.42,.42,52,16),new THREE.MeshStandardMaterial({color:0x6c8a94,metalness:.65,roughness:.28}),0,7,z);tube.rotation.z=Math.PI/2;for(let x=-24;x<=24;x+=12){box(x,3.5,z,.3,7,.3,materials.dark);detailBox(x,7.1,z,.9,.14,.9,new THREE.MeshBasicMaterial({color:0x56cfe0}));}}
+ for(const [x,z] of [[-42,0],[42,0],[0,-42],[0,42]]){addVisualMesh(new THREE.CylinderGeometry(5.5,5.5,.24,40),new THREE.MeshStandardMaterial({color:0x293b45,metalness:.55,roughness:.4}),x,.08,z);const pr=addVisualMesh(new THREE.TorusGeometry(4.7,.12,8,48),new THREE.MeshBasicMaterial({color:0x6ad9e5}),x,.23,z);pr.rotation.x=Math.PI/2;mapLight(x,3,z,0x69dce8,1.2,20);}
+ for(const [x,z] of [[-25,-8],[25,8],[-8,25],[8,-25],[-40,12],[40,-12]])makeShield(x,z,(x+z)*.02,0x4e6570);
+ for(let i=0;i<20;i++){const x=-43+(i*19)%86,z=-41+((i*31)%82);addVisualMesh(new THREE.CylinderGeometry(.75,.95,.8,12),new THREE.MeshStandardMaterial({color:0x354a50,roughness:.9}),x,.4,z,true);const shrub=addVisualMesh(new THREE.IcosahedronGeometry(.85,2),new THREE.MeshStandardMaterial({color:0x355e59,roughness:1}),x,1.25,z);shrub.scale.y=.8;}
+ for(const [x,z] of [[-14,-35],[14,-35],[-14,35],[14,35],[-42,-15],[42,15],[-42,15],[42,-15]]){addVisualMesh(new THREE.CylinderGeometry(.11,.18,7,10),materials.dark,x,3.5,z,true);detailBox(x+.9,6.65,z,1.8,.12,.16,materials.trim);mapLight(x+.9,6.35,z,0x7be3f1,.7,13);}
+ for(const [x,z] of [[-32,-8],[32,8],[-8,32],[8,-32]]){addVisualMesh(new THREE.CylinderGeometry(.8,.8,4,20,1,true),new THREE.MeshBasicMaterial({color:0x4dd7e8,transparent:true,opacity:.18,side:THREE.DoubleSide}),x,2,z);mapLight(x,2,z,0x4dd7e8,.8,9);}
+ makeRamp(-24,0,4.5,8,1.8,Math.PI/2);makeRamp(24,0,4.5,8,1.8,-Math.PI/2);
  player.pos.set(0,1.7,7);player.yaw=Math.PI;updateCamera();
 }
 function makeWarehouse(x,z,w=28,d=22,h=10,face=1,label='FREIGHT'){
@@ -298,91 +288,30 @@ function makeWalkway(x,z,width,depth,height,rotation=0){
  const stripe=detailBox(x,height+.115,z,width-.25,.025,.08,materials.amber);stripe.rotation.y=rotation;
 }
 function buildIndustrial(){
- clearMap();scene.background.set(0x111820);scene.fog.color.set(0x18232b);scene.fog.density=.011;
- hemi.color.set(0x8298a7);hemi.groundColor.set(0x171b1d);hemi.intensity=1.05;
- moonLight.color.set(0xffc78a);moonLight.intensity=2.35;moonLight.position.set(-24,42,-12);
- fill.color.set(0x668ba0);fill.intensity=.55;
- const concrete=new THREE.MeshStandardMaterial({color:0x454b4d,roughness:.97}),wetAsphalt=new THREE.MeshStandardMaterial({color:0x20292d,roughness:.32,metalness:.18});
- box(0,-.2,0,104,.35,104,concrete,false);
- box(0,-.045,0,18,.09,100,wetAsphalt,false);box(0,-.04,0,100,.08,16,wetAsphalt,false);
- // Perimeter retaining walls and chain-link security fence.
- for(const side of [-1,1]){
-  box(side*50,1.15,0,.7,2.3,100,materials.dark);box(0,1.15,side*50,100,2.3,.7,materials.dark);
-  for(let p=-46;p<=46;p+=4){detailBox(side*49.45,3.1,p,.09,1.9,.09,materials.trim);detailBox(p,3.1,side*49.45,.09,1.9,.09,materials.trim);}
-  detailBox(side*49.45,4.05,0,.12,.12,100,materials.trim);detailBox(0,4.05,side*49.45,100,.12,.12,materials.trim);
- }
- // Four large, accessible freight halls define the perimeter without sealing the arena.
- makeWarehouse(-29,-34,29,22,11,1,'NORTH-01');
- makeWarehouse(29,-34,29,22,12,1,'NORTH-02');
- makeWarehouse(-29,34,29,22,10,-1,'SOUTH-03');
- makeWarehouse(29,34,29,22,11,-1,'SOUTH-04');
- // Central sorting yard: staggered container lanes, gaps, blind corners and low service cover.
- makeContainer(-19,-10,10,2.8,0,0x43545b);makeContainer(-19,-1,7,2.8,0,0x59605a);
- makeContainer(-19,9,10,2.8,0,0x46545e);makeContainer(19,-10,10,2.8,0,0x5b5147);
- makeContainer(19,1,7,2.8,0,0x47565b);makeContainer(19,11,10,2.8,0,0x4d5b50);
- makeContainer(-7,-23,8,2.7,Math.PI/2,0x4e565b);makeContainer(7,-23,8,2.7,Math.PI/2,0x55534b);
- makeContainer(-7,23,8,2.7,Math.PI/2,0x4c5960);makeContainer(7,23,8,2.7,Math.PI/2,0x5b5147);
- // Pallet stacks, cable drums, forklifts-as-static-props, skips and maintenance cabinets.
- for(const [x,z] of [[-12,-13],[12,-13],[-12,14],[12,14],[-31,0],[31,0]]){
-  for(let k=0;k<3;k++)box(x+(k%2)*.72,.38+Math.floor(k/2)*.76,z,.68,.72,.68,materials.crate);
-  box(x+2,.58,z,1.5,1.15,1.0,materials.dark);detailBox(x+2,.12,z,1.8,.16,1.2,materials.trim);
- }
- for(const [x,z] of [[-3,-12],[3,12],[-27,15],[27,-15],[-8,7],[8,-7]]){
-  const drum=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,1.25,16),new THREE.MeshStandardMaterial({color:0x59656a,metalness:.55,roughness:.45}));drum.position.set(x,.65,z);drum.castShadow=true;scene.add(drum);mapObjects.push(drum);colliders.push(new THREE.Box3(new THREE.Vector3(x-.65,0,z-.65),new THREE.Vector3(x+.65,1.3,z+.65)));
-  detailBox(x,1.3,z,.9,.08,.9,materials.trim);
- }
- // Two elevated maintenance catwalks with ramps at both ends. Their surfaces are walkable.
- makeWalkway(-12,-23,3.6,13,2.4,0);makeRamp(-12,-13,3.8,7,2.4,0);makeRamp(-12,-33,3.8,7,2.4,Math.PI);
- makeWalkway(12,23,3.6,13,2.4,0);makeRamp(12,20,3.8,7,2.4,Math.PI);makeRamp(12,33,3.8,7,2.4,0);
- // Cross-yard pipe bridge, support frames, insulated pipes and valve stations.
- for(const x of [-4,4]){
-  for(const z of [-7,7]){box(x,2.1,z,.24,4.2,.24,materials.dark);detailBox(x,4.25,z,.42,.16,.42,materials.trim);}
-  detailBox(x,4.25,0,.36,.36,34,materials.dark);
- }
- for(const z of [-2.2,0,2.2]){const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,36,12),new THREE.MeshStandardMaterial({color:z===0?0x9b744a:0x5a686c,metalness:.7,roughness:.35}));pipe.rotation.x=Math.PI/2;pipe.position.set(0,4.05,z);scene.add(pipe);mapObjects.push(pipe);}
- // Loading-zone hazard stripes, painted lane guides, drain grates and oil-stained patches.
- for(let z=-43;z<=43;z+=6){detailBox(0,.012,z,.12,.018,2.5,materials.trim);}
- for(const x of [-8,8])for(let z=-42;z<=42;z+=8){detailBox(x,.014,z,2.8,.018,.12,materials.amber);}
- for(const [x,z] of [[-23,-20],[23,-20],[-23,20],[23,20],[0,-39],[0,39]]){
-  detailBox(x,.016,z,2.1,.025,1.2,materials.dark);
-  for(let k=0;k<9;k++)detailBox(x-.9+k*.22,.032,z,.035,.012,1.0,materials.trim);
- }
- for(const [x,z] of [[-42,-15],[42,15],[-42,15],[42,-15]]){
-  box(x,.55,z,2.8,1.1,2.2,materials.dark);detailBox(x,.12,z,3.2,.18,2.6,materials.trim);
-  for(let k=0;k<5;k++)detailBox(x-1+k*.5,1.13,z,.08,.08,2.0,materials.amber);
- }
- // High mast lamps, low amber work lights, exhaust stacks and atmospheric steam vents.
- for(const [x,z] of [[-42,-42],[42,-42],[-42,42],[42,42],[0,-44],[0,44]]){
-  box(x,5,z,.18,10,.18,materials.dark);detailBox(x,9.8,z,1.4,.12,.12,materials.trim);
-  const lamp=new THREE.PointLight(0xe8b77b,1.0,19,2);lamp.position.set(x,9.4,z);scene.add(lamp);mapObjects.push(lamp);
- }
- for(const [x,z] of [[-34,-10],[34,10],[-34,10],[34,-10]]){
-  box(x,3,z,.7,6,.7,materials.dark);detailBox(x,6.1,z,1.2,.22,1.2,materials.trim);
-  for(let k=0;k<4;k++)detailBox(x,6.3+k*.08,z,.95,.035,.95,materials.amber);
- }
- // Scattered rubble, wheel stops and small hiding pockets beside the freight halls.
- for(let i=0;i<16;i++){
-  const x=-43+(i*17)%86,z=-40+((i*23)%80);
-  if(Math.abs(x)<5&&Math.abs(z)<8)continue;
-  detailBox(x,.09,z,.55+((i%3)*.2),.16,.35,materials.dark);
- }
- // West-side operations/control hall creates a major interior landmark and a new route through the yard.
- makeWarehouse(-40,0,14,18,14,1,'CONTROL');
- // Freight-yard expansion: crane gantry, fenced utility compound, stacked cargo and maintenance clutter.
- for(const x of [-36,36]){box(x,7,0,.42,14,.42,materials.dark);detailBox(x,14,0,.9,.22,.9,materials.trim);for(const z of [-18,18]){box(x,7,z,.3,14,.3,materials.dark);detailBox(x,14,z,.7,.18,.7,materials.amber);}}
- box(0,13.4,0,74,.55,.65,materials.dark);detailBox(0,13.72,0,72,.08,.78,materials.trim);
- for(let x=-32;x<=32;x+=8){detailBox(x,13.05,0,.16,.35,.16,materials.amber);detailBox(x,12.65,0,.55,.12,.55,materials.dark);}
- // Utility cabinets and fenced generator yard in the east service lane.
- box(39,.12,0,10,.24,16,materials.dark,false);
- for(const side of [-1,1]){box(39+side*5,1.35,0,.12,2.7,16,materials.trim,false);for(let z=-7;z<=7;z+=2)detailBox(39+side*5,1.35,z,.12,2.7,.12,materials.dark);}
- for(const z of [-8,8])box(39,1.35,z,10,.12,.12,materials.trim,false);
- for(const [x,z] of [[37,-4],[41,-4],[37,4],[41,4]]){box(x,1.0,z,1.35,2,.9,materials.dark);detailBox(x,2.05,z,1.18,.12,.75,materials.amber);for(let k=0;k<4;k++)detailBox(x-.42+k*.28,.95,z+.47,.035,1.35,.035,materials.trim);}
- for(const [x,z,c] of [[-40,-20,0x59666b],[40,20,0x665548],[-40,20,0x4e6267],[40,-20,0x5b6551],[-8,-39,0x665448],[8,39,0x53636b]]){makeContainer(x,z,6,2.2,Math.PI/2,c);makeCableSpool(x+3,z+2,.72);for(let k=0;k<3;k++){const p=box(x-2+k*.62,.42,z+2,.55,.84,.55,materials.crate);p.rotation.y=(k%2)*.12;}}
- for(const [x,z,r] of [[-29,-20,0],[29,-20,Math.PI],[-29,20,0],[29,20,Math.PI]]){makeIndustrialStair(x,z,2.6,7,2.1,r);for(const side of [-1,1])box(x+side*2,.55,z,.22,1.1,.22,materials.amber);}
- for(const [x,z] of [[-44,-8],[-44,8],[44,-8],[44,8],[0,-44],[0,44]])for(let k=-2;k<=2;k++){box(x+k*.65,.55,z,.18,1.1,.18,materials.amber);detailBox(x+k*.65,1.12,z,.2,.08,.2,materials.trim);}
- for(const [x,z] of [[-31,-12],[31,12],[-31,12],[31,-12],[0,-31],[0,31]]){makeCableSpool(x,z,.95);makeCrate(x+2,z+1,.85);}
- for(const [x,z] of [[-36,-8],[36,8],[-36,8],[36,-8]]){detailBox(x,.24,z,1.5,.48,1.5,materials.dark);for(let k=0;k<5;k++)detailBox(x-.55+k*.27,.5,z,.06,.04,1.1,materials.trim);const glow=new THREE.PointLight(0xe6a96b,.45,7);glow.position.set(x,.7,z);scene.add(glow);mapObjects.push(glow);}
- player.pos.set(0,1.7,8);player.yaw=Math.PI;updateCamera();
+ clearMap();scene.background.set(0x101d2b);scene.fog.color.set(0x172b3b);scene.fog.density=.0075;
+ hemi.color.set(0x8eb7cc);hemi.groundColor.set(0x101820);hemi.intensity=1.22;moonLight.color.set(0xffc88d);moonLight.intensity=2.6;moonLight.position.set(-38,62,-18);fill.color.set(0x3c91b7);fill.intensity=.62;
+ const deck=new THREE.MeshStandardMaterial({color:0x293943,roughness:.84,metalness:.24}),steel=new THREE.MeshStandardMaterial({color:0x182832,metalness:.72,roughness:.36}),hazard=new THREE.MeshStandardMaterial({color:0xd59a43,metalness:.25,roughness:.65});
+ box(0,-.25,0,104,.5,104,deck,false);box(0,-.015,0,24,.09,100,steel,false);box(0,-.012,0,100,.09,20,steel,false);
+ for(const s of [-1,1]){box(s*49,2.4,0,.8,4.8,100,materials.dark);box(0,2.4,s*49,100,4.8,.8,materials.dark);}
+ const hangars=[[-34,-31,22,25,13],[34,-31,22,25,14],[-34,31,22,25,12],[34,31,22,25,13]];
+ for(let i=0;i<hangars.length;i++){const [x,z,w,d,h]=hangars[i];box(x,h/2,z,w,h,d,new THREE.MeshStandardMaterial({color:i%2?0x3d535f:0x334954,metalness:.56,roughness:.48}),true);const roof=addVisualMesh(new THREE.CylinderGeometry(w*.56,w*.56,d,32,1,true,0,Math.PI),new THREE.MeshStandardMaterial({color:0x1c303b,metalness:.7,roughness:.32,side:THREE.DoubleSide}),x,h*.82,z);roof.rotation.z=Math.PI/2;roof.scale.set(1,1,.78);detailBox(x,h*.48,z+(z<0?1:-1)*(d/2+.08),w*.64,h*.72,.16,new THREE.MeshBasicMaterial({color:0x46b8d0,transparent:true,opacity:.18,side:THREE.DoubleSide}));for(let k=-3;k<=3;k++)detailBox(x+k*1.35,h*.48,z+(z<0?1:-1)*(d/2+.18),.12,h*.7,.2,hazard);for(const s of [-1,1]){box(x+s*(w/2+.35),h/2,z,.6,h+.6,d+.5,steel);detailBox(x+s*(w/2+.35),h*.72,z,.68,.2,d+.45,hazard);}mapLight(x,h*.7,z+(z<0?1:-1)*(d/2+1),0x53cce0,1.4,24);}
+ addVisualMesh(new THREE.CylinderGeometry(5.4,6.2,17,32),new THREE.MeshStandardMaterial({color:0x344d59,metalness:.72,roughness:.28}),0,8.5,-2,true);
+ addVisualMesh(new THREE.CylinderGeometry(2.2,2.2,16,24),new THREE.MeshBasicMaterial({color:0x49d5eb,transparent:true,opacity:.52}),0,8.5,-2);
+ for(const y of [2.2,6,10.5,14.5]){const r=addVisualMesh(new THREE.TorusGeometry(6.1,.25,10,64),new THREE.MeshStandardMaterial({color:0x74dce8,emissive:0x168da4,emissiveIntensity:.8,metalness:.55,roughness:.25}),0,y,-2);r.rotation.x=Math.PI/2;}
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*7,z=-2+Math.sin(a)*7;box(x,7.5,z,.45,15,.45,steel);detailBox(x,8,z,.5,11,.5,new THREE.MeshBasicMaterial({color:0x5ad9e9}));}mapLight(0,9,-2,0x3cc9e6,2.4,30);
+ for(const [z,y] of [[-22,18],[22,14]]){for(const x of [-42,42]){box(x,y/2,z,1.1,y,1.1,steel);detailBox(x,y,z,.4,.35,.4,hazard);}box(0,y,z,86,1.1,1.2,steel);detailBox(0,y+.58,z,84,.16,1.3,hazard);for(let x=-34;x<=34;x+=8){detailBox(x,y-1.3,z,.18,2.6,.18,materials.trim);const hook=addVisualMesh(new THREE.TorusGeometry(.45,.09,8,20),hazard,x,y-2.7,z);hook.rotation.x=Math.PI/2;}}
+ const cargo=[[-18,-20,12,3,0,0x4d6470],[-18,-9,9,3,0,0x6a5a45],[-18,12,12,3,0,0x3c5d67],[18,-20,12,3,0,0x5b6658],[18,-8,9,3,0,0x4d626d],[18,13,12,3,0,0x655b4b],[-7,-32,9,3,Math.PI/2,0x3d5967],[7,32,9,3,Math.PI/2,0x5c625a]];
+ for(const [x,z,w,h,rot,c] of cargo){const mat=new THREE.MeshStandardMaterial({color:c,metalness:.48,roughness:.58}),m=box(x,h/2,z,w,h,2.8,mat,true);m.rotation.y=rot;for(let k=-Math.floor(w/2)+1;k<Math.floor(w/2);k++){const rib=detailBox(x+k,h/2,z,.08,h+.05,2.9,materials.dark);rib.rotation.y=rot;}}
+ makeWalkway(-12,-25,3.8,14,2.5,0);makeRamp(-12,-14,4,8,2.5,0);makeRamp(-12,-36,4,8,2.5,Math.PI);makeWalkway(12,25,3.8,14,2.5,0);makeRamp(12,14,4,8,2.5,Math.PI);makeRamp(12,36,4,8,2.5,0);
+ for(const x of [-27,27])for(const z of [-12,0,12]){addVisualMesh(new THREE.CylinderGeometry(2,2.2,7,20),new THREE.MeshStandardMaterial({color:0x52646b,metalness:.58,roughness:.42}),x,3.5,z,true);for(const y of [1,3.5,6]){const b=addVisualMesh(new THREE.TorusGeometry(2.08,.12,8,32),hazard,x,y,z);b.rotation.x=Math.PI/2;}mapLight(x,5,z,0x5bd7e7,.65,12);}
+ for(const x of [-5,5])for(const z of [-40,40]){box(x,4,z,.3,8,.3,steel);detailBox(x,8,z,.6,.18,.6,hazard);}
+ for(const x of [-5,5]){const pipe=addVisualMesh(new THREE.CylinderGeometry(.22,.22,82,16),new THREE.MeshStandardMaterial({color:0x91a4a8,metalness:.8,roughness:.25}),x,6,0);pipe.rotation.x=Math.PI/2;}
+ for(const [x,z] of [[-12,-13],[12,-13],[-12,14],[12,14],[-40,0],[40,0]]){box(x,.55,z,3.4,1.1,2.2,materials.dark);detailBox(x,.15,z,3.8,.18,2.6,hazard);for(let k=-1;k<=1;k++)box(x+k*.85,1.5,z,.65,.9,.7,materials.crate);}
+ for(const [x,z] of [[-8,-12],[8,12],[-31,18],[31,-18],[-10,7],[10,-7]]){addVisualMesh(new THREE.CylinderGeometry(.72,.72,1.4,20),new THREE.MeshStandardMaterial({color:0x60757a,metalness:.62,roughness:.4}),x,.72,z,true);detailBox(x,1.46,z,1.2,.1,1.2,hazard);}
+ for(const [x,z,r] of [[-23,0,0],[23,0,Math.PI],[0,-39,Math.PI/2],[0,39,-Math.PI/2]])makeShield(x,z,r,0x536b76);
+ for(const [x,z] of [[-43,-43],[43,-43],[-43,43],[43,43],[0,-46],[0,46]]){addVisualMesh(new THREE.CylinderGeometry(.18,.28,12,12),steel,x,6,z,true);mapLight(x,11,z,0xf2b45e,1.2,20);}
+ for(let i=0;i<28;i++){const x=-44+(i*23)%88,z=-42+((i*37)%84);detailBox(x,.025,z,.45,.035,.45,i%2?hazard:materials.trim);}
+ player.pos.set(0,1.7,9);player.yaw=Math.PI;updateCamera();
 }
 function createEclipse(){
  const sun=new THREE.Mesh(new THREE.SphereGeometry(5,32,32),new THREE.MeshBasicMaterial({color:0x080b11}));sun.position.set(-35,42,-78);scene.add(sun);mapObjects.push(sun);
@@ -413,88 +342,26 @@ function movePlayer(dt){
  if(viewWeapon){const moving=player.moving;moveBob=THREE.MathUtils.damp(moveBob,moving?1:0,8,dt);viewWeapon.position.y=-.34+Math.sin(performance.now()*.009)*.012*moveBob;viewWeapon.position.x=.43+Math.cos(performance.now()*.006)*.009*moveBob;weaponRecoil=Math.max(0,weaponRecoil-dt*4.5);viewWeapon.position.z=-.72+weaponRecoil*.09;viewWeapon.rotation.x=-.04-weaponRecoil*.13;}
  updateCamera();
 }
-function makeRemote(id, data = {}) {
- const group = new THREE.Group();
- const teamColors = [0x83b9c8, 0xc79a65, 0x8eaa83, 0xb28ebd];
- const accentColor = data.team === null || data.team === undefined ? 0xc58a4d : teamColors[data.team % teamColors.length];
- const armor = new THREE.MeshStandardMaterial({ color: 0x35434b, metalness: .38, roughness: .62 });
- const fabric = new THREE.MeshStandardMaterial({ color: 0x111a20, roughness: .94 });
- const trim = new THREE.MeshStandardMaterial({ color: 0x718087, metalness: .58, roughness: .46 });
- const rubber = new THREE.MeshStandardMaterial({color:0x0a1015,roughness:.98});
- const darkMetal = new THREE.MeshStandardMaterial({color:0x202b32,metalness:.72,roughness:.34});
- const accent = new THREE.MeshStandardMaterial({ color: accentColor, emissive: accentColor, emissiveIntensity: .16, roughness: .7 });
- const visor = new THREE.MeshStandardMaterial({ color: 0x9ac0c9, metalness: .72, roughness: .2, emissive: 0x16343b, emissiveIntensity: .35 });
- const add = (parent, geometry, material, x, y, z) => { const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x,y,z); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh; };
- // Feet are at y=0. Separate limb pivots allow simple replicated locomotion.
- const torso = add(group, new THREE.CapsuleGeometry(.27,.55,4,9), armor, 0,1.12,0);
- add(group,new THREE.BoxGeometry(.48,.42,.25),fabric,0,1.18,.015);
- add(group,new THREE.BoxGeometry(.38,.24,.31),armor,0,1.12,-.12);
- add(group,new THREE.BoxGeometry(.17,.23,.12),accent,0,1.2,-.285);
- // Layered chest rig, reinforced collar and segmented helmet.
- add(group,new THREE.BoxGeometry(.24,.32,.24),fabric,0,1.27,.27);
- add(group,new THREE.BoxGeometry(.3,.12,.28),armor,0,1.43,.27);
- add(group,new THREE.CylinderGeometry(.145,.17,.13,10),darkMetal,0,1.51,0);
- add(group,new THREE.SphereGeometry(.19,16,12),fabric,0,1.66,0);
- add(group,new THREE.SphereGeometry(.215,16,12),armor,0,1.78,.005);
- add(group,new THREE.BoxGeometry(.31,.12,.25),darkMetal,0,1.91,.015);
- add(group,new THREE.BoxGeometry(.29,.095,.035),visor,0,1.68,-.183);
- add(group,new THREE.BoxGeometry(.26,.07,.23),accent,0,1.98,.01);
- for(const side of [-1,1]){
-  add(group,new THREE.BoxGeometry(.09,.2,.16),trim,side*.205,1.73,.01);
-  add(group,new THREE.BoxGeometry(.11,.12,.18),accent,side*.235,1.58,.015);
-  add(group,new THREE.BoxGeometry(.13,.12,.19),darkMetal,side*.245,1.12,.01);
-  add(group,new THREE.BoxGeometry(.16,.19,.2),armor,side*.23,.74,-.015);
-  add(group,new THREE.BoxGeometry(.13,.12,.12),accent,side*.24,.74,-.13);
- }
- for(const side of [-1,1]){
-  const pad=add(group,new THREE.SphereGeometry(.19,12,9),armor,side*.39,1.34,0);pad.scale.set(1.12,.72,1.0);
-  add(group,new THREE.BoxGeometry(.22,.1,.2),accent,side*.39,1.44,-.015);
-  add(group,new THREE.BoxGeometry(.18,.28,.1),darkMetal,side*.39,.96,-.12);
-  add(group,new THREE.BoxGeometry(.13,.12,.08),trim,side*.39,.82,-.13);
- }
- // Hard-shell backpack and radio antenna.
- add(group,new THREE.BoxGeometry(.38,.55,.2),fabric,0,1.22,.31);
- add(group,new THREE.BoxGeometry(.32,.36,.12),armor,0,1.27,.43);
- add(group,new THREE.BoxGeometry(.08,.24,.08),accent,-.12,1.57,.35);
- add(group,new THREE.CylinderGeometry(.012,.018,.38,6),trim,.19,1.66,.34);
- for(let side of [-1,1]){
-  add(group,new THREE.BoxGeometry(.13,.18,.1),trim,side*.16,1.18,-.17);
-  add(group,new THREE.BoxGeometry(.11,.12,.035),accent,side*.16,1.19,-.23);
-  add(group,new THREE.BoxGeometry(.055,.48,.045),darkMetal,side*.12,1.22,-.19);
- }
- add(group,new THREE.BoxGeometry(.12,.09,.035),visor,0,1.36,-.205);
- const leftArm = new THREE.Group(); leftArm.position.set(-.34,1.35,0); group.add(leftArm);
- const rightArm = new THREE.Group(); rightArm.position.set(.34,1.35,0); group.add(rightArm);
- for (const [pivot, side] of [[leftArm,-1],[rightArm,1]]) {
-  const upper=add(pivot,new THREE.CapsuleGeometry(.105,.34,3,7),armor,side*.025,-.23,-.015);upper.rotation.z=side*-.12;
-  const fore=add(pivot,new THREE.CapsuleGeometry(.085,.28,3,7),fabric,side*.035,-.48,-.095);fore.rotation.z=side*-.08;
-  add(pivot,new THREE.BoxGeometry(.13,.12,.14),trim,side*.035,-.65,-.13);
-  add(pivot,new THREE.BoxGeometry(.19,.13,.2),accent,side*.025,-.25,-.01);
-  add(pivot,new THREE.BoxGeometry(.16,.2,.11),darkMetal,side*.035,-.47,-.16);
-  add(pivot,new THREE.BoxGeometry(.13,.1,.08),accent,side*.035,-.62,-.16);
- }
- const leftLeg = new THREE.Group(); leftLeg.position.set(-.145,.73,0); group.add(leftLeg);
- const rightLeg = new THREE.Group(); rightLeg.position.set(.145,.73,0); group.add(rightLeg);
- for (const [pivot,side] of [[leftLeg,-1],[rightLeg,1]]) {
-  add(pivot,new THREE.CapsuleGeometry(.125,.48,3,7),fabric,0,-.27,0);
-  add(pivot,new THREE.BoxGeometry(.2,.16,.34),armor,0,-.59,-.055);
-  add(pivot,new THREE.BoxGeometry(.12,.12,.07),accent,side*.035,-.1,-.12);
-  add(pivot,new THREE.BoxGeometry(.18,.15,.12),darkMetal,0,-.42,-.105);
-  add(pivot,new THREE.BoxGeometry(.2,.12,.34),rubber,0,-.65,-.1);
-  add(pivot,new THREE.BoxGeometry(.14,.08,.08),accent,side*.045,-.36,-.17);
- }
- // A compact sidearm/carbine silhouette is held in front of the chest.
- const gun = new THREE.Group(); gun.position.set(.27,1.02,-.28); gun.rotation.x=-.08; group.add(gun);
- add(gun,new THREE.BoxGeometry(.11,.13,.42),trim,0,0,-.08);
- add(gun,new THREE.BoxGeometry(.055,.055,.22),accent,0,.055,-.12);
- add(gun,new THREE.CylinderGeometry(.025,.03,.23,8),fabric,0,0,-.36).rotation.x=Math.PI/2;
- const shadow = new THREE.Mesh(new THREE.CircleGeometry(.42,18),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.24,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
- // Small floating callsign, kept subtle so it doesn't obscure the model.
- const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=64;
- const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(5,12,18,.72)';ctx.fillRect(12,10,232,44);ctx.strokeStyle='#b78a5a';ctx.strokeRect(12,10,232,44);ctx.fillStyle='#e7edf0';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(String(data.name||'OPERATOR').slice(0,18),128,39);
- const labelTexture=new THREE.CanvasTexture(labelCanvas);const label=new THREE.Sprite(new THREE.SpriteMaterial({map:labelTexture,transparent:true,depthTest:false}));label.scale.set(1.45,.36,1);label.position.set(0,2.25,0);group.add(label);
- group.userData={targetPosition:new THREE.Vector3(),targetYaw:0,moving:false,crouching:false,animTime:Math.random()*5,leftLeg,rightLeg,leftArm,rightArm,gun,health:100,alive:true};
- scene.add(group);remotePlayers.set(id,group);return group;
+function makeRemote(id,data={}){
+ const group=new THREE.Group(),teamColors=[0x4c9eac,0xd2a45c,0x78a77c,0x9b83c5],teamColor=data.team==null?0x6b9b67:teamColors[data.team%teamColors.length];
+ const armor=new THREE.MeshPhysicalMaterial({color:0x536b4c,metalness:.48,roughness:.34,clearcoat:.42}),armorLight=new THREE.MeshPhysicalMaterial({color:0x82936b,metalness:.42,roughness:.36,clearcoat:.35}),undersuit=new THREE.MeshStandardMaterial({color:0x111a1c,roughness:.92}),graphite=new THREE.MeshStandardMaterial({color:0x26343a,metalness:.76,roughness:.3}),steel=new THREE.MeshStandardMaterial({color:0x87999a,metalness:.8,roughness:.28}),accent=new THREE.MeshStandardMaterial({color:teamColor,emissive:teamColor,emissiveIntensity:.22,metalness:.38,roughness:.3}),gold=new THREE.MeshPhysicalMaterial({color:0xe7ad43,metalness:.86,roughness:.18,clearcoat:1,emissive:0x5a2b08,emissiveIntensity:.24}),rubber=new THREE.MeshStandardMaterial({color:0x080d10,roughness:.98});
+ const add=(p,g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o;},ell=(p,m,x,y,z,sx,sy,sz)=>{const o=add(p,new THREE.SphereGeometry(1,24,16),m,x,y,z);o.scale.set(sx,sy,sz);return o;},cap=(p,m,x,y,z,r,l)=>add(p,new THREE.CapsuleGeometry(r,l,6,14),m,x,y,z);
+ // Smooth, athletic powered-armor proportions. The silhouette uses ellipsoids and capsules, not box limbs.
+ cap(group,undersuit,0,1.06,0,.255,.54);ell(group,armor,0,1.26,-.035,.34,.39,.235);ell(group,armorLight,0,1.29,-.205,.285,.255,.105);ell(group,graphite,0,.91,.005,.25,.18,.205);
+ for(let i=0;i<3;i++)ell(group,i===1?armorLight:armor,0,.83+i*.13,-.205,.235,.075,.075);
+ const collar=add(group,new THREE.TorusGeometry(.245,.075,12,32),graphite,0,1.53,0);collar.rotation.x=Math.PI/2;
+ ell(group,undersuit,0,1.67,0,.225,.245,.205);ell(group,armorLight,0,1.72,.005,.255,.265,.22);ell(group,armor,0,1.81,.015,.255,.19,.225);ell(group,gold,0,1.69,-.183,.205,.105,.055);ell(group,graphite,0,1.91,.005,.19,.055,.18);
+ for(const s of [-1,1]){ell(group,graphite,s*.245,1.68,0,.075,.12,.14);ell(group,accent,s*.255,1.68,-.01,.035,.065,.09);const shoulder=ell(group,armorLight,s*.405,1.38,-.005,.245,.205,.255);shoulder.rotation.z=s*.12;ell(group,armor,s*.405,1.43,-.11,.205,.135,.19);ell(group,accent,s*.405,1.47,-.255,.09,.035,.025);cap(group,undersuit,s*.31,.94,0,.115,.27);}
+ ell(group,graphite,0,1.25,.255,.27,.39,.17);ell(group,armor,0,1.29,.365,.215,.29,.11);
+ for(const s of [-1,1]){ell(group,steel,s*.205,1.38,.34,.075,.19,.09);ell(group,accent,s*.205,1.46,.405,.045,.07,.025);const antenna=cap(group,graphite,s*.18,1.72,.31,.018,.22);antenna.rotation.z=s*.12;}
+ const leftArm=new THREE.Group();leftArm.position.set(-.34,1.34,0);group.add(leftArm);const rightArm=new THREE.Group();rightArm.position.set(.34,1.34,0);group.add(rightArm);
+ for(const [p,s] of [[leftArm,-1],[rightArm,1]]){cap(p,undersuit,s*.025,-.21,0,.105,.3);const upper=ell(p,armor,s*.025,-.22,-.015,.145,.235,.145);upper.rotation.z=s*-.1;cap(p,undersuit,s*.035,-.49,-.035,.09,.27);const bracer=ell(p,armorLight,s*.035,-.49,-.115,.12,.205,.12);bracer.rotation.z=s*-.08;ell(p,graphite,s*.035,-.65,-.12,.105,.09,.1);ell(p,accent,s*.035,-.5,-.215,.055,.1,.025);ell(p,rubber,s*.035,-.72,-.09,.095,.12,.105);}
+ const leftLeg=new THREE.Group();leftLeg.position.set(-.15,.72,0);group.add(leftLeg);const rightLeg=new THREE.Group();rightLeg.position.set(.15,.72,0);group.add(rightLeg);
+ for(const [p,s] of [[leftLeg,-1],[rightLeg,1]]){cap(p,undersuit,0,-.245,0,.12,.39);const thigh=ell(p,armor,0,-.235,-.015,.155,.255,.16);thigh.rotation.z=s*.025;ell(p,armorLight,0,-.49,-.105,.145,.12,.115);ell(p,graphite,0,-.53,-.02,.13,.105,.13);cap(p,undersuit,0,-.72,-.015,.105,.28);const shin=ell(p,armor,0,-.72,-.105,.13,.205,.12);shin.rotation.x=-.08;ell(p,accent,s*.055,-.7,-.205,.055,.105,.025);ell(p,rubber,0,-.91,-.11,.15,.085,.245);ell(p,graphite,0,-.91,-.23,.12,.055,.12);}
+ const gun=new THREE.Group();gun.position.set(.25,1.02,-.31);gun.rotation.x=-.08;group.add(gun);ell(gun,graphite,0,0,-.1,.115,.105,.26);ell(gun,armor,0,.035,-.09,.09,.075,.22);const barrel=cap(gun,steel,0,.005,-.39,.035,.24);barrel.rotation.x=Math.PI/2;ell(gun,accent,0,.075,-.17,.052,.025,.12);const grip=cap(gun,graphite,0,-.13,.04,.045,.13);grip.rotation.x=-.18;
+ const shadow=new THREE.Mesh(new THREE.CircleGeometry(.43,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
+ const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=64;const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(5,12,18,.7)';ctx.fillRect(12,10,232,44);ctx.strokeStyle='#9fc4b1';ctx.strokeRect(12,10,232,44);ctx.fillStyle='#eef4ef';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(String(data.name||'SPARTAN').slice(0,18),128,39);const tex=new THREE.CanvasTexture(labelCanvas);const label=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));label.scale.set(1.35,.34,1);label.position.set(0,2.22,0);group.add(label);
+ group.userData={targetPosition:new THREE.Vector3(),targetYaw:0,moving:false,crouching:false,animTime:Math.random()*5,leftLeg,rightLeg,leftArm,rightArm,gun,health:100,alive:true};scene.add(group);remotePlayers.set(id,group);return group;
 }
 function updateRemote(data){
  let g=remotePlayers.get(data.id)||makeRemote(data.id,data);
