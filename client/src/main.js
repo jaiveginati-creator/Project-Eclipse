@@ -16,6 +16,9 @@ function levelForXP(xp){let level=1;for(let i=1;i<XP_LEVELS.length;i++){if(xp>=X
 function xpForCurrentLevel(level){return XP_LEVELS[Math.max(0,Math.min(level-1,XP_LEVELS.length-1))]||0;}
 function xpForNextLevel(level){return XP_LEVELS[Math.min(level,XP_LEVELS.length-1)]||XP_LEVELS[XP_LEVELS.length-1];}
 function getWeaponBuild(id){return{...DEFAULT_WEAPON_BUILD,...(weaponBuilds[id]||{})};}
+function weaponDisplayName(weapon){const name=weapon.build?.name||getWeaponBuild(weapon.id).name;return name&&name!=='FIELD STANDARD'?name:weapon.name;}
+function weaponBuildDetails(weapon){const b=weapon.build||getWeaponBuild(weapon.id);const labels={optic:{iron:'Iron sights',reflex:'Reflex',holo:'Holo',scope3x:'3× optic'},barrel:{standard:'Standard barrel',extended:'Extended barrel',heavy:'Heavy barrel'},magazine:{standard:'Standard mag',extended:'Extended mag',quick:'Quick reload'},stock:{standard:'Standard stock',tactical:'Tactical stock',weighted:'Weighted stock'},underbarrel:{none:'No underbarrel',grip:'Grip',laser:'Laser'},camo:{standard:'Standard camo',arctic:'Arctic',ember:'Ember',void:'Void'}};return ['optic','barrel','magazine','stock','underbarrel','camo'].map(slot=>labels[slot]?.[b[slot]]||b[slot]).join(' · ');}
+function refreshLoadoutOptions(){for(const [selectId,weaponsList] of [['primary-select',PRIMARY_WEAPONS],['secondary-select',SECONDARY_WEAPONS]]){const select=$(selectId);if(!select)continue;for(const option of select.options){const base=weaponsList.find(w=>w.id===option.value);if(!base)continue;const build=getWeaponBuild(base.id),custom=build.name&&build.name!=='FIELD STANDARD';option.textContent=custom?base.name+' — '+build.name:base.name;}}}
 function getBuiltWeapon(base){const build=getWeaponBuild(base.id),w={...base,build};if(build.magazine==='extended'){w.mag=Math.round(base.mag*1.4);w.stock=Math.round(base.stock*1.35);}if(build.magazine==='quick')w.rate=Math.round(base.rate*.93);if(build.stock==='tactical')w.rate=Math.round(w.rate*.94);if(build.barrel==='heavy')w.rate=Math.round(w.rate*1.12);return w;}
 function refreshProgressionUI(){
  const level=playerProfile.level||levelForXP(playerProfile.xp||0),xp=playerProfile.xp||0,current=xpForCurrentLevel(level),next=xpForNextLevel(level);
@@ -556,13 +559,14 @@ function buildViewWeapon(){
  if(build.underbarrel==='grip'||build.underbarrel==='laser')box(g,build.underbarrel==='laser'?glow:dark,build.underbarrel==='laser'?.17:0,-.18,-.18,.1,.16,.24);
  const reloadPart=box(g,dark,.19,-.13,.08,.12,.22,.2);g.userData.reloadPart=reloadPart;
  g.position.set(.43,-.34,-.72);g.rotation.set(-.04,-.08,0);g.userData.basePosition=g.position.clone();g.userData.baseRotation=g.rotation.clone();camera.add(g);viewWeapon=g;playWeaponAnimation('switch',260);
- $('weapon-name').textContent=w.name;$('weapon-class').textContent=w.className;syncAmmo();
+ $('weapon-name').textContent=weaponDisplayName(w);$('weapon-class').textContent=w.className;syncAmmo();
 }
 function applyLoadout(save=true){
  const primaryBase=PRIMARY_WEAPONS.find(w=>w.id===selectedPrimary)||ALL_WEAPONS[0],secondaryBase=SECONDARY_WEAPONS.find(w=>w.id===selectedSecondary)||ALL_WEAPONS[1];
  selectedPrimary=primaryBase.id;selectedSecondary=secondaryBase.id;const primary=getBuiltWeapon(primaryBase),secondary=getBuiltWeapon(secondaryBase);weapons=[primary,secondary];weaponIndex=0;weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock}));
+ refreshLoadoutOptions();
  if(save){try{localStorage.setItem('eclipse-loadout',JSON.stringify({primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment}));localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}}
- const summary=$('loadout-summary');if(summary)summary.textContent=primary.name+'  /  '+secondary.name+'  /  '+selectedEquipment.toUpperCase().replace('-',' ');
+ const summary=$('loadout-summary');if(summary)summary.textContent=weaponDisplayName(primary)+' ['+weaponBuildDetails(primary)+']  /  '+weaponDisplayName(secondary)+' ['+weaponBuildDetails(secondary)+']  /  '+selectedEquipment.toUpperCase().replace('-',' ');
 }
 function initLoadout(){
  try{weaponBuilds=JSON.parse(localStorage.getItem('eclipse-weapon-builds')||'{}')||{};}catch{weaponBuilds={};}
