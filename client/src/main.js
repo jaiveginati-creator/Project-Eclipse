@@ -393,6 +393,21 @@ function buildSublevel(){
   for(const side of [-1,1])detailBox(x,4.25,z+side*2.28,4.5,.22,.12,cyan);
   detailBox(x,4.48,z,.12,.12,4.5,amber);
  }
+ // Continuous overhead ceiling encloses the entire arena while leaving all routes below clear.
+ box(0,5.72,0,50.8,.48,50.8,wallLight,false);
+ // Recessed ceiling panels and luminous service strips give the roof a finished station interior.
+ for(const z of [-19,-12,-5,5,12,19]){
+  detailBox(0,5.465,z,43,.055,1.05,wall,false);
+  detailBox(0,5.425,z,36,.035,.12,cyan);
+ }
+ for(const x of [-20,-10,0,10,20]){
+  detailBox(x,5.465,0,.72,.055,39,wall,false);
+  detailBox(x,5.425,0,.09,.035,32,amber);
+ }
+ for(const [x,z] of [[-16,-16],[16,-16],[-16,16],[16,16],[0,0]]){
+  detailBox(x,5.425,z,2.2,.045,2.2,wallLight,false);
+  detailBox(x,5.395,z,1.35,.025,1.35,cyan);
+ }
  // Central hub: open fighting space, waist-high cover and a small reactor console.
  addVisualMesh(new THREE.CylinderGeometry(1.35,1.6,1.55,12),new THREE.MeshStandardMaterial({color:0x405965,metalness:.72,roughness:.3}),0,.78,0,true);
  const hubRing=addVisualMesh(new THREE.TorusGeometry(1.72,.12,8,32),cyan,0,1.5,0);hubRing.rotation.x=Math.PI/2;
