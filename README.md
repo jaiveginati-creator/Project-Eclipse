@@ -140,3 +140,10 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - `package.json` parse: passed.
 - Full Vite production build and browser rendering: pending dependency installation and browser testing.
 - Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
+
+
+## Developer testing console (v0.20.0)
+
+Open the in-game developer console with **F2** or **~**. Health, ammo, redeploy and training-target controls are available for local testing. Progression controls (grant XP, max level, max weapon XP, unlock everything and reset profile) require the server environment variable `ECLIPSE_DEV_MODE=true` and an active server connection.
+
+**Security:** developer mode is disabled by default. Only enable it on a private/local test server; anyone who can connect while it is enabled can use the progression commands. Never enable it on a public production server.
