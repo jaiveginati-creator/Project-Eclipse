@@ -133,7 +133,7 @@ function distanceRayToVerticalCapsule(origin, direction, target) {
   const rayZ = origin.z + direction.z * along;
   const axisY = clamp(rayY, lowY, highY);
   const distance = Math.hypot(target.x - rayX, axisY - rayY, target.z - rayZ);
-  return { along, distance };
+  return { along, distance, rayY, lowY, highY };
 }
 
 function spawnForSlot(slot, map = 'district') {
@@ -181,16 +181,17 @@ function resolvePulseHit(shooter, shot) {
 
   const target = best.target;
   const falloff = weapon.radius ? Math.max(.3, 1 - (best.distance || 0) / weapon.radius * .62) : 1;
+  const headshot = best.distance <= (weapon.radius || 0.48) && best.rayY >= best.highY - .22;
   target.health = Math.max(0, target.health - Math.round(weapon.damage * falloff));
   target.lastDamageAt = Date.now();
   const eliminated = target.health <= 0;
   send(shooter.ws, {
     type: 'hitConfirm', targetId: target.id, targetName: target.name,
-    damage: Math.round(weapon.damage * falloff), targetHealth: target.health, weapon: weaponId, eliminated
+    damage: Math.round(weapon.damage * falloff), targetHealth: target.health, weapon: weaponId, eliminated, headshot
   });
   send(target.ws, {
     type: 'damaged', sourceId: shooter.id, sourceName: shooter.name,
-    damage: Math.round(weapon.damage * falloff), health: target.health, eliminated
+    damage: Math.round(weapon.damage * falloff), health: target.health, eliminated, headshot
   });
 
   if (eliminated) {
