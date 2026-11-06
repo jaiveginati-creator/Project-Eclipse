@@ -363,6 +363,77 @@ function buildIndustrial(){
  for(let i=0;i<28;i++){const x=-44+(i*23)%88,z=-42+((i*37)%84);detailBox(x,.025,z,.45,.035,.45,i%2?hazard:materials.trim);}
  player.pos.set(0,1.7,9);player.yaw=Math.PI;updateCamera();
 }
+
+function buildSublevel(){
+ clearMap();scene.background.set(0x071522);scene.fog.color.set(0x0b1d2a);scene.fog.density=.021;
+ hemi.color.set(0x8ac7d6);hemi.groundColor.set(0x07111a);hemi.intensity=1.08;
+ moonLight.color.set(0x70c9df);moonLight.intensity=.72;moonLight.position.set(-12,18,-16);fill.color.set(0x2e8da9);fill.intensity=.48;
+ const floor=new THREE.MeshStandardMaterial({color:0x253640,roughness:.78,metalness:.36});
+ const wall=new THREE.MeshStandardMaterial({color:0x172833,roughness:.66,metalness:.58});
+ const wallLight=new THREE.MeshStandardMaterial({color:0x344b58,roughness:.58,metalness:.52});
+ const cyan=new THREE.MeshStandardMaterial({color:0x3dc5d8,emissive:0x08758a,emissiveIntensity:.72,metalness:.45,roughness:.28});
+ const amber=new THREE.MeshStandardMaterial({color:0xc88a42,emissive:0x5b310d,emissiveIntensity:.35,metalness:.35,roughness:.48});
+ box(0,-.28,0,50,.56,50,floor,false);
+ // A hard perimeter keeps every fight inside this compact 48 x 48 metre arena.
+ box(0,2.7,-24.7,50,5.4,.7,wall);box(0,2.7,24.7,50,5.4,.7,wall);
+ box(-24.7,2.7,0,.7,5.4,50,wall);box(24.7,2.7,0,.7,5.4,50,wall);
+ const wallX=(z,x1,x2,mat=wall)=>{if(x2>x1)box((x1+x2)/2,2.38,z,x2-x1,4.76,.46,mat);};
+ const wallZ=(x,z1,z2,mat=wall)=>{if(z2>z1)box(x,2.38,(z1+z2)/2,.46,4.76,z2-z1,mat);};
+ const gapCenters=[-16,0,16],gapHalf=2.35,edge=24.35;
+ for(const x of [-9.5,9.5]){let cursor=-edge;for(const center of gapCenters){wallZ(x,cursor,center-gapHalf);cursor=center+gapHalf;}wallZ(x,cursor,edge);}
+ for(const z of [-9.5,9.5]){let cursor=-edge;for(const center of gapCenters){wallX(z,cursor,center-gapHalf);cursor=center+gapHalf;}wallX(z,cursor,edge);}
+ // Intermittent tunnel roofs create tight covered links between open pockets.
+ for(const x of [-9.5,9.5])for(const z of gapCenters){
+  box(x,4.75,z,4.95,.3,4.9,wallLight,false);
+  for(const side of [-1,1])detailBox(x+side*2.28,4.25,z,.12,.22,4.5,cyan);
+  detailBox(x,4.48,z,4.5,.12,.12,amber);
+ }
+ for(const z of [-9.5,9.5])for(const x of gapCenters){
+  box(x,4.75,z,4.9,.3,4.95,wallLight,false);
+  for(const side of [-1,1])detailBox(x,4.25,z+side*2.28,4.5,.22,.12,cyan);
+  detailBox(x,4.48,z,.12,.12,4.5,amber);
+ }
+ // Central hub: open fighting space, waist-high cover and a small reactor console.
+ addVisualMesh(new THREE.CylinderGeometry(1.35,1.6,1.55,12),new THREE.MeshStandardMaterial({color:0x405965,metalness:.72,roughness:.3}),0,.78,0,true);
+ const hubRing=addVisualMesh(new THREE.TorusGeometry(1.72,.12,8,32),cyan,0,1.5,0);hubRing.rotation.x=Math.PI/2;
+ for(const [x,z,rot] of [[-4.8,-3.2,.12],[4.8,3.2,-.12],[-3.5,5,Math.PI/2],[3.5,-5,Math.PI/2]]){
+  const cover=box(x,.72,z,2.8,1.44,.72,wallLight);cover.rotation.y=rot;
+  const stripe=detailBox(x,1.47,z,2.5,.08,.76,amber);stripe.rotation.y=rot;
+ }
+ // Cargo pockets in the corners retain open lanes around the cover.
+ for(const [x,z] of [[-17,-17],[17,-17],[-17,17],[17,17]]){
+  box(x,.72,z,2.1,1.44,1.45,wallLight);
+  box(x+(x<0?3.1:-3.1),.55,z+(z<0?2.5:-2.5),1.25,1.1,1.15,materials.crate);
+ }
+ // Pillars and short internal fins interrupt long sightlines without closing routes.
+ for(const [x,z] of [[-20,-11],[20,-11],[-20,11],[20,11],[-11,-20],[11,-20],[-11,20],[11,20]]){
+  box(x,1.25,z,1.05,2.5,1.05,wallLight);detailBox(x,2.55,z,1.18,.1,1.18,cyan);
+ }
+ for(const [x,z,sx,sz] of [[-5.8,-9.5,2.6,.42],[5.8,9.5,2.6,.42],[9.5,-5.8,.42,2.6],[-9.5,5.8,.42,2.6]]){
+  const fin=box(x,1.8,z,sx,3.6,sz,wallLight);detailBox(x,3.68,z,sx*.82,.1,sz*.8,amber);
+ }
+ // Service ribs, exposed pipes and route lights reinforce the enclosed orbital-station setting.
+ for(const z of [-22,-7,7,22]){
+  detailBox(0,5.15,z,47,.18,.22,wallLight);
+  for(const x of [-21,-14,-7,0,7,14,21])detailBox(x,5.0,z,.12,.42,.12,amber);
+ }
+ for(const x of [-22,22]){
+  const pipe=addVisualMesh(new THREE.CylinderGeometry(.13,.13,44,12),wallLight,x,4.15,0);pipe.rotation.x=Math.PI/2;
+  for(const z of [-16,0,16])mapLight(x,3.9,z,0x45cde0,.75,10);
+ }
+ for(const [x,z] of [[-5,-20],[5,-20],[-5,20],[5,20],[-20,-5],[20,5]]){
+  box(x,.48,z,1.65,.96,1.05,materials.dark);detailBox(x,1.0,z,1.45,.08,1.1,amber);
+ }
+ for(const [x,z] of [[0,-23],[0,23],[-23,0],[23,0]])mapLight(x,3.7,z,0x52d7e8,1.25,14);
+ // Training begins in the south pocket, looking toward the central hub.
+ player.pos.set(0,1.7,17);player.yaw=0;updateCamera();
+}
+function buildSelectedMap(){
+ if(selectedMap==='district')buildDistrict();
+ else if(selectedMap==='industrial')buildIndustrial();
+ else buildSublevel();
+}
+
 function createEclipse(){
  const dustCount=420,dustPositions=new Float32Array(dustCount*3);for(let i=0;i<dustCount;i++){dustPositions[i*3]=(Math.random()-.5)*100;dustPositions[i*3+1]=.2+Math.random()*5;dustPositions[i*3+2]=(Math.random()-.5)*100;}const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPositions,3));dustField=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xb5c2c8,size:.045,transparent:true,opacity:.32,depthWrite:false}));scene.add(dustField);mapObjects.push(dustField);
  const sun=new THREE.Mesh(new THREE.SphereGeometry(5,32,32),new THREE.MeshBasicMaterial({color:0x080b11}));sun.position.set(-35,42,-78);scene.add(sun);mapObjects.push(sun);
@@ -421,7 +492,7 @@ function startAmbientAudio(){
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  if(!audioContext){audioContext=new AudioCtx();const master=audioContext.createGain();master.gain.value=.18;master.connect(audioContext.destination);
   const low=audioContext.createOscillator(),high=audioContext.createOscillator(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();low.type='sine';low.frequency.value=48;high.type='triangle';high.frequency.value=73;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.12;low.connect(filter);high.connect(filter);filter.connect(gain);gain.connect(master);low.start();high.start();ambientNodes={low,high,filter,gain,master};
- }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:79,audioContext.currentTime,1);}
+ }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:79,audioContext.currentTime,1);}
 }
 function playSfx(kind='pulse',color=0xffc16e){
  if(!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();const now=audioContext.currentTime;
@@ -558,7 +629,7 @@ function handleNetwork(m){
  }
  if(m.type==='matchStart'){
   matchStarted=true;remaining=m.duration||480;
-  if(!running){if(selectedMap==='district')buildDistrict();else buildIndustrial();createEclipse();beginMatch(false);}
+  if(!running){buildSelectedMap();createEclipse();beginMatch(false);}
   const mine=(m.players||players).find(p=>p.id===myId);if(mine)applyServerPosition(mine);
   toast('OPERATION LIVE');
  }
@@ -570,18 +641,18 @@ function handleNetwork(m){
 function drawMinimap(){
  const canvas=$('minimap-canvas');if(!canvas)return;
  const ctx=canvas.getContext('2d');if(!ctx)return;
- const size=canvas.width, pad=10, span=100, scale=(size-pad*2)/span;
- const px=x=>pad+(x+50)*scale, py=z=>pad+(z+50)*scale;
+ const size=canvas.width, pad=10, span=selectedMap==='sublevel'?50:100, half=span/2, scale=(size-pad*2)/span;
+ const px=x=>pad+(x+half)*scale, py=z=>pad+(z+half)*scale;
  ctx.clearRect(0,0,size,size);
  ctx.fillStyle='rgba(5,12,19,.91)';ctx.fillRect(0,0,size,size);
  ctx.strokeStyle='rgba(188,205,218,.12)';ctx.lineWidth=1;
- for(let v=-40;v<=40;v+=20){ctx.beginPath();ctx.moveTo(px(v),pad);ctx.lineTo(px(v),size-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py(v));ctx.lineTo(size-pad,py(v));ctx.stroke();}
+ for(let v=selectedMap==='sublevel'?-20:-40;v<=(selectedMap==='sublevel'?20:40);v+=selectedMap==='sublevel'?10:20){ctx.beginPath();ctx.moveTo(px(v),pad);ctx.lineTo(px(v),size-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py(v));ctx.lineTo(size-pad,py(v));ctx.stroke();}
  // Map perimeter: movement is blocked just inside this line.
- ctx.strokeStyle='rgba(230,168,91,.9)';ctx.lineWidth=2;ctx.strokeRect(px(-47.8),py(-47.8),95.6*scale,95.6*scale);
+ ctx.strokeStyle='rgba(230,168,91,.9)';ctx.lineWidth=2;const mapEdge=selectedMap==='sublevel'?23.8:47.8;ctx.strokeRect(px(-mapEdge),py(-mapEdge),mapEdge*2*scale,mapEdge*2*scale);
  // A few orientation/road references keep the radar readable without clutter.
  ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;
- ctx.beginPath();ctx.moveTo(px(-7.5),py(-45));ctx.lineTo(px(-7.5),py(45));ctx.stroke();
- ctx.beginPath();ctx.moveTo(px(-45),py(-7));ctx.lineTo(px(45),py(-7));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(px(-7.5),py(-mapEdge));ctx.lineTo(px(-7.5),py(mapEdge));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(px(-mapEdge),py(-7));ctx.lineTo(px(mapEdge),py(-7));ctx.stroke();
  // Teammates are cyan; opponents are red. Training has no network contacts.
  for(const p of players){
   if(p.id===myId||p.alive===false)continue;
@@ -642,7 +713,8 @@ function createTrainingTargets(){
  const accentMat=new THREE.MeshStandardMaterial({color:0xdca65d,emissive:0x4a2b0d,emissiveIntensity:.55,metalness:.45,roughness:.32});
  const standMat=new THREE.MeshStandardMaterial({color:0x344650,metalness:.72,roughness:.42});
  // Three lanes of reusable, stationary range dummies in the clear central approach.
- for(const z of [-22,-31,-40])for(const x of [-8,0,8]){
+ const targetRows=selectedMap==='sublevel'?[-13,-17,-21]:[-22,-31,-40];const targetColumns=selectedMap==='sublevel'?[-5,0,5]:[-8,0,8];
+ for(const z of targetRows)for(const x of targetColumns){
   const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
   const stand=new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,1.15,12),standMat);stand.position.y=.58;group.add(stand);
   const plate=new THREE.Mesh(new THREE.BoxGeometry(1.05,2.45,.16),plateMat);plate.position.set(0,1.5,-.13);group.add(plate);
@@ -678,7 +750,7 @@ syncFullscreenButton();
 $('mode-grid');setOperator((()=>{try{return localStorage.getItem('eclipse-operator')||'vanguard';}catch{return 'vanguard';}})(),false);document.querySelectorAll('[data-operator]').forEach(b=>b.addEventListener('click',()=>setOperator(b.dataset.operator)));setCrosshair((()=>{try{return localStorage.getItem('eclipse-crosshair')||'standard';}catch{return 'standard';}})(),false);document.querySelectorAll('[data-crosshair]').forEach(b=>b.addEventListener('click',()=>setCrosshair(b.dataset.crosshair)));document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedMode=b.dataset.mode;}));
 document.querySelectorAll('.map-choice').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.map-choice').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMap=b.dataset.map;$('map-name').textContent=selectedMap.toUpperCase();}));
 $('deploy').addEventListener('click',async()=>{const ok=await connectServer();if(!ok){toast('SERVER UNAVAILABLE — START SERVER OR USE SOLO TRAINING');return;}$('lobby-title').textContent=selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase();$('lobby-subtitle').textContent=isLocalHost?'Connected to local operation server':'Connected to online operation server';$('lobby-map').textContent=selectedMap.toUpperCase();$('lobby-mode').textContent=selectedMode.toUpperCase();$('menu').classList.remove('active');$('lobby').classList.add('active');renderPlayers();});
-$('training').addEventListener('click',()=>{if(selectedMap==='district')buildDistrict();else buildIndustrial();createEclipse();createTrainingTargets();beginMatch(true);toast('TRAINING RANGE — TARGETS RESET AUTOMATICALLY');});
+$('training').addEventListener('click',()=>{buildSelectedMap();createEclipse();createTrainingTargets();beginMatch(true);toast('TRAINING RANGE — TARGETS RESET AUTOMATICALLY');});
 $('start-match').addEventListener('click',()=>{if(!socket||socket.readyState!==WebSocket.OPEN){toast('NOT CONNECTED TO SERVER');return;}if(players.length<2){toast('AT LEAST 2 PLAYERS REQUIRED');return;}send('startMatch');toast('REQUESTING MATCH START');});
 $('back-menu').addEventListener('click',backToMenu);$('resume').addEventListener('click',resumeGame);$('leave-match').addEventListener('click',backToMenu);$('return-menu').addEventListener('click',backToMenu);
 canvas.addEventListener('click',()=>{if(running&&!paused&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===canvas;});document.addEventListener('mousemove',e=>{if(!pointerLocked||!running||paused)return;player.yaw-=e.movementX*.0021;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.35,1.35);updateCamera();});document.addEventListener('mousedown',e=>{if(e.button===0){mouseHeld=true;fire();}});document.addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false;});document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running){if(paused)resumeGame();else pauseGame();}if(e.code==='KeyR')reload();if(e.code==='Digit1')switchWeapon(0);if(e.code==='Digit2')switchWeapon(1);if(e.code==='Digit3')switchWeapon(0);if(e.code==='KeyQ')useEquipment();if(e.code==='Space'&&running&&!paused&&player.onGround){e.preventDefault();verticalVelocity=7.2;player.onGround=false;}});document.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
