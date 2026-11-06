@@ -15,7 +15,7 @@
     <canvas id="world"></canvas>
     <div class="vignette"></div>
     <div id="menu" class="screen active">
-      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.11.0</div></div>
+      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.12.0</div></div>
       <div class="menu-content">
         <div class="eyebrow"><span></span> MULTIPLAYER TACTICAL EXPERIENCE</div>
         <h1>WHEN THE<br><em>LIGHT</em> FADES.</h1>
@@ -29,6 +29,12 @@
           </div>
           <div class="map-row"><div><span class="panel-label">DEPLOYMENT ZONE</span><strong id="map-name">DISTRICT</strong></div><div class="map-switch"><button class="map-choice active" data-map="district">01 / DISTRICT</button><button class="map-choice" data-map="industrial">02 / INDUSTRIAL</button></div></div>
           <div class="connect-row"><label for="server-url">SERVER</label><input id="server-url" value="" placeholder="Auto-detect server or paste WSS URL" spellcheck="false"><span class="server-status"><i id="server-dot"></i><span id="server-label">OFFLINE / LOCAL</span></span></div>
+          <div class="operator-settings"><div class="operator-heading"><span class="panel-label">SELECT OPERATOR</span><small>CHOOSE YOUR ARMOUR CONFIGURATION</small></div><div class="operator-options">
+            <button class="operator-choice selected" data-operator="vanguard"><i class="operator-silhouette vanguard"><b></b><em></em></i><strong>VANGUARD</strong><small>STANDARD ARMOUR</small></button>
+            <button class="operator-choice" data-operator="recon"><i class="operator-silhouette recon"><b></b><em></em></i><strong>RECON</strong><small>LIGHT PROFILE</small></button>
+            <button class="operator-choice" data-operator="assault"><i class="operator-silhouette assault"><b></b><em></em></i><strong>ASSAULT</strong><small>HEAVY PLATES</small></button>
+            <button class="operator-choice" data-operator="phantom"><i class="operator-silhouette phantom"><b></b><em></em></i><strong>PHANTOM</strong><small>STEALTH KIT</small></button>
+          </div></div>
           <div class="crosshair-settings"><div><span class="panel-label">CROSSHAIR</span><small>PERSONALIZE YOUR AIM</small></div><div class="crosshair-options">
             <button class="crosshair-choice selected" data-crosshair="standard" aria-label="Regular crosshair"><i class="crosshair-preview" data-style="standard"></i><span>REGULAR</span></button>
             <button class="crosshair-choice" data-crosshair="red" aria-label="Red crosshair"><i class="crosshair-preview" data-style="red"></i><span>RED</span></button>

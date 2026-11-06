@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('world');
@@ -35,6 +36,8 @@ let colliders=[]; let mapObjects=[]; let remotePlayers=new Map(); let projectile
 const platforms=[]; let lastMoveSend=0;
 let running=false, training=false, paused=false, matchEnd=0, remaining=480, kills=0, health=100, ammo=24, reserve=96, reloading=false;
 const weapons=[{id:'pulse',name:'PULSE CARBINE',className:'MK.01 · BALANCED',mag:24,stock:96,rate:220,speed:36,color:0xffc16e},{id:'volt',name:'VOLT PISTOL',className:'SIDEARM · RAPID',mag:18,stock:108,rate:85,speed:42,color:0x7de4ff},{id:'arc',name:'HEAVY ARC RIFLE',className:'MARKSMAN · POWER',mag:10,stock:50,rate:390,speed:52,color:0xff8a65}];
+const OPERATOR_PRESETS={vanguard:{armor:0x536b4c,light:0x82936b,visor:0xe7ad43,visorGlow:0x5a2b08,shoulder:1,style:'balanced'},recon:{armor:0x3d4a52,light:0x82949b,visor:0x65d9ee,visorGlow:0x145a68,shoulder:.82,style:'light'},assault:{armor:0x76664d,light:0xb29a70,visor:0xffbd65,visorGlow:0x704019,shoulder:1.22,style:'heavy'},phantom:{armor:0x343946,light:0x687080,visor:0xb99aff,visorGlow:0x49317a,shoulder:.94,style:'stealth'}};
+let selectedOperator='vanguard';
 let weaponIndex=0; const weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock})); let viewWeapon=null, weaponRecoil=0, moveBob=0, verticalVelocity=0, reloadTimer=null, mouseHeld=false;
 let socket=null, myId=null, players=[], teamId=null, matchStarted=false, lastShot=0, toastTimer=null, serverSpawn=null;
 const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,onGround:true,speed:5.2,moving:false,crouching:false};
@@ -44,7 +47,7 @@ const isLocalHost=['localhost','127.0.0.1'].includes(location.hostname);
 const autoServerUrl=()=>((isLocalHost||location.port==='5173')?`ws://${location.hostname}:3001`:`${location.protocol==='https:'?'wss':'ws'}://${location.host}`);
 $('server-url').value=autoServerUrl();
 
-function box(x,y,z,sx,sy,sz,mat,solid=true){const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);mapObjects.push(m);if(solid)colliders.push(new THREE.Box3().setFromObject(m));return m;}
+function box(x,y,z,sx,sy,sz,mat,solid=true){const radius=Math.max(.004,Math.min(.28,Math.min(sx,sy,sz)*.24));const m=new THREE.Mesh(new RoundedBoxGeometry(sx,sy,sz,3,radius),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);mapObjects.push(m);if(solid)colliders.push(new THREE.Box3().setFromObject(m));return m;}
 function clearMap(){for(const o of mapObjects)scene.remove(o);mapObjects=[];colliders=[];ramps.length=0;platforms.length=0;}
 function detailBox(x,y,z,sx,sy,sz,mat){return box(x,y,z,sx,sy,sz,mat,false);}
 function makeRamp(x,z,width=5,length=8,rise=2.2,rotation=0){
@@ -376,51 +379,45 @@ function movePlayer(dt){
  updateCamera();
 }
 function makeRemote(id,data={}){
- const group=new THREE.Group(),teamColors=[0x4c9eac,0xd2a45c,0x78a77c,0x9b83c5],teamColor=data.team==null?0x6b9b67:teamColors[data.team%teamColors.length];
- const armor=new THREE.MeshPhysicalMaterial({color:0x536b4c,metalness:.48,roughness:.34,clearcoat:.42}),armorLight=new THREE.MeshPhysicalMaterial({color:0x82936b,metalness:.42,roughness:.36,clearcoat:.35}),undersuit=new THREE.MeshStandardMaterial({color:0x111a1c,roughness:.92}),graphite=new THREE.MeshStandardMaterial({color:0x26343a,metalness:.76,roughness:.3}),steel=new THREE.MeshStandardMaterial({color:0x87999a,metalness:.8,roughness:.28}),accent=new THREE.MeshStandardMaterial({color:teamColor,emissive:teamColor,emissiveIntensity:.22,metalness:.38,roughness:.3}),gold=new THREE.MeshPhysicalMaterial({color:0xe7ad43,metalness:.86,roughness:.18,clearcoat:1,emissive:0x5a2b08,emissiveIntensity:.24}),rubber=new THREE.MeshStandardMaterial({color:0x080d10,roughness:.98});
- const add=(p,g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o;},ell=(p,m,x,y,z,sx,sy,sz)=>{const o=add(p,new THREE.SphereGeometry(1,24,16),m,x,y,z);o.scale.set(sx,sy,sz);return o;},cap=(p,m,x,y,z,r,l)=>add(p,new THREE.CapsuleGeometry(r,l,6,14),m,x,y,z);
- // Smooth, athletic powered-armor proportions. The silhouette uses ellipsoids and capsules, not box limbs.
- cap(group,undersuit,0,1.06,0,.255,.54);ell(group,armor,0,1.26,-.035,.34,.39,.235);ell(group,armorLight,0,1.29,-.205,.285,.255,.105);ell(group,graphite,0,.91,.005,.25,.18,.205);
- for(let i=0;i<3;i++)ell(group,i===1?armorLight:armor,0,.83+i*.13,-.205,.235,.075,.075);
- const collar=add(group,new THREE.TorusGeometry(.245,.075,12,32),graphite,0,1.53,0);collar.rotation.x=Math.PI/2;
- ell(group,undersuit,0,1.67,0,.225,.245,.205);ell(group,armorLight,0,1.72,.005,.255,.265,.22);ell(group,armor,0,1.81,.015,.255,.19,.225);ell(group,gold,0,1.69,-.183,.205,.105,.055);ell(group,graphite,0,1.91,.005,.19,.055,.18);
- for(const s of [-1,1]){ell(group,graphite,s*.245,1.68,0,.075,.12,.14);ell(group,accent,s*.255,1.68,-.01,.035,.065,.09);const shoulder=ell(group,armorLight,s*.405,1.38,-.005,.245,.205,.255);shoulder.rotation.z=s*.12;ell(group,armor,s*.405,1.43,-.11,.205,.135,.19);ell(group,accent,s*.405,1.47,-.255,.09,.035,.025);cap(group,undersuit,s*.31,.94,0,.115,.27);}
- ell(group,graphite,0,1.25,.255,.27,.39,.17);ell(group,armor,0,1.29,.365,.215,.29,.11);
- for(const s of [-1,1]){ell(group,steel,s*.205,1.38,.34,.075,.19,.09);ell(group,accent,s*.205,1.46,.405,.045,.07,.025);const antenna=cap(group,graphite,s*.18,1.72,.31,.018,.22);antenna.rotation.z=s*.12;}
- const leftArm=new THREE.Group();leftArm.position.set(-.34,1.34,0);group.add(leftArm);const rightArm=new THREE.Group();rightArm.position.set(.34,1.34,0);group.add(rightArm);
- for(const [p,s] of [[leftArm,-1],[rightArm,1]]){cap(p,undersuit,s*.025,-.21,0,.105,.3);const upper=ell(p,armor,s*.025,-.22,-.015,.145,.235,.145);upper.rotation.z=s*-.1;cap(p,undersuit,s*.035,-.49,-.035,.09,.27);const bracer=ell(p,armorLight,s*.035,-.49,-.115,.12,.205,.12);bracer.rotation.z=s*-.08;ell(p,graphite,s*.035,-.65,-.12,.105,.09,.1);ell(p,accent,s*.035,-.5,-.215,.055,.1,.025);ell(p,rubber,s*.035,-.72,-.09,.095,.12,.105);}
- const leftLeg=new THREE.Group();leftLeg.position.set(-.15,.72,0);group.add(leftLeg);const rightLeg=new THREE.Group();rightLeg.position.set(.15,.72,0);group.add(rightLeg);
- for(const [p,s] of [[leftLeg,-1],[rightLeg,1]]){cap(p,undersuit,0,-.245,0,.12,.39);const thigh=ell(p,armor,0,-.235,-.015,.155,.255,.16);thigh.rotation.z=s*.025;ell(p,armorLight,0,-.49,-.105,.145,.12,.115);ell(p,graphite,0,-.53,-.02,.13,.105,.13);cap(p,undersuit,0,-.72,-.015,.105,.28);const shin=ell(p,armor,0,-.72,-.105,.13,.205,.12);shin.rotation.x=-.08;ell(p,accent,s*.055,-.7,-.205,.055,.105,.025);ell(p,rubber,0,-.91,-.11,.15,.085,.245);ell(p,graphite,0,-.91,-.23,.12,.055,.12);}
- // Angular armour overlays: hard panel breaks and raised bevels replace the soft blended silhouette.
- const panelMat=new THREE.MeshPhysicalMaterial({color:0x91a477,metalness:.62,roughness:.28,clearcoat:.55});
- const panelDark=new THREE.MeshStandardMaterial({color:0x34483d,metalness:.72,roughness:.3});
- const panelEdge=new THREE.LineBasicMaterial({color:0x172329,transparent:true,opacity:.95});
- const makePlate=(parent,mat,x,y,z,points,depth=.065)=>{
-  const sh=new THREE.Shape();sh.moveTo(points[0][0],points[0][1]);for(let n=1;n<points.length;n++)sh.lineTo(points[n][0],points[n][1]);sh.closePath();
-  const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.018,bevelThickness:.018,curveSegments:1});
-  geo.translate(0,0,-depth/2);
-  const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);
-  mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),panelEdge));return mesh;
- };
- // Split chest into left/right breastplates with a central armored spine.
- makePlate(group,panelMat,0,1.34,-.305,[[-.27,.12],[-.21,.22],[-.035,.16],[-.025,-.09],[-.18,-.14],[-.27,-.02]],.075);
- makePlate(group,panelMat,0,1.34,-.305,[[.27,.12],[.21,.22],[.035,.16],[.025,-.09],[.18,-.14],[.27,-.02]],.075);
- makePlate(group,panelDark,0,1.33,-.35,[[-.035,.18],[.035,.18],[.045,-.17],[-.045,-.17]],.035);
- for(let n=0;n<3;n++){const y=1.04-n*.105,w=.19-n*.012;makePlate(group,n===1?panelMat:armor,0,y,-.27,[[-w,.045],[-w*.78,-.045],[0,-.07],[w*.78,-.045],[w,.045],[0,.075]],.055);}
- // Angular shoulder shells, forearm shields, thigh guards and shin plates.
- for(const side of [-1,1]){
-  makePlate(group,panelMat,side*.405,1.4,-.235,[[0,.21],[side*.17,.13],[side*.18,-.035],[side*.07,-.19],[-side*.12,-.15],[-side*.19,.035]],.075);
-  makePlate(group,accent,side*.405,1.4,-.282,[[0,.075],[side*.075,.035],[side*.04,-.045],[-side*.04,-.045],[-side*.075,.025]],.025);
-  const arm=side<0?leftArm:rightArm,leg=side<0?leftLeg:rightLeg;
-  makePlate(arm,panelMat,side*.025,-.49,-.235,[[-.085,.17],[.065,.19],[.11,.035],[.065,-.16],[-.06,-.19],[-.12,-.035]],.06);
-  makePlate(leg,panelMat,0,-.235,-.235,[[-.13,.2],[.075,.23],[.15,.08],[.105,-.17],[-.04,-.22],[-.145,-.055]],.06);
-  makePlate(leg,panelMat,0,-.72,-.225,[[-.105,.18],[.08,.18],[.12,.02],[.075,-.17],[-.055,-.2],[-.13,-.035]],.06);
-  makePlate(leg,accent,0,-.49,-.19,[[-.09,.055],[.09,.055],[.08,-.055],[0,-.1],[-.08,-.055]],.025);
- }
- const gun=new THREE.Group();gun.position.set(.25,1.02,-.31);gun.rotation.x=-.08;group.add(gun);ell(gun,graphite,0,0,-.1,.115,.105,.26);ell(gun,armor,0,.035,-.09,.09,.075,.22);const barrel=cap(gun,steel,0,.005,-.39,.035,.24);barrel.rotation.x=Math.PI/2;ell(gun,accent,0,.075,-.17,.052,.025,.12);const grip=cap(gun,graphite,0,-.13,.04,.045,.13);grip.rotation.x=-.18;
- const shadow=new THREE.Mesh(new THREE.CircleGeometry(.43,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
- const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=64;const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(5,12,18,.7)';ctx.fillRect(12,10,232,44);ctx.strokeStyle='#9fc4b1';ctx.strokeRect(12,10,232,44);ctx.fillStyle='#eef4ef';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(String(data.name||'SPARTAN').slice(0,18),128,39);const tex=new THREE.CanvasTexture(labelCanvas);const label=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));label.scale.set(1.35,.34,1);label.position.set(0,2.22,0);group.add(label);
- group.userData={targetPosition:new THREE.Vector3(),targetYaw:0,moving:false,crouching:false,animTime:Math.random()*5,leftLeg,rightLeg,leftArm,rightArm,gun,health:100,alive:true};scene.add(group);remotePlayers.set(id,group);return group;
+  const group=new THREE.Group(),teamColors=[0x4c9eac,0xd2a45c,0x78a77c,0x9b83c5],teamColor=data.team==null?0x6b9b67:teamColors[data.team%teamColors.length];
+  const operator=OPERATOR_PRESETS[data.operator]?data.operator:'vanguard',preset=OPERATOR_PRESETS[operator];
+  const armor=new THREE.MeshPhysicalMaterial({color:preset.armor,metalness:.48,roughness:.34,clearcoat:.42}),armorLight=new THREE.MeshPhysicalMaterial({color:preset.light,metalness:.42,roughness:.36,clearcoat:.35}),undersuit=new THREE.MeshStandardMaterial({color:0x111a1c,roughness:.92}),graphite=new THREE.MeshStandardMaterial({color:0x26343a,metalness:.76,roughness:.3}),steel=new THREE.MeshStandardMaterial({color:0x87999a,metalness:.8,roughness:.28}),accent=new THREE.MeshStandardMaterial({color:teamColor,emissive:teamColor,emissiveIntensity:.22,metalness:.38,roughness:.3}),visor=new THREE.MeshPhysicalMaterial({color:preset.visor,emissive:preset.visorGlow,emissiveIntensity:.42,metalness:.65,roughness:.2,clearcoat:1}),rubber=new THREE.MeshStandardMaterial({color:0x080d10,roughness:.98});
+  const add=(p,g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o;},ell=(p,m,x,y,z,sx,sy,sz)=>{const o=add(p,new THREE.SphereGeometry(1,24,16),m,x,y,z);o.scale.set(sx,sy,sz);return o;},cap=(p,m,x,y,z,r,l)=>add(p,new THREE.CapsuleGeometry(r,l,6,14),m,x,y,z);
+  // Each preset shares the same rig but changes armour finish, visor, and silhouette.
+  cap(group,undersuit,0,1.06,0,.255,.54);ell(group,armor,0,1.26,-.035,.34,.39,.235);ell(group,armorLight,0,1.29,-.205,.285,.255,.105);ell(group,graphite,0,.91,.005,.25,.18,.205);
+  for(let i=0;i<3;i++)ell(group,i===1?armorLight:armor,0,.83+i*.13,-.205,.235,.075,.075);
+  const collar=add(group,new THREE.TorusGeometry(.245,.075,12,32),graphite,0,1.53,0);collar.rotation.x=Math.PI/2;
+  ell(group,undersuit,0,1.67,0,.225,.245,.205);ell(group,armorLight,0,1.72,.005,.255,.265,.22);ell(group,armor,0,1.81,.015,.255,.19,.225);ell(group,visor,0,1.69,-.183,.205,.105,.055);ell(group,graphite,0,1.91,.005,.19,.055,.18);
+  for(const s of [-1,1]){
+    ell(group,graphite,s*.245,1.68,0,.075,.12,.14);ell(group,accent,s*.255,1.68,-.01,.035,.065,.09);
+    const shoulder=ell(group,armorLight,s*.405,1.38,-.005,.245*preset.shoulder,.205*preset.shoulder,.255*preset.shoulder);shoulder.rotation.z=s*.12;
+    ell(group,armor,s*.405,1.43,-.11,.205*preset.shoulder,.135*preset.shoulder,.19*preset.shoulder);ell(group,accent,s*.405,1.47,-.255,.09,.035,.025);cap(group,undersuit,s*.31,.94,0,.115,.27);
+  }
+  ell(group,graphite,0,1.25,.255,.27,.39,.17);ell(group,armor,0,1.29,.365,.215,.29,.11);
+  for(const s of [-1,1]){ell(group,steel,s*.205,1.38,.34,.075,.19,.09);ell(group,accent,s*.205,1.46,.405,.045,.07,.025);}
+  // Distinct helmet hardware and back-mounted equipment for each operator class.
+  const pack=add(group,new RoundedBoxGeometry(operator==='assault'?.52:.42,operator==='assault'?.68:.58,.24,3,.07),graphite,0,1.18,.285);
+  for(const s of [-1,1]){const module=ell(group,operator==='recon'?visor:steel,s*.25,1.24,.31,.075,.18,.1);module.rotation.z=s*.12;}
+  if(operator==='recon'){const aerial=cap(group,steel,-.17,2.03,.02,.018,.28);aerial.rotation.z=-.12;ell(group,visor,-.17,2.18,.02,.035,.035,.035);}
+  if(operator==='assault'){for(const s of [-1,1]){const plate=ell(group,armorLight,s*.43,1.47,.02,.19,.095,.22);plate.rotation.z=s*.18;}ell(group,visor,0,1.98,-.02,.13,.045,.13);}
+  if(operator==='phantom'){for(const s of [-1,1]){const fin=add(group,new THREE.ConeGeometry(.075,.28,5),armorLight,s*.18,2.02,.02);fin.rotation.z=s*.2;}pack.scale.set(1.12,1.1,1);}
+  const leftArm=new THREE.Group();leftArm.position.set(-.34,1.34,0);group.add(leftArm);const rightArm=new THREE.Group();rightArm.position.set(.34,1.34,0);group.add(rightArm);
+  for(const [p,s] of [[leftArm,-1],[rightArm,1]]){cap(p,undersuit,s*.025,-.21,0,.105,.3);const upper=ell(p,armor,s*.025,-.22,-.015,.145,.235,.145);upper.rotation.z=s*-.1;cap(p,undersuit,s*.035,-.49,-.035,.09,.27);const bracer=ell(p,armorLight,s*.035,-.49,-.115,.12,.205,.12);bracer.rotation.z=s*-.08;ell(p,graphite,s*.035,-.65,-.12,.105,.09,.1);ell(p,accent,s*.035,-.5,-.215,.055,.1,.025);ell(p,rubber,s*.035,-.72,-.09,.095,.12,.105);}
+  const leftLeg=new THREE.Group();leftLeg.position.set(-.15,.72,0);group.add(leftLeg);const rightLeg=new THREE.Group();rightLeg.position.set(.15,.72,0);group.add(rightLeg);
+  for(const [p,s] of [[leftLeg,-1],[rightLeg,1]]){cap(p,undersuit,0,-.245,0,.12,.39);const thigh=ell(p,armor,0,-.235,-.015,.155,.255,.16);thigh.rotation.z=s*.025;ell(p,armorLight,0,-.49,-.105,.145,.12,.115);ell(p,graphite,0,-.53,-.02,.13,.105,.13);cap(p,undersuit,0,-.72,-.015,.105,.28);const shin=ell(p,armor,0,-.72,-.105,.13,.205,.12);shin.rotation.x=-.08;ell(p,accent,s*.055,-.7,-.205,.055,.105,.025);ell(p,rubber,0,-.91,-.11,.15,.085,.245);ell(p,graphite,0,-.91,-.23,.12,.055,.12);}
+  const panelMat=new THREE.MeshPhysicalMaterial({color:preset.light,metalness:.62,roughness:.28,clearcoat:.55});
+  const panelDark=new THREE.MeshStandardMaterial({color:0x34483d,metalness:.72,roughness:.3});
+  const panelEdge=new THREE.LineBasicMaterial({color:0x172329,transparent:true,opacity:.95});
+  const makePlate=(parent,mat,x,y,z,points,depth=.065)=>{const sh=new THREE.Shape();sh.moveTo(points[0][0],points[0][1]);for(let n=1;n<points.length;n++)sh.lineTo(points[n][0],points[n][1]);sh.closePath();const geo=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelSegments:1,steps:1,bevelSize:.018,bevelThickness:.018,curveSegments:1});geo.translate(0,0,-depth/2);const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),panelEdge));return mesh;};
+  makePlate(group,panelMat,0,1.34,-.305,[[-.27,.12],[-.21,.22],[-.035,.16],[-.025,-.09],[-.18,-.14],[-.27,-.02]],.075);
+  makePlate(group,panelMat,0,1.34,-.305,[[.27,.12],[.21,.22],[.035,.16],[.025,-.09],[.18,-.14],[.27,-.02]],.075);
+  makePlate(group,panelDark,0,1.33,-.35,[[-.035,.18],[.035,.18],[.045,-.17],[-.045,-.17]],.035);
+  for(let n=0;n<3;n++){const y=1.04-n*.105,w=.19-n*.012;makePlate(group,n===1?panelMat:armor,0,y,-.27,[[-w,.045],[-w*.78,-.045],[0,-.07],[w*.78,-.045],[w,.045],[0,.075]],.055);}
+  for(const side of [-1,1]){makePlate(group,panelMat,side*.405,1.4,-.235,[[0,.21],[side*.17,.13],[side*.18,-.035],[side*.07,-.19],[-side*.12,-.15],[-side*.19,.035]],.075);makePlate(group,accent,side*.405,1.4,-.282,[[0,.075],[side*.075,.035],[side*.04,-.045],[-side*.04,-.045],[-side*.075,.025]],.025);const arm=side<0?leftArm:rightArm,leg=side<0?leftLeg:rightLeg;makePlate(arm,panelMat,side*.025,-.49,-.235,[[-.085,.17],[.065,.19],[.11,.035],[.065,-.16],[-.06,-.19],[-.12,-.035]],.06);makePlate(leg,panelMat,0,-.235,-.235,[[-.13,.2],[.075,.23],[.15,.08],[.105,-.17],[-.04,-.22],[-.145,-.055]],.06);makePlate(leg,panelMat,0,-.72,-.225,[[-.105,.18],[.08,.18],[.12,.02],[.075,-.17],[-.055,-.2],[-.13,-.035]],.06);makePlate(leg,accent,0,-.49,-.19,[[-.09,.055],[.09,.055],[.08,-.055],[0,-.1],[-.08,-.055]],.025);}
+  const gun=new THREE.Group();gun.position.set(.25,1.02,-.31);gun.rotation.x=-.08;group.add(gun);ell(gun,graphite,0,0,-.1,.115,.105,.26);ell(gun,armor,0,.035,-.09,.09,.075,.22);const barrel=cap(gun,steel,0,.005,-.39,.035,.24);barrel.rotation.x=Math.PI/2;ell(gun,accent,0,.075,-.17,.052,.025,.12);const grip=cap(gun,graphite,0,-.13,.04,.045,.13);grip.rotation.x=-.18;
+  const shadow=new THREE.Mesh(new THREE.CircleGeometry(.43,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=.015;group.add(shadow);
+  const labelCanvas=document.createElement('canvas');labelCanvas.width=256;labelCanvas.height=64;const ctx=labelCanvas.getContext('2d');ctx.fillStyle='rgba(5,12,18,.7)';ctx.fillRect(12,10,232,44);ctx.strokeStyle='#9fc4b1';ctx.strokeRect(12,10,232,44);ctx.fillStyle='#eef4ef';ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.fillText(String(data.name||'SPARTAN').slice(0,18),128,39);const tex=new THREE.CanvasTexture(labelCanvas);const label=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));label.scale.set(1.35,.34,1);label.position.set(0,2.22,0);group.add(label);
+  group.userData={targetPosition:new THREE.Vector3(),targetYaw:0,moving:false,crouching:false,animTime:Math.random()*5,leftLeg,rightLeg,leftArm,rightArm,gun,health:100,alive:true,operator};scene.add(group);remotePlayers.set(id,group);return group;
 }
 function updateRemote(data){
  let g=remotePlayers.get(data.id)||makeRemote(data.id,data);
@@ -445,7 +442,7 @@ function applyServerPosition(data){if(!data)return;player.pos.set(Number(data.x)
 function removeRemote(id){const g=remotePlayers.get(id);if(g){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});remotePlayers.delete(id);}}
 
 function send(type,payload={}){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type,...payload}));}
-function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
+function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
 function handleNetwork(m){
  if(m.type==='welcome'){
   myId=m.id;teamId=m.team;players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
@@ -523,6 +520,7 @@ function drawMinimap(){
 }
 
 const CROSSHAIR_STYLES=['standard','red','dot','green','amber'];
+function setOperator(operator,save=true){selectedOperator=OPERATOR_PRESETS[operator]?operator:'vanguard';document.querySelectorAll('[data-operator]').forEach(b=>b.classList.toggle('selected',b.dataset.operator===selectedOperator));if(save){try{localStorage.setItem('eclipse-operator',selectedOperator);}catch{}}}
 function setCrosshair(style,save=true){
  const chosen=CROSSHAIR_STYLES.includes(style)?style:'standard';
  const sight=$('game-crosshair');if(sight)sight.dataset.style=chosen;
@@ -550,7 +548,7 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function backToMenu(){running=false;paused=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('pause').classList.remove('active');$('results').classList.remove('active');$('lobby').classList.remove('active');$('menu').classList.add('active');if(socket){socket.close();socket=null;}for(const id of remotePlayers.keys())removeRemote(id);}
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running&&!paused){movePlayer(dt);if(mouseHeld&&weapons[weaponIndex].id!=='arc')fire();updateProjectiles(dt);updateRemoteModels(dt);remaining-=dt;if(remaining<=0){remaining=0;if(training)showResults([]);else send('endMatch');}const mins=Math.floor(remaining/60),secs=Math.floor(remaining%60);$('timer').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;if(!training&&performance.now()-lastMoveSend>=50){lastMoveSend=performance.now();send('move',{x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw:player.yaw,pitch:player.pitch,moving:player.moving,crouching:player.crouching,weapon:weapons[weaponIndex].id});}}else {updateProjectiles(dt);updateRemoteModels(dt);}drawMinimap();renderer.render(scene,camera);}
 
-$('mode-grid');setCrosshair((()=>{try{return localStorage.getItem('eclipse-crosshair')||'standard';}catch{return 'standard';}})(),false);document.querySelectorAll('[data-crosshair]').forEach(b=>b.addEventListener('click',()=>setCrosshair(b.dataset.crosshair)));document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedMode=b.dataset.mode;}));
+$('mode-grid');setOperator((()=>{try{return localStorage.getItem('eclipse-operator')||'vanguard';}catch{return 'vanguard';}})(),false);document.querySelectorAll('[data-operator]').forEach(b=>b.addEventListener('click',()=>setOperator(b.dataset.operator)));setCrosshair((()=>{try{return localStorage.getItem('eclipse-crosshair')||'standard';}catch{return 'standard';}})(),false);document.querySelectorAll('[data-crosshair]').forEach(b=>b.addEventListener('click',()=>setCrosshair(b.dataset.crosshair)));document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedMode=b.dataset.mode;}));
 document.querySelectorAll('.map-choice').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.map-choice').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMap=b.dataset.map;$('map-name').textContent=selectedMap.toUpperCase();}));
 $('deploy').addEventListener('click',async()=>{const ok=await connectServer();if(!ok){toast('SERVER UNAVAILABLE — START SERVER OR USE SOLO TRAINING');return;}$('lobby-title').textContent=selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase();$('lobby-subtitle').textContent=isLocalHost?'Connected to local operation server':'Connected to online operation server';$('lobby-map').textContent=selectedMap.toUpperCase();$('lobby-mode').textContent=selectedMode.toUpperCase();$('menu').classList.remove('active');$('lobby').classList.add('active');renderPlayers();});
 $('training').addEventListener('click',()=>{if(selectedMap==='district')buildDistrict();else buildIndustrial();createEclipse();beginMatch(true);toast('SOLO TRAINING — NETWORK PLAY DISABLED');});
