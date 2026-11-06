@@ -445,7 +445,38 @@ function applyServerPosition(data){if(!data)return;player.pos.set(Number(data.x)
 function removeRemote(id){const g=remotePlayers.get(id);if(g){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});remotePlayers.delete(id);}}
 
 function send(type,payload={}){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type,...payload}));}
-function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
+function connectServer(){
+ return new Promise((resolve)=>{
+  let url=$('server-url').value.trim()||autoServerUrl(),done=false;
+  const setStatus=(label,connected=false)=>{
+   const dot=$('server-dot');
+   dot?.parentElement?.classList.toggle('connected',connected);
+   $('server-label').textContent=label;
+  };
+  setStatus('CONNECTING',false);
+  try{socket=new WebSocket(url);}catch{setStatus('OFFLINE / LOCAL',false);resolve(false);return;}
+  const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};
+  const timeout=setTimeout(()=>{setStatus('TIMEOUT',false);finish(false);try{socket?.close();}catch{}},8000);
+  socket.onopen=()=>{
+   setStatus('JOINING',false);
+   send('join',{mode:selectedMode,map:selectedMap,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});
+  };
+  socket.onmessage=(ev)=>{
+   let m;try{m=JSON.parse(ev.data);}catch{return;}
+   if(m.type==='welcome'){setStatus('CONNECTED',true);finish(true);}
+   if(m.type==='error'&&!done){setStatus('JOIN REJECTED',false);finish(false);try{socket.close();}catch{}}
+   handleNetwork(m);
+  };
+  socket.onclose=()=>{
+   setStatus('OFFLINE / LOCAL',false);
+   if(!done)finish(false);
+   if(running&&!training)toast('Connection lost. Returning to local training.');
+  };
+  socket.onerror=()=>{
+   if(!done){setStatus('CONNECTION ERROR',false);finish(false);}
+  };
+ });
+}
 function handleNetwork(m){
  if(m.type==='welcome'){
   myId=m.id;teamId=m.team;players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;

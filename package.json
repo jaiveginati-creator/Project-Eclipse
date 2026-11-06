@@ -1,14 +1,15 @@
 {
   "name": "project-eclipse",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
-  "description": "A browser-based multiplayer arena FPS prototype with two sci-fi arenas, angular powered-armor operators, distinct weapons and customizable crosshairs",
+  "description": "A browser-based multiplayer arena prototype with two sci-fi arenas, procedural powered-armor operators and public 2–4-player match support",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "server": "node server/server.js",
     "start": "concurrently -k \"npm:server\" \"npm:dev\"",
-    "start:production": "node server/server.js"
+    "start:production": "node server/server.js",
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "three": "^0.180.0",

@@ -1,13 +1,19 @@
-# PROJECT: ECLIPSE — Prototype 0.9.0
+# PROJECT: ECLIPSE — Prototype 0.12.0
 
 A browser-based multiplayer FPS prototype with two rebuilt science-fiction arenas, rounded powered-armor operators, solo training, and a Node.js WebSocket service.
 
-## Prototype 0.9.0 — Complete Visual Rebuild
+## 0.9.0 — Complete Visual Rebuild (historical milestone)
 
 - Rebuilt DISTRICT as a futuristic orbital settlement with a circular transit plaza, curved illuminated towers, skybridges, habitat modules, landing pads, holographic beacons and new routes.
 - Rebuilt INDUSTRIAL as a spacecraft shipyard with massive hangars, twin gantry cranes, a central reactor column, cargo lanes, pipe racks, pressure vessels and walkable catwalks.
 - Replaced the angular placeholder operator with rounded powered armour: smooth helmet, gold visor, sculpted chest, curved shoulder pauldrons, articulated gauntlets, greaves and backpack power unit.
 - Retained multiplayer protocol, weapons, interpolation, minimap bounds, health regeneration and match flow.
+
+## 0.12.0 changes — connection status and multiplayer regression checks
+- The server health endpoint now reports the version from `package.json`, preventing the health response from falling behind the deployed client build.
+- The deployment status stays at `JOINING` until the server accepts the lobby join with a `welcome` message. Rejected joins and connection errors no longer appear as successful connections.
+- Added an automated four-client integration test covering lobby join, match start, disconnect cleanup, and health/player counts.
+- CI now runs the production build and multiplayer integration test on pull requests and pushes to `main`.
 
 ## Previous 0.8.0 visual pass (superseded)
 
@@ -108,8 +114,7 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Browser rendering, actual hit registration under varied latency, and live internet multiplayer must still be tested with two or more clients on separate internet connections.
 
 ## Verification
-- `node --check server/server.js`: passed.
-- `node --check client/src/main.js`: passed.
-- `package.json` parse: passed.
-- Full Vite production build and browser rendering: pending dependency installation and browser testing.
-- Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
+- `npm test`: runs a real local Node/WebSocket integration test with two clients, lobby state, match start, disconnect cleanup, and the `/health` endpoint.
+- `npm run build`: produces the Vite production client bundle.
+- GitHub Actions runs both checks for pull requests and pushes to `main`.
+- Browser rendering and a match between clients on separate internet connections still require manual testing; a passing build does not prove live-host performance.
