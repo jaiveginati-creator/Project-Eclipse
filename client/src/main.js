@@ -366,13 +366,13 @@ function buildIndustrial(){
 
 function buildSublevel(){
  clearMap();scene.background.set(0x071522);scene.fog.color.set(0x0b1d2a);scene.fog.density=.021;
- hemi.color.set(0x8ac7d6);hemi.groundColor.set(0x07111a);hemi.intensity=1.08;
- moonLight.color.set(0x70c9df);moonLight.intensity=.72;moonLight.position.set(-12,18,-16);fill.color.set(0x2e8da9);fill.intensity=.48;
- const floor=new THREE.MeshStandardMaterial({color:0x253640,roughness:.78,metalness:.36});
- const wall=new THREE.MeshStandardMaterial({color:0x172833,roughness:.66,metalness:.58});
- const wallLight=new THREE.MeshStandardMaterial({color:0x344b58,roughness:.58,metalness:.52});
- const cyan=new THREE.MeshStandardMaterial({color:0x3dc5d8,emissive:0x08758a,emissiveIntensity:.72,metalness:.45,roughness:.28});
- const amber=new THREE.MeshStandardMaterial({color:0xc88a42,emissive:0x5b310d,emissiveIntensity:.35,metalness:.35,roughness:.48});
+ hemi.color.set(0x8ac7d6);hemi.groundColor.set(0x07111a);hemi.intensity=1.75;
+ moonLight.color.set(0x70c9df);moonLight.intensity=1.05;moonLight.position.set(-12,18,-16);fill.color.set(0x2e8da9);fill.intensity=.82;
+ const floor=new THREE.MeshStandardMaterial({color:0x465761,roughness:.82,metalness:.18});
+ const wall=new THREE.MeshStandardMaterial({color:0x354954,roughness:.78,metalness:.28});
+ const wallLight=new THREE.MeshStandardMaterial({color:0x647d88,roughness:.68,metalness:.28});
+ const cyan=new THREE.MeshStandardMaterial({color:0x54d9e8,emissive:0x168da0,emissiveIntensity:.9,metalness:.45,roughness:.28});
+ const amber=new THREE.MeshStandardMaterial({color:0xe0a64f,emissive:0x81501c,emissiveIntensity:.48,metalness:.35,roughness:.48});
  box(0,-.28,0,50,.56,50,floor,false);
  // A hard perimeter keeps every fight inside this compact 48 x 48 metre arena.
  box(0,2.7,-24.7,50,5.4,.7,wall);box(0,2.7,24.7,50,5.4,.7,wall);
@@ -415,12 +415,12 @@ function buildSublevel(){
   const warm=(i===1&&z===0)||((i===0||i===2)&&Math.abs(z)===16);
   detailBox(x,5.335,z,1.75,.16,1.75,wall,false);
   detailBox(x,5.235,z,1.22,.045,1.22,warm?ceilingWarm:ceilingWhite);
-  const lamp=new THREE.PointLight(warm?0xffbd78:0x9beaff,warm?1.35:1.55,19,2);
+  const lamp=new THREE.PointLight(warm?0xffbd78:0x9beaff,warm?2.4:2.8,25,2);
   lamp.position.set(x,5.02,z);scene.add(lamp);mapObjects.push(lamp);
  }
  // Small route lights brighten the connecting tunnel mouths and corners.
  for(const [x,z] of [[-9.5,-16],[-9.5,0],[-9.5,16],[9.5,-16],[9.5,0],[9.5,16],[-16,-9.5],[0,-9.5],[16,-9.5],[-16,9.5],[0,9.5],[16,9.5]]){
-  const lamp=new THREE.PointLight(0x54cde4,.62,9,2);lamp.position.set(x,4.35,z);scene.add(lamp);mapObjects.push(lamp);
+  const lamp=new THREE.PointLight(0x54cde4,1.1,13,2);lamp.position.set(x,4.35,z);scene.add(lamp);mapObjects.push(lamp);
   detailBox(x,4.53,z,.72,.07,.72,ceilingWhite);
  }
  // Central hub: open fighting space, waist-high cover and a small reactor console.
