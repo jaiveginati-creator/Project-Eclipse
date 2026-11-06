@@ -572,10 +572,10 @@ function movePlayer(dt){
  if(mantleState){const t=THREE.MathUtils.clamp((now-mantleState.start)/mantleState.duration,0,1),ease=t*t*(3-2*t);player.pos.lerpVectors(mantleState.from,mantleState.to,ease);if(t>=1){mantleState=null;player.onGround=true;lastGroundedAt=now;}updateCamera();return;}
  let dir=new THREE.Vector3();if(keys.KeyW)dir.add(forward);if(keys.KeyS)dir.sub(forward);if(keys.KeyD)dir.add(right);if(keys.KeyA)dir.sub(right);if(dir.lengthSq())dir.normalize();
  player.moving=dir.lengthSq()>.01;const sprinting=Boolean(keys.ShiftLeft&&player.moving);if(!keys.ControlLeft||!keys.ShiftLeft)slideTriggered=false;if(sprinting&&keys.ControlLeft&&player.onGround&&now>slideUntil&&!slideTriggered){slideUntil=now+680;slideDirection.copy(dir);slideTriggered=true;}
- const sliding=now<slideUntil;const targetSpeed=sliding?9.6:sprinting?7.3:keys.ControlLeft?2.7:5.2;sprintBlend=THREE.MathUtils.damp(sprintBlend,sprinting&&!sliding?1:0,sliding?14:5,dt);
+ const sliding=now<slideUntil;const targetSpeed=sliding?9.6:keys.ControlLeft?2.7:5.2+2.1*sprintBlend;sprintBlend=THREE.MathUtils.damp(sprintBlend,sprinting&&!sliding?1:0,sliding?14:5,dt);
  player.crouching=Boolean(keys.ControlLeft||sliding);const accel=sliding?5:12;const moveDir=sliding?slideDirection:dir;player.vel.x=THREE.MathUtils.damp(player.vel.x,moveDir.x*targetSpeed,accel,dt);player.vel.z=THREE.MathUtils.damp(player.vel.z,moveDir.z*targetSpeed,accel,dt);
- const next=player.pos.clone();next.x+=player.vel.x*dt;if(!collides(next))player.pos.x=next.x;else if(player.onGround&&sprinting)tryMantle(forward);
- next.copy(player.pos);next.z+=player.vel.z*dt;if(!collides(next))player.pos.z=next.z;else if(player.onGround&&sprinting&&!mantleState)tryMantle(forward);
+ const next=player.pos.clone();next.x+=player.vel.x*dt;if(!collides(next))player.pos.x=next.x;else if(player.onGround&&sprinting)tryMantle(moveDir);
+ next.copy(player.pos);next.z+=player.vel.z*dt;if(!collides(next))player.pos.z=next.z;else if(player.onGround&&sprinting&&!mantleState)tryMantle(moveDir);
  const eyeHeight=sliding ? .92 : keys.ControlLeft ? 1.15 : 1.7;const floor=rampFloorHeight(player.pos.x,player.pos.z)+eyeHeight;verticalVelocity-= (player.onGround&&verticalVelocity<0?24:19)*dt;player.pos.y+=verticalVelocity*dt;
  if(player.pos.y<=floor){player.pos.y=floor;verticalVelocity=0;player.onGround=true;lastGroundedAt=now;}else player.onGround=false;
  if(sliding&&now>=slideUntil){slideUntil=0;}
@@ -672,7 +672,7 @@ function handleNetwork(m){
  }
  if(m.type==='damaged'){
   health=Number.isFinite(m.health)?m.health:health;updateHealthHud();
-  feed(m.eliminated?'OPERATOR DOWN · REDEPLOYING':`HIT RECEIVED · ${m.damage} DAMAGE`);
+  feed(`${m.headshot?'HEADSHOT · ':''}${m.eliminated?'OPERATOR DOWN · REDEPLOYING':`HIT RECEIVED · ${m.damage} DAMAGE`}`);
  }
  if(m.type==='elimination'){
   if(m.source===myId){kills++;feed(`ELIMINATED ${m.targetName||'OPERATOR'}`);}
@@ -759,7 +759,7 @@ function fire(){
 }
 function updateProjectiles(dt){
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],step=(p.speed||34)*dt;raycaster.set(p.mesh.position,p.dir);raycaster.far=step+.15;const hits=raycaster.intersectObjects(mapObjects,true);let impacted=hits.length>0&&hits[0].distance<=step+.12;let impactPoint=null;
- if(training&&!impacted){const targetHits=raycaster.intersectObjects(trainingTargetMeshes,false);if(targetHits.length&&targetHits[0].distance<=step+.12&&(!hits.length||targetHits[0].distance<hits[0].distance)){const hit=targetHits[0],target=hit.object.userData.target;impactPoint=hit.point.clone();impacted=true;if(target&&target.group.visible){const headshot=hit.object===target.meshes[1];target.group.visible=false;target.respawn=1.15;trainingHits++;$('objective-hint').textContent='TARGETS HIT '+trainingHits+'  ·  TEST WEAPONS & LOADOUTS';showHit(headshot);showDamageNumber(headshot?100:50,headshot);}}}
+ if(training&&!impacted){const targetHits=raycaster.intersectObjects(trainingTargetMeshes,false);if(targetHits.length&&targetHits[0].distance<=step+.12&&(!hits.length||targetHits[0].distance<hits[0].distance)){const hit=targetHits[0],target=hit.object.userData.target;impactPoint=hit.point.clone();impacted=true;if(target&&target.group.visible){const headshot=hit.object===target.meshes[1];target.group.visible=false;target.respawn=1.15;trainingHits++;$('objective-hint').textContent='TARGETS HIT '+trainingHits+'  ·  TEST WEAPONS & LOADOUTS';showHit(headshot);showDamageNumber('TARGET',headshot);}}}
  p.mesh.position.addScaledVector(p.dir,step);if(impactPoint)p.mesh.position.copy(impactPoint);p.life-=dt;
  if(p.local&&!impacted){for(const [id,g] of remotePlayers){const target=new THREE.Vector3(g.position.x,1.05,g.position.z);if(target.distanceTo(p.mesh.position)<(p.weapon?.explosive?1.2:.75)){impacted=true;break;}}}
  if(impacted||p.life<=0){spawnImpact(p.mesh.position,p.weapon?.color||0xffc16e);if(p.weapon?.explosive){const flash=new THREE.PointLight(p.weapon.color,2.4,7);flash.position.copy(p.mesh.position);scene.add(flash);setTimeout(()=>scene.remove(flash),110);}scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();projectiles.splice(i,1);}
