@@ -175,3 +175,11 @@
 .dev-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dev-actions button{min-height:40px;padding:9px;background:#172431;border:1px solid #ffffff20;color:#dce5eb;font:700 9px Inter;letter-spacing:.7px;cursor:pointer}.dev-actions button:hover:not(:disabled){border-color:#dca65d;color:#f3c17c;background:#dca65d12}.dev-actions button:disabled{opacity:.35;cursor:not-allowed}.dev-actions button.danger{border-color:#a95858;color:#e9a3a3}
 .dev-note{margin:13px 0 0;color:#81909c;font-size:9px;line-height:1.7}
 @media(max-width:600px){.dev-card{padding:16px}.dev-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.dev-section{padding:11px}.dev-header h2{font-size:35px}}
+
+
+/* v0.22.0 universal ammo, sniper and aim-down-sights */
+.scope-overlay{position:absolute;z-index:6;inset:0;display:none;pointer-events:none;background:radial-gradient(circle at center,transparent 0 25.5%,rgba(0,0,0,.97) 26.2% 100%)}
+.scope-overlay.active{display:block}
+.scope-overlay:before{content:"";position:absolute;left:50%;top:50%;width:1px;height:52%;transform:translate(-50%,-50%);background:linear-gradient(transparent,#d7e4e8 12%,#d7e4e8 88%,transparent);opacity:.72}
+.scope-overlay:after{content:"";position:absolute;left:50%;top:50%;width:52%;height:1px;transform:translate(-50%,-50%);background:linear-gradient(90deg,transparent,#d7e4e8 12%,#d7e4e8 88%,transparent);opacity:.72}
+#hud.sniper-aiming .crosshair{display:none}
