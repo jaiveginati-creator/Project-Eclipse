@@ -67,3 +67,13 @@
 .loadout-grid select:focus{border-color:#65c7d4;box-shadow:0 0 0 2px rgba(101,199,212,.12)}
 .loadout-summary{margin-top:10px;color:#78c7d2;font-size:9px;letter-spacing:1.2px;font-weight:700}
 @media(max-width:720px){.loadout-grid{grid-template-columns:1fr 1fr}.loadout-grid label:last-child{grid-column:1/-1}}
+
+
+/* v0.14.0 fullscreen control */
+.fullscreen-toggle{position:fixed;z-index:20;right:22px;bottom:20px;display:flex;align-items:center;gap:9px;padding:10px 13px;background:rgba(7,15,23,.88);border:1px solid rgba(196,211,226,.24);color:#dce5eb;font:700 8px Inter,Arial,sans-serif;letter-spacing:1.15px;cursor:pointer;backdrop-filter:blur(10px);transition:background .18s,border-color .18s,color .18s}
+.fullscreen-toggle:hover{background:rgba(230,168,91,.16);border-color:#dca65d;color:#f4c17c}
+.fullscreen-icon{position:relative;display:block;width:13px;height:13px;border:1.5px solid currentColor;clip-path:polygon(0 0,38% 0,38% 12%,12% 12%,12% 38%,0 38%,0 0,100% 0,100% 38%,88% 38%,88% 12%,62% 12%,62% 0,100% 0,100% 100%,62% 100%,62% 88%,88% 88%,88% 62%,100% 62%,100% 100%,0 100%,0 62%,12% 62%,12% 88%,38% 88%,38% 100%,0 100%)}
+.fullscreen-exit{clip-path:polygon(0 0,38% 0,38% 12%,12% 12%,12% 38%,0 38%,0 0,100% 0,100% 38%,88% 38%,88% 12%,62% 12%,62% 0,100% 0,100% 100%,62% 100%,62% 88%,88% 88%,88% 62%,100% 62%,100% 100%,0 100%,0 62%,12% 62%,12% 88%,38% 88%,38% 100%,0 100%);transform:scale(.78)}
+#game-root:fullscreen{width:100vw;height:100vh;background:#080d14}
+#game-root:fullscreen .fullscreen-toggle{right:22px;bottom:20px}
+@media(max-width:700px){.fullscreen-toggle{right:10px;bottom:10px;padding:9px 10px;font-size:7px}.fullscreen-label{display:none}}
