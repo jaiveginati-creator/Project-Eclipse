@@ -142,3 +142,9 @@
 .map-switch{flex-wrap:wrap;justify-content:flex-end}
 .map-choice{white-space:nowrap}
 @media(max-width:700px){.map-switch{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.map-choice{padding:8px 4px;font-size:7px}}
+
+
+/* Combat feedback and weapon handling polish */
+.hit-marker{font-size:29px;font-weight:800;text-shadow:0 0 10px #f3bd70,0 2px 4px #000;transition:transform .08s, color .08s}.hit-marker.show{transform:translate(-50%,-50%) scale(1.18)}.hit-marker.headshot{color:#fff0a6;text-shadow:0 0 13px #ffb547,0 0 25px #ff8b39;transform:translate(-50%,-50%) scale(1.35)}
+.damage-number{position:absolute;z-index:8;transform:translate(-50%,-50%);pointer-events:none;color:#f5d7a4;font:700 12px 'Barlow Condensed',Arial;letter-spacing:1.1px;text-shadow:0 2px 5px #000;animation:damage-rise .82s ease-out forwards;white-space:nowrap}.damage-number.headshot{color:#fff0a6;font-size:14px;text-shadow:0 0 9px #ff9d43,0 2px 5px #000}
+@keyframes damage-rise{0%{opacity:0;translate:0 7px;scale:.85}15%{opacity:1}100%{opacity:0;translate:0 -34px;scale:1.08}}
