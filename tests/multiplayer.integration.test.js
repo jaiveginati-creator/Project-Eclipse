@@ -64,6 +64,12 @@ async function connectClient(port) {
   return ws;
 }
 
+async function joinClient(ws, name) {
+  const welcomeWait = waitForMessage(ws, message => message.type === 'welcome');
+  ws.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name }));
+  return welcomeWait;
+}
+
 async function waitForHealth(port, child, getOutput) {
   const deadline = Date.now() + 8000;
   let lastError = null;
@@ -83,7 +89,7 @@ async function waitForHealth(port, child, getOutput) {
   throw new Error(`Server did not become healthy: ${lastError?.message || 'unknown error'}\n${getOutput()}`);
 }
 
-test('two clients join, start a match, and remove a disconnected player', { timeout: 20000 }, async () => {
+test('four clients join, start a match, and remove a disconnected player', { timeout: 20000 }, async () => {
   const port = await freePort();
   const child = spawn(process.execPath, ['server/server.js'], {
     cwd: root,
@@ -94,54 +100,61 @@ test('two clients join, start a match, and remove a disconnected player', { time
   child.stdout.on('data', chunk => { output += chunk.toString(); });
   child.stderr.on('data', chunk => { output += chunk.toString(); });
 
-  let a;
-  let b;
+  const clients = [];
   try {
     const initialHealth = await waitForHealth(port, child, () => output);
     assert.equal(initialHealth.ok, true);
     assert.equal(initialHealth.players, 0);
     assert.equal(initialHealth.version, require('../package.json').version);
 
-    a = await connectClient(port);
-    const welcomeAWait = waitForMessage(a, message => message.type === 'welcome');
-    a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'TEST-A' }));
-    const welcomeA = await welcomeAWait;
+    const a = await connectClient(port); clients.push(a);
+    const welcomeA = await joinClient(a, 'TEST-A');
     assert.equal(welcomeA.players.length, 1);
 
-    const twoPlayerUpdate = waitForMessage(a, message =>
-      message.type === 'players' && message.players?.length === 2
-    );
-    b = await connectClient(port);
-    const welcomeBWait = waitForMessage(b, message => message.type === 'welcome');
-    b.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'TEST-B' }));
-    const welcomeB = await welcomeBWait;
+    const aSeesTwo = waitForMessage(a, message => message.type === 'players' && message.players?.length === 2);
+    const b = await connectClient(port); clients.push(b);
+    const welcomeB = await joinClient(b, 'TEST-B');
     assert.equal(welcomeB.players.length, 2);
-    await twoPlayerUpdate;
+    await aSeesTwo;
 
-    const matchStartA = waitForMessage(a, message => message.type === 'matchStart');
-    const matchStartB = waitForMessage(b, message => message.type === 'matchStart');
+    const aSeesThree = waitForMessage(a, message => message.type === 'players' && message.players?.length === 3);
+    const bSeesThree = waitForMessage(b, message => message.type === 'players' && message.players?.length === 3);
+    const c = await connectClient(port); clients.push(c);
+    const welcomeC = await joinClient(c, 'TEST-C');
+    assert.equal(welcomeC.players.length, 3);
+    await Promise.all([aSeesThree, bSeesThree]);
+
+    const aSeesFour = waitForMessage(a, message => message.type === 'players' && message.players?.length === 4);
+    const bSeesFour = waitForMessage(b, message => message.type === 'players' && message.players?.length === 4);
+    const cSeesFour = waitForMessage(c, message => message.type === 'players' && message.players?.length === 4);
+    const d = await connectClient(port); clients.push(d);
+    const welcomeD = await joinClient(d, 'TEST-D');
+    assert.equal(welcomeD.players.length, 4);
+    await Promise.all([aSeesFour, bSeesFour, cSeesFour]);
+
+    const startMessages = clients.map(ws => waitForMessage(ws, message => message.type === 'matchStart'));
     a.send(JSON.stringify({ type: 'startMatch' }));
-    const [startedA, startedB] = await Promise.all([matchStartA, matchStartB]);
-    assert.equal(startedA.players.length, 2);
-    assert.equal(startedB.players.length, 2);
+    const started = await Promise.all(startMessages);
+    assert.ok(started.every(message => message.players.length === 4));
 
     const activeHealth = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
-    assert.equal(activeHealth.players, 2);
+    assert.equal(activeHealth.players, 4);
     assert.equal(activeHealth.rooms, 1);
 
-    const onePlayerUpdate = waitForMessage(a, message =>
-      message.type === 'players' && message.players?.length === 1
+    const aSeesThreeAfterDisconnect = waitForMessage(a, message =>
+      message.type === 'players' && message.players?.length === 3
     );
-    b.close();
-    const remaining = await onePlayerUpdate;
-    assert.equal(remaining.players.length, 1);
+    d.close();
+    const remaining = await aSeesThreeAfterDisconnect;
+    assert.equal(remaining.players.length, 3);
 
     const afterDisconnect = await (await fetch(`http://127.0.0.1:${port}/health`)).json();
-    assert.equal(afterDisconnect.players, 1);
+    assert.equal(afterDisconnect.players, 3);
     assert.equal(afterDisconnect.version, require('../package.json').version);
   } finally {
-    if (a && a.readyState === WebSocket.OPEN) a.close();
-    if (b && b.readyState === WebSocket.OPEN) b.close();
+    for (const ws of clients) {
+      if (ws.readyState === WebSocket.OPEN) ws.close();
+    }
     if (child.exitCode === null) {
       child.kill('SIGTERM');
       await new Promise(resolve => {
