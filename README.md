@@ -1,3 +1,21 @@
+# PROJECT: ECLIPSE — Prototype 0.19.0
+
+## Prototype 0.19.0 — Operator progression and gunsmith
+- Added persistent operator profiles identified by a browser-generated profile ID.
+- Multiplayer matches award 250 participation XP, 100 XP per elimination and a 200 XP winner bonus.
+- Added player levels, career kills/deaths/wins/matches, and the latest 20 match records.
+- Unlockable weapons: Nova Handcannon (Level 2), Heavy Arc Rifle (Level 3), Breach Shotgun (Level 4), Vector Burst Rifle (Level 5), Shard Needler (Level 6), and RPG-7X Launcher (Level 8).
+- Recon, Assault and Phantom armour configurations unlock at Levels 3, 6 and 9. Weapon camos unlock at Levels 4, 7 and 10.
+- Weapon-specific XP unlocks optics, barrels, magazines, stocks and underbarrel parts. The workshop lets players name, save and equip custom builds.
+- Attachments affect weapon handling, range, magazine capacity, damage/cooldown and first-person weapon appearance.
+- Server validates weapon/operator unlocks and attachment XP requirements before accepting a loadout.
+
+### Progression and storage notes
+- A multiplayer match awards XP only when the server ends the match. Training Range sessions do not award XP.
+- Operator profiles and match history are written to `server/profiles.json`; the profile ID is stored in browser local storage. This is a lightweight prototype identity system, not a secure account/login system.
+- The profile file persists on hosts that retain their filesystem. Free ephemeral hosting can reset local files during redeploys/restarts; durable cloud-wide persistence needs a database-backed store.
+- The profile ID should be treated as private because it identifies the local progression profile.
+
 # PROJECT: ECLIPSE — Prototype 0.13.0
 
 ## Prototype 0.13.0 — Combat & Atmosphere

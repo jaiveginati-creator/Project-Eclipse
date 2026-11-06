@@ -2,6 +2,48 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const $ = (id) => document.getElementById(id);
+
+const PROFILE_ID=(()=>{try{let id=localStorage.getItem('eclipse-profile-id');if(!/^[a-f0-9-]{36}$/i.test(id||'')){id=crypto.randomUUID();localStorage.setItem('eclipse-profile-id',id);}return id;}catch{return crypto.randomUUID();}})();
+let playerProfile={xp:0,level:1,stats:{matches:0,kills:0,deaths:0,wins:0},weaponXP:{},builds:{},matchHistory:[],lastMatchXP:0};
+let weaponBuilds={};
+const XP_LEVELS=[0,500,1200,2100,3300,4800,6600,8700,11100,13800,16800,20100,23700,27600,31800];
+const WEAPON_UNLOCK_LEVEL={pulse:1,volt:1,magnum:2,arc:3,shotgun:4,burst:5,needler:6,rocket:8};
+const OPERATOR_UNLOCK_LEVEL={vanguard:1,recon:3,assault:6,phantom:9};
+const ATTACHMENT_UNLOCK_XP={optic:{iron:0,reflex:200,holo:500,scope3x:900},barrel:{standard:0,extended:250,heavy:650},magazine:{standard:0,extended:350,quick:550},stock:{standard:0,tactical:450,weighted:750},underbarrel:{none:0,grip:300,laser:700}};
+const CAMO_UNLOCK_LEVEL={standard:1,arctic:4,ember:7,void:10};
+const DEFAULT_WEAPON_BUILD={name:'FIELD STANDARD',optic:'iron',barrel:'standard',magazine:'standard',stock:'standard',underbarrel:'none',camo:'standard'};
+function levelForXP(xp){let level=1;for(let i=1;i<XP_LEVELS.length;i++){if(xp>=XP_LEVELS[i])level=i+1;else break;}return level;}
+function xpForCurrentLevel(level){return XP_LEVELS[Math.max(0,Math.min(level-1,XP_LEVELS.length-1))]||0;}
+function xpForNextLevel(level){return XP_LEVELS[Math.min(level,XP_LEVELS.length-1)]||XP_LEVELS[XP_LEVELS.length-1];}
+function getWeaponBuild(id){return{...DEFAULT_WEAPON_BUILD,...(weaponBuilds[id]||{})};}
+function getBuiltWeapon(base){const build=getWeaponBuild(base.id),w={...base,build};if(build.magazine==='extended'){w.mag=Math.round(base.mag*1.4);w.stock=Math.round(base.stock*1.35);}if(build.magazine==='quick')w.rate=Math.round(base.rate*.93);if(build.stock==='tactical')w.rate=Math.round(w.rate*.94);if(build.barrel==='heavy')w.rate=Math.round(w.rate*1.12);return w;}
+function refreshProgressionUI(){
+ const level=playerProfile.level||levelForXP(playerProfile.xp||0),xp=playerProfile.xp||0,current=xpForCurrentLevel(level),next=xpForNextLevel(level);
+ if($('profile-level'))$('profile-level').textContent='LEVEL '+level+' · '+xp.toLocaleString()+' XP';
+ if($('xp-fill'))$('xp-fill').style.width=(next>current?Math.max(0,Math.min(100,(xp-current)/(next-current)*100)):100)+'%';
+ const stats=playerProfile.stats||{};for(const [id,value] of [['armory-level',level],['armory-xp',xp.toLocaleString()],['armory-kills',stats.kills||0],['armory-deaths',stats.deaths||0],['armory-wins',stats.wins||0],['armory-matches',stats.matches||0]])if($(id))$(id).textContent=String(value);
+ const history=$('match-history');if(history){history.innerHTML='';(playerProfile.matchHistory||[]).slice(0,8).forEach(m=>{const row=document.createElement('div');row.className='history-row';const left=document.createElement('span');left.textContent=(m.mode||'MATCH').toUpperCase()+' · '+(m.map||'').toUpperCase()+' · '+(m.kills||0)+' K';const right=document.createElement('b');right.textContent='+'+(m.xp||0)+' XP';row.append(left,right);history.append(row);});if(!history.children.length)history.textContent='NO MATCHES RECORDED YET';}
+ document.querySelectorAll('[data-operator]').forEach(b=>{const required=OPERATOR_UNLOCK_LEVEL[b.dataset.operator]||99;b.disabled=required>level;b.title=required>level?'Unlocks at level '+required:'';});
+ for(const id of ['primary-select','secondary-select','armory-weapon']){const select=$(id);if(select)Array.from(select.options).forEach(o=>{const required=WEAPON_UNLOCK_LEVEL[o.value]||99;o.disabled=required>level;});}
+ updateArmoryAttachments();
+}
+function acceptProfile(profile){if(!profile)return;const previousLevel=playerProfile.level||1;playerProfile=profile;playerProfile.level=levelForXP(playerProfile.xp||0);if(profile.builds&&Object.keys(profile.builds).length){weaponBuilds=profile.builds;try{localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}}
+ if((WEAPON_UNLOCK_LEVEL[selectedPrimary]||99)>playerProfile.level)selectedPrimary='pulse';if((WEAPON_UNLOCK_LEVEL[selectedSecondary]||99)>playerProfile.level)selectedSecondary='volt';if((OPERATOR_UNLOCK_LEVEL[selectedOperator]||99)>playerProfile.level)selectedOperator='vanguard';
+ if($('primary-select'))$('primary-select').value=selectedPrimary;if($('secondary-select'))$('secondary-select').value=selectedSecondary;setOperator(selectedOperator,false);refreshProgressionUI();applyLoadout(true);updateArmoryPreview();if(playerProfile.level>previousLevel)toast('LEVEL UP · LEVEL '+playerProfile.level);}
+function updateArmoryAttachments(){
+ const id=$('armory-weapon')?.value||selectedPrimary,xp=Number(playerProfile.weaponXP?.[id])||0;
+ const options={optic:[['iron','Iron sights'],['reflex','Reflex sight'],['holo','Holographic sight'],['scope3x','3× optic']],barrel:[['standard','Standard barrel'],['extended','Extended barrel'],['heavy','Heavy barrel']],magazine:[['standard','Standard magazine'],['extended','Extended magazine'],['quick','Quick reload magazine']],stock:[['standard','Standard stock'],['tactical','Tactical stock'],['weighted','Weighted stock']],underbarrel:[['none','No underbarrel'],['grip','Stability grip'],['laser','Laser module']]},build=getWeaponBuild(id);
+ for(const slot of Object.keys(options)){const select=$('part-'+slot);if(!select)continue;select.innerHTML='';for(const [part,label] of options[slot]){const option=document.createElement('option'),required=ATTACHMENT_UNLOCK_XP[slot][part];option.value=part;option.textContent=required>xp?label+' · '+required+' WPN XP':label;option.disabled=required>xp;select.append(option);}select.value=build[slot];}
+ const camo=$('part-camo');if(camo){Array.from(camo.options).forEach(o=>{o.disabled=(CAMO_UNLOCK_LEVEL[o.value]||99)>(playerProfile.level||1);});camo.value=build.camo;}
+ if($('armory-weapon-xp'))$('armory-weapon-xp').textContent=xp+' WEAPON XP';
+}
+function updateArmoryPreview(){const id=$('armory-weapon')?.value||selectedPrimary,b=getWeaponBuild(id);if($('armory-build-preview'))$('armory-build-preview').textContent=[b.name||'CUSTOM BUILD',id.toUpperCase(),b.optic,b.barrel,b.magazine,b.stock,b.underbarrel,b.camo].join(' / ').toUpperCase();}
+function saveArmoryBuild(){
+ const id=$('armory-weapon')?.value||selectedPrimary,b={...getWeaponBuild(id),name:($('build-name')?.value||'CUSTOM BUILD').trim().slice(0,22)||'CUSTOM BUILD'};
+ for(const slot of ['optic','barrel','magazine','stock','underbarrel','camo']){const select=$('part-'+slot);if(select&&!select.disabled&&select.value)b[slot]=select.value;}
+ weaponBuilds[id]=b;try{localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}playerProfile.builds=weaponBuilds;applyLoadout(true);buildViewWeapon();updateArmoryPreview();toast('CUSTOM BUILD SAVED');
+}
+
 const gameRoot = $('game-root');
 const fullscreenButton = $('fullscreen-toggle');
 function syncFullscreenButton(){
@@ -476,7 +518,7 @@ function updateCamera(){camera.position.copy(player.pos);camera.rotation.order='
 function buildViewWeapon(){
  if(viewWeapon){camera.remove(viewWeapon);viewWeapon.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});}
  const w=weapons[weaponIndex],g=new THREE.Group();
- const dark=new THREE.MeshStandardMaterial({color:0x101a22,metalness:.82,roughness:.25}),body=new THREE.MeshStandardMaterial({color:w.id==='rocket'?0x4b4035:w.id==='needler'?0x49304a:w.id==='shotgun'?0x3e454b:0x344d43,metalness:.62,roughness:.31}),glow=new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:1.5,metalness:.3,roughness:.18}),armor=new THREE.MeshPhysicalMaterial({color:0x667d56,metalness:.48,roughness:.35,clearcoat:.4}),glove=new THREE.MeshStandardMaterial({color:0x101719,roughness:.92}),trim=new THREE.MeshStandardMaterial({color:0x9aabae,metalness:.82,roughness:.25});
+ const dark=new THREE.MeshStandardMaterial({color:0x101a22,metalness:.82,roughness:.25}),body=new THREE.MeshStandardMaterial({color:({standard:w.id==='rocket'?0x4b4035:w.id==='needler'?0x49304a:w.id==='shotgun'?0x3e454b:0x344d43,arctic:0x9daeb7,ember:0x8b4937,void:0x34324b}[w.build?.camo||'standard']),metalness:.62,roughness:.31}),glow=new THREE.MeshStandardMaterial({color:w.color,emissive:w.color,emissiveIntensity:1.5,metalness:.3,roughness:.18}),armor=new THREE.MeshPhysicalMaterial({color:0x667d56,metalness:.48,roughness:.35,clearcoat:.4}),glove=new THREE.MeshStandardMaterial({color:0x101719,roughness:.92}),trim=new THREE.MeshStandardMaterial({color:0x9aabae,metalness:.82,roughness:.25});
  const add=(p,geo,mat,x,y,z)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;p.add(m);return m;};
  const ell=(p,mat,x,y,z,sx,sy,sz)=>{const m=add(p,new THREE.SphereGeometry(1,20,14),mat,x,y,z);m.scale.set(sx,sy,sz);return m;};
  const box=(p,mat,x,y,z,sx,sy,sz)=>add(p,new THREE.BoxGeometry(sx,sy,sz),mat,x,y,z);
@@ -505,17 +547,24 @@ function buildViewWeapon(){
   box(g,body,0,0,.02,.34,.24,.62);box(g,dark,0,-.13,.25,.23,.3,.28);box(g,trim,0,.16,-.04,.3,.05,.38);for(let i=-1;i<=1;i++)box(g,glow,i*.1,.08,-.22,.045,.045,.22);cyl(g,dark,0,.02,-.52,.06,.28);muzzle=ell(g,glow,0,.02,-.67,.075,.075,.04);
  }
  muzzle.visible=false;g.userData.muzzleFlash=muzzle;
+ const build=w.build||DEFAULT_WEAPON_BUILD;
+ if(build.optic!=='iron'){const sightMat=new THREE.MeshStandardMaterial({color:0x1b252d,metalness:.72,roughness:.28});box(g,sightMat,0,.19,-.03,.18,.12,.16);if(build.optic==='holo'||build.optic==='scope3x'){const ring=add(g,new THREE.TorusGeometry(.075,.012,8,20),glow,0,.29,-.03);ring.rotation.x=Math.PI/2;}}
+ if(build.barrel==='extended'||build.barrel==='heavy'){const length=build.barrel==='heavy'?.28:.18;const ext=cyl(g,trim,0,.02,-.78,.052,length);ext.position.z-=length*.45;}
+ if(build.magazine==='extended')box(g,dark,0,-.24,.13,.15,.32,.18);
+ if(build.stock==='tactical')box(g,trim,0,-.02,.39,.29,.12,.28);
+ if(build.underbarrel==='grip'||build.underbarrel==='laser')box(g,build.underbarrel==='laser'?glow:dark,build.underbarrel==='laser'?.17:0,-.18,-.18,.1,.16,.24);
  const reloadPart=box(g,dark,.19,-.13,.08,.12,.22,.2);g.userData.reloadPart=reloadPart;
  g.position.set(.43,-.34,-.72);g.rotation.set(-.04,-.08,0);g.userData.basePosition=g.position.clone();g.userData.baseRotation=g.rotation.clone();camera.add(g);viewWeapon=g;playWeaponAnimation('switch',260);
  $('weapon-name').textContent=w.name;$('weapon-class').textContent=w.className;syncAmmo();
 }
 function applyLoadout(save=true){
- const primary=PRIMARY_WEAPONS.find(w=>w.id===selectedPrimary)||ALL_WEAPONS[0],secondary=SECONDARY_WEAPONS.find(w=>w.id===selectedSecondary)||ALL_WEAPONS[1];
- selectedPrimary=primary.id;selectedSecondary=secondary.id;weapons=[primary,secondary];weaponIndex=0;weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock}));
- if(save){try{localStorage.setItem('eclipse-loadout',JSON.stringify({primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment}));}catch{}}
+ const primaryBase=PRIMARY_WEAPONS.find(w=>w.id===selectedPrimary)||ALL_WEAPONS[0],secondaryBase=SECONDARY_WEAPONS.find(w=>w.id===selectedSecondary)||ALL_WEAPONS[1];
+ selectedPrimary=primaryBase.id;selectedSecondary=secondaryBase.id;const primary=getBuiltWeapon(primaryBase),secondary=getBuiltWeapon(secondaryBase);weapons=[primary,secondary];weaponIndex=0;weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock}));
+ if(save){try{localStorage.setItem('eclipse-loadout',JSON.stringify({primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment}));localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}}
  const summary=$('loadout-summary');if(summary)summary.textContent=primary.name+'  /  '+secondary.name+'  /  '+selectedEquipment.toUpperCase().replace('-',' ');
 }
 function initLoadout(){
+ try{weaponBuilds=JSON.parse(localStorage.getItem('eclipse-weapon-builds')||'{}')||{};}catch{weaponBuilds={};}
  try{const saved=JSON.parse(localStorage.getItem('eclipse-loadout')||'{}');if(PRIMARY_WEAPONS.some(w=>w.id===saved.primary))selectedPrimary=saved.primary;if(SECONDARY_WEAPONS.some(w=>w.id===saved.secondary))selectedSecondary=saved.secondary;if(['shield','recon','ammo'].includes(saved.equipment))selectedEquipment=saved.equipment;}catch{}
  $('primary-select').value=selectedPrimary;$('secondary-select').value=selectedSecondary;$('equipment-select').value=selectedEquipment;
  for(const id of ['primary-select','secondary-select','equipment-select'])$(id).addEventListener('change',()=>{selectedPrimary=$('primary-select').value;selectedSecondary=$('secondary-select').value;selectedEquipment=$('equipment-select').value;applyLoadout(true);});
@@ -645,10 +694,10 @@ function applyServerPosition(data){if(!data)return;player.pos.set(Number(data.x)
 function removeRemote(id){const g=remotePlayers.get(id);if(g){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});remotePlayers.delete(id);}}
 
 function send(type,payload={}){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type,...payload}));}
-function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
+function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment,profileId:PROFILE_ID,builds:weaponBuilds,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
 function handleNetwork(m){
  if(m.type==='welcome'){
-  myId=m.id;teamId=m.team;players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
+  myId=m.id;teamId=m.team;if(m.profile)acceptProfile(m.profile);players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
   if(serverSpawn)applyServerPosition(serverSpawn);renderPlayers();
  }
  if(m.type==='players'||m.type==='state'||m.type==='scoreUpdate'||m.type==='elimination'){
@@ -689,6 +738,7 @@ function handleNetwork(m){
   const mine=(m.players||players).find(p=>p.id===myId);if(mine)applyServerPosition(mine);
   toast('OPERATION LIVE');
  }
+ if(m.type==='profileUpdate')acceptProfile(m.profile);
  if(m.type==='matchEnd')showResults(m.results||[]);
  if(m.type==='error')toast(m.message||'Server error');
 }
@@ -732,7 +782,7 @@ function drawMinimap(){
 }
 
 const CROSSHAIR_STYLES=['standard','red','dot','green','amber'];
-function setOperator(operator,save=true){selectedOperator=OPERATOR_PRESETS[operator]?operator:'vanguard';document.querySelectorAll('[data-operator]').forEach(b=>b.classList.toggle('selected',b.dataset.operator===selectedOperator));if(save){try{localStorage.setItem('eclipse-operator',selectedOperator);}catch{}}}
+function setOperator(operator,save=true){const requested=OPERATOR_PRESETS[operator]?operator:'vanguard';selectedOperator=(OPERATOR_UNLOCK_LEVEL[requested]||99)<=(playerProfile.level||1)?requested:'vanguard';document.querySelectorAll('[data-operator]').forEach(b=>b.classList.toggle('selected',b.dataset.operator===selectedOperator));if(save){try{localStorage.setItem('eclipse-operator',selectedOperator);}catch{}}}
 function setCrosshair(style,save=true){
  const chosen=CROSSHAIR_STYLES.includes(style)?style:'standard';
  const sight=$('game-crosshair');if(sight)sight.dataset.style=chosen;
@@ -802,7 +852,7 @@ function toast(text){const el=$('toast');el.textContent=text;el.classList.add('s
 function beginMatch(isTraining=false){training=isTraining;trainingHits=0;applyLoadout(false);startAmbientAudio();running=true;paused=false;kills=0;health=100;weaponIndex=0;verticalVelocity=0;player.onGround=true;weaponAmmo.forEach((a,i)=>{a.ammo=weapons[i].mag;a.reserve=weapons[i].stock;});syncAmmo();buildViewWeapon();remaining=480;matchStarted=false;$('menu').classList.remove('active');$('lobby').classList.remove('active');$('pause').classList.remove('active');$('results').classList.remove('active');$('hud').classList.remove('hidden');$('hud-mode').textContent=training?'TRAINING RANGE':(selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase());$('hud-map').textContent=selectedMap.toUpperCase();$('ammo').textContent=ammo;$('reserve').textContent=reserve;$('health-fill').style.width='100%';$('health-value').textContent='100';$('objective-hint').textContent=training?'TARGETS HIT 0  ·  TEST WEAPONS & LOADOUTS':(selectedMode==='ffa'?'EVERY OPERATOR FOR THEMSELVES':'STAY WITH YOUR SQUAD');canvas.requestPointerLock?.();}
 function pauseGame(){if(!running)return;paused=true;document.exitPointerLock?.();$('pause').classList.add('active');}
 function resumeGame(){paused=false;$('pause').classList.remove('active');canvas.requestPointerLock?.();}
-function showResults(results=[]){running=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('results').classList.add('active');$('result-kills').textContent=kills;$('result-place').textContent=results.findIndex(p=>p.id===myId)+1||'—';$('result-xp').textContent=kills*100+250;const list=$('results-list');list.innerHTML='';results.forEach((p,i)=>{const row=document.createElement('div');row.className='results-row';row.innerHTML=`<span>${i+1}. ${escapeHtml(p.name)}</span><b>${p.score||0}</b>`;list.append(row);});}
+function showResults(results=[]){running=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('results').classList.add('active');$('result-kills').textContent=kills;$('result-place').textContent=results.findIndex(p=>p.id===myId)+1||'—';$('result-xp').textContent=playerProfile.lastMatchXP||0;const list=$('results-list');list.innerHTML='';results.forEach((p,i)=>{const row=document.createElement('div');row.className='results-row';row.innerHTML=`<span>${i+1}. ${escapeHtml(p.name)}</span><b>${p.score||0}</b>`;list.append(row);});}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function backToMenu(){running=false;paused=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('pause').classList.remove('active');$('results').classList.remove('active');$('lobby').classList.remove('active');$('menu').classList.add('active');if(socket){socket.close();socket=null;}for(const id of remotePlayers.keys())removeRemote(id);}
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running&&!paused){movePlayer(dt);updateWeaponAnimation(dt);if(mouseHeld&&weapons[weaponIndex].automatic)fire();updateProjectiles(dt);updateRemoteModels(dt);updateTrainingTargets(dt);if(!training){remaining-=dt;if(remaining<=0){remaining=0;send('endMatch');}}const mins=Math.floor(remaining/60),secs=Math.floor(remaining%60);$('timer').textContent=training?'RANGE':`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;if(!training&&performance.now()-lastMoveSend>=50){lastMoveSend=performance.now();send('move',{x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw:player.yaw,pitch:player.pitch,moving:player.moving,crouching:player.crouching,weapon:weapons[weaponIndex].id});}}else {updateProjectiles(dt);updateRemoteModels(dt);}drawMinimap();updateEnvironment(dt);renderer.render(scene,camera);}
@@ -817,4 +867,9 @@ $('training').addEventListener('click',()=>{buildSelectedMap();createEclipse();c
 $('start-match').addEventListener('click',()=>{if(!socket||socket.readyState!==WebSocket.OPEN){toast('NOT CONNECTED TO SERVER');return;}if(players.length<2){toast('AT LEAST 2 PLAYERS REQUIRED');return;}send('startMatch');toast('REQUESTING MATCH START');});
 $('back-menu').addEventListener('click',backToMenu);$('resume').addEventListener('click',resumeGame);$('leave-match').addEventListener('click',backToMenu);$('return-menu').addEventListener('click',backToMenu);
 canvas.addEventListener('click',()=>{if(running&&!paused&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===canvas;});document.addEventListener('mousemove',e=>{if(!pointerLocked||!running||paused)return;player.yaw-=e.movementX*.0021;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.35,1.35);updateCamera();});document.addEventListener('mousedown',e=>{if(e.button===0){mouseHeld=true;fire();}});document.addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false;});document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running){if(paused)resumeGame();else pauseGame();}if(e.code==='KeyR')reload();if(e.code==='Digit1')switchWeapon(0);if(e.code==='Digit2')switchWeapon(1);if(e.code==='Digit3')switchWeapon(0);if(e.code==='KeyQ')useEquipment();if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!reloading)playWeaponAnimation('inspect',780);if(e.code==='Space'&&running&&!paused&&(player.onGround||performance.now()-lastGroundedAt<120)){e.preventDefault();slideUntil=0;verticalVelocity=7.2;player.onGround=false;}});document.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-initLoadout();buildDistrict();createEclipse();animate();
+initLoadout();refreshProgressionUI();buildDistrict();createEclipse();animate();
+$('open-armory')?.addEventListener('click',()=>{$('armory').classList.add('active');refreshProgressionUI();updateArmoryPreview();});
+$('close-armory')?.addEventListener('click',()=>{$('armory').classList.remove('active');});
+$('armory-weapon')?.addEventListener('change',()=>{const b=getWeaponBuild($('armory-weapon').value);$('build-name').value=b.name||'FIELD STANDARD';updateArmoryAttachments();updateArmoryPreview();});
+for(const id of ['part-optic','part-barrel','part-magazine','part-stock','part-underbarrel','part-camo'])$(id)?.addEventListener('change',updateArmoryPreview);
+$('save-build')?.addEventListener('click',saveArmoryBuild);
