@@ -49,13 +49,15 @@ let running=false, training=false, paused=false, matchEnd=0, remaining=480, kill
 const ALL_WEAPONS=[
  {id:'pulse',name:'PULSE CARBINE',className:'ASSAULT · BALANCED',mag:24,stock:96,rate:220,speed:36,color:0xffc16e,automatic:true},
  {id:'volt',name:'VOLT PISTOL',className:'SIDEARM · RAPID',mag:18,stock:108,rate:105,speed:42,color:0x7de4ff,automatic:true},
+ {id:'magnum',name:'NOVA HANDCANNON',className:'SIDEARM · HEAVY',mag:12,stock:72,rate:260,speed:48,color:0xffbd72,automatic:false},
  {id:'arc',name:'HEAVY ARC RIFLE',className:'MARKSMAN · POWER',mag:10,stock:50,rate:420,speed:52,color:0xff8a65,automatic:false},
  {id:'needler',name:'SHARD NEEDLER',className:'ALIEN CRYSTAL · EXPLOSIVE',mag:30,stock:120,rate:125,speed:31,color:0xff4fd8,automatic:true,explosive:true,radius:3.1},
  {id:'rocket',name:'RPG-7X LAUNCHER',className:'HEAVY · BLAST',mag:4,stock:20,rate:900,speed:23,color:0xffa45b,automatic:false,explosive:true,radius:5.2},
  {id:'shotgun',name:'BREACH SHOTGUN',className:'CLOSE RANGE · IMPACT',mag:8,stock:48,rate:680,speed:32,color:0xffc27a,automatic:false},
  {id:'burst',name:'VECTOR BURST RIFLE',className:'TACTICAL · 3-ROUND',mag:27,stock:108,rate:390,speed:45,color:0x71e5d3,automatic:false,burst:true}
 ];
-const PRIMARY_WEAPONS=ALL_WEAPONS.filter(w=>w.id!=='volt');
+const PRIMARY_WEAPONS=ALL_WEAPONS.filter(w=>!['volt','magnum'].includes(w.id));
+const SECONDARY_WEAPONS=ALL_WEAPONS.filter(w=>['volt','magnum'].includes(w.id));
 let weapons=[ALL_WEAPONS[0],ALL_WEAPONS[1]];
 let selectedPrimary='pulse',selectedSecondary='volt',selectedEquipment='shield';
 const OPERATOR_PRESETS={vanguard:{armor:0x536b4c,light:0x82936b,visor:0xe7ad43,visorGlow:0x5a2b08,shoulder:1,style:'balanced'},recon:{armor:0x3d4a52,light:0x82949b,visor:0x65d9ee,visorGlow:0x145a68,shoulder:.82,style:'light'},assault:{armor:0x76664d,light:0xb29a70,visor:0xffbd65,visorGlow:0x704019,shoulder:1.22,style:'heavy'},phantom:{armor:0x343946,light:0x687080,visor:0xb99aff,visorGlow:0x49317a,shoulder:.94,style:'stealth'}};
@@ -360,7 +362,7 @@ function buildViewWeapon(){
  let muzzle;
  if(w.id==='pulse'){
   box(g,body,0,0,0,.31,.22,.56);box(g,dark,0,.02,-.3,.22,.14,.25);box(g,body,0,-.12,.16,.2,.28,.2);box(g,trim,0,.14,-.04,.25,.045,.4);box(g,glow,0,.095,-.16,.11,.035,.16);cyl(g,dark,0,.015,-.53,.052,.38);cyl(g,trim,0,.015,-.73,.068,.055);box(g,dark,0,-.015,.36,.24,.16,.32);muzzle=ell(g,glow,0,.015,-.78,.07,.07,.035);
- }else if(w.id==='volt'){
+ }else if(w.id==='volt'||w.id==='magnum'){
   box(g,body,0,.015,-.03,.25,.16,.34);box(g,dark,0,.07,-.22,.2,.1,.22);cyl(g,dark,0,.04,-.37,.045,.2);cyl(g,glow,0,.04,-.48,.052,.035);box(g,trim,0,.12,-.07,.16,.035,.28);const grip=box(g,dark,0,-.16,.12,.14,.27,.16);grip.rotation.x=-.2;muzzle=ell(g,glow,0,.04,-.51,.055,.055,.03);
  }else if(w.id==='arc'){
   box(g,body,0,0,.02,.39,.27,.78);box(g,dark,0,.02,-.43,.29,.2,.38);box(g,body,0,-.18,.2,.25,.34,.3);for(const side of [-1,1]){cyl(g,dark,side*.105,.025,-.72,.052,.52);cyl(g,glow,side*.105,.025,-.99,.064,.05);const coil=add(g,new THREE.TorusGeometry(.065,.018,8,18),glow,side*.105,.025,-.64);coil.rotation.x=Math.PI/2;}box(g,glow,.225,.015,.08,.09,.2,.29);box(g,dark,0,.005,.52,.34,.2,.34);muzzle=ell(g,glow,0,.025,-1.04,.11,.08,.04);
@@ -381,13 +383,13 @@ function buildViewWeapon(){
  $('weapon-name').textContent=w.name;$('weapon-class').textContent=w.className;syncAmmo();
 }
 function applyLoadout(save=true){
- const primary=PRIMARY_WEAPONS.find(w=>w.id===selectedPrimary)||ALL_WEAPONS[0],secondary=ALL_WEAPONS.find(w=>w.id===selectedSecondary&&w.id==='volt')||ALL_WEAPONS[1];
+ const primary=PRIMARY_WEAPONS.find(w=>w.id===selectedPrimary)||ALL_WEAPONS[0],secondary=SECONDARY_WEAPONS.find(w=>w.id===selectedSecondary)||ALL_WEAPONS[1];
  selectedPrimary=primary.id;selectedSecondary=secondary.id;weapons=[primary,secondary];weaponIndex=0;weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock}));
  if(save){try{localStorage.setItem('eclipse-loadout',JSON.stringify({primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment}));}catch{}}
  const summary=$('loadout-summary');if(summary)summary.textContent=primary.name+'  /  '+secondary.name+'  /  '+selectedEquipment.toUpperCase().replace('-',' ');
 }
 function initLoadout(){
- try{const saved=JSON.parse(localStorage.getItem('eclipse-loadout')||'{}');if(PRIMARY_WEAPONS.some(w=>w.id===saved.primary))selectedPrimary=saved.primary;if(saved.secondary==='volt')selectedSecondary='volt';if(['shield','recon','ammo'].includes(saved.equipment))selectedEquipment=saved.equipment;}catch{}
+ try{const saved=JSON.parse(localStorage.getItem('eclipse-loadout')||'{}');if(PRIMARY_WEAPONS.some(w=>w.id===saved.primary))selectedPrimary=saved.primary;if(SECONDARY_WEAPONS.some(w=>w.id===saved.secondary))selectedSecondary=saved.secondary;if(['shield','recon','ammo'].includes(saved.equipment))selectedEquipment=saved.equipment;}catch{}
  $('primary-select').value=selectedPrimary;$('secondary-select').value=selectedSecondary;$('equipment-select').value=selectedEquipment;
  for(const id of ['primary-select','secondary-select','equipment-select'])$(id).addEventListener('change',()=>{selectedPrimary=$('primary-select').value;selectedSecondary=$('secondary-select').value;selectedEquipment=$('equipment-select').value;applyLoadout(true);});
  applyLoadout(false);
@@ -514,6 +516,7 @@ function handleNetwork(m){
  if(m.type==='equipmentResult'){if(m.equipment==='shield'){health=Number.isFinite(m.health)?m.health:health;updateHealthHud();}toast('EQUIPMENT READY');}
  if(m.type==='equipment'){if(m.id===myId){if(m.equipment==='ammo'){weaponAmmo[weaponIndex].reserve+=40;syncAmmo();}toast(m.equipment==='recon'?'RECON PULSE DEPLOYED':'AMMO PACK DEPLOYED');}else{const p=players.find(x=>x.id===m.id);if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),m.equipment==='recon'?0x68d9ff:0x8bd7ff);}}
  if(m.type==='hitConfirm'){
+  const hitTarget=players.find(p=>p.id===m.targetId);if(hitTarget)spawnImpact(new THREE.Vector3(hitTarget.x,hitTarget.y||1,hitTarget.z),(ALL_WEAPONS.find(w=>w.id===m.weapon)||ALL_WEAPONS[0]).color);
   showHit();feed(`HIT CONFIRMED · ${m.damage} DAMAGE`);
   if(m.eliminated)feed(`ELIMINATION · ${m.targetName||'OPERATOR'}`);
  }
