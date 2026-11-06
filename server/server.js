@@ -33,7 +33,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.13.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.17.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -136,7 +136,9 @@ function distanceRayToVerticalCapsule(origin, direction, target) {
   return { along, distance };
 }
 
-function spawnForSlot(slot) {
+function spawnForSlot(slot, map = 'district') {
+  const compactSpawns = [[-17,-17],[17,-17],[-17,17],[17,17],[-17,0],[17,0],[0,-17],[0,17]];
+  if (map === 'sublevel') { const point = compactSpawns[slot % compactSpawns.length]; return { x: point[0], y: 1.7, z: point[1] }; }
   const spawns = [
     [-5, 0], [5, 0], [0, -8], [0, 8],
     [-8, -8], [8, 8], [-8, 8], [8, -8],
@@ -205,7 +207,7 @@ function resolvePulseHit(shooter, shot) {
       const current = clients.get(targetId);
       const match = matches.get(room);
       if (!current || current.room !== room || !match?.active) return;
-      const spawn = spawnForSlot(Math.floor(Math.random() * 8));
+      const spawn = spawnForSlot(Math.floor(Math.random() * 8), current.map);
       current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
       current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true;
       current.moving = false; current.crouching = false;
@@ -234,7 +236,7 @@ wss.on('connection', ws => {
     if (message.type === 'join') {
       if (c.room) return send(ws, { type: 'error', message: 'You are already in a lobby' });
       const mode = VALID_MODES.has(message.mode) ? message.mode : 'ffa';
-      const map = message.map === 'industrial' ? 'industrial' : 'district';
+      const map = ['district','industrial','sublevel'].includes(message.map) ? message.map : 'district';
       const room = roomKey(mode, map);
       if (matches.get(room)?.active) return send(ws, { type: 'error', message: 'This match has already started' });
       if (members(room).length >= maxPlayers(mode)) return send(ws, { type: 'error', message: 'Lobby is full' });
@@ -247,7 +249,7 @@ wss.on('connection', ws => {
       c.equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : 'shield';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
-      const spawn = spawnForSlot(members(room).length);
+      const spawn = spawnForSlot(members(room).length, map);
       c.x = spawn.x; c.y = spawn.y; c.z = spawn.z; c.yaw = 0; c.pitch = 0;
       c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
@@ -263,8 +265,9 @@ wss.on('connection', ws => {
       if (!c.alive) return;
       const now = Date.now();
       const elapsed = Math.max(0.001, Math.min((now - c.lastMove) / 1000, 0.25));
-      const nextX = clamp(finite(message.x, c.x), -MAP_BOUNDS, MAP_BOUNDS);
-      const nextZ = clamp(finite(message.z, c.z), -MAP_BOUNDS, MAP_BOUNDS);
+      const bounds = c.map === 'sublevel' ? 23.8 : MAP_BOUNDS;
+      const nextX = clamp(finite(message.x, c.x), -bounds, bounds);
+      const nextZ = clamp(finite(message.z, c.z), -bounds, bounds);
       const distance = Math.hypot(nextX - c.x, nextZ - c.z);
       if (distance <= 10.5 * elapsed + 0.35) { c.x = nextX; c.z = nextZ; }
       const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);

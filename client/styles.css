@@ -136,3 +136,9 @@
 .training-button{font-weight:800;font-size:9px;color:#e0e8ed;padding:5px 12px 3px}
 .training-button:hover{color:#f4c17c}
 .training-description{margin:5px auto 0;max-width:430px;text-align:center;color:#788895;font-size:7px;line-height:1.7;letter-spacing:.8px}
+
+
+/* v0.17.0: three compact deployment-zone selectors */
+.map-switch{flex-wrap:wrap;justify-content:flex-end}
+.map-choice{white-space:nowrap}
+@media(max-width:700px){.map-switch{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.map-choice{padding:8px 4px;font-size:7px}}
