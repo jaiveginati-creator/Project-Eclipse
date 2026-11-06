@@ -163,3 +163,15 @@
 .match-history{display:grid;gap:6px;color:#82909d;font-size:9px}.history-row{display:flex;justify-content:space-between;gap:10px;padding:9px;background:#ffffff08;border:1px solid #ffffff0b}.history-row b{color:#f0c17d;white-space:nowrap}
 .operator-choice:disabled{opacity:.35;filter:grayscale(1);cursor:not-allowed}
 @media(max-width:700px){.progression-launch{align-items:stretch;flex-direction:column}.armory-card{padding:17px;width:96vw;max-height:92vh}.armory-stats{grid-template-columns:repeat(3,1fr)}.armory-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.armory-section{padding:12px}.armory-header h2{font-size:42px}}
+
+
+/* v0.20.0 developer console */
+.dev-overlay{z-index:12;display:none;align-items:center;justify-content:center;padding:18px;overflow:auto}
+.dev-overlay.active{display:flex}
+.dev-card{width:min(720px,96vw);max-height:92vh;overflow:auto;padding:24px;background:rgba(6,12,20,.98);border:1px solid rgba(230,168,91,.42);box-shadow:0 24px 100px #000d;scrollbar-width:thin}
+.dev-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.dev-header h2{font-size:clamp(34px,6vw,55px);margin:13px 0 18px}
+.dev-status{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px;background:#75cbd10c;border:1px solid #75cbd128;color:#82d6dc;font-size:8px;letter-spacing:1px}.dev-status span{color:#f0c17d}
+.dev-section{margin-top:13px;padding:15px;background:#ffffff06;border:1px solid var(--line)}.dev-section-title{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px;color:#e7b36d;font:700 12px 'Barlow Condensed';letter-spacing:1.4px}.dev-section-title small{color:#7f8d99;font:8px Inter;letter-spacing:.7px}
+.dev-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dev-actions button{min-height:40px;padding:9px;background:#172431;border:1px solid #ffffff20;color:#dce5eb;font:700 9px Inter;letter-spacing:.7px;cursor:pointer}.dev-actions button:hover:not(:disabled){border-color:#dca65d;color:#f3c17c;background:#dca65d12}.dev-actions button:disabled{opacity:.35;cursor:not-allowed}.dev-actions button.danger{border-color:#a95858;color:#e9a3a3}
+.dev-note{margin:13px 0 0;color:#81909c;font-size:9px;line-height:1.7}
+@media(max-width:600px){.dev-card{padding:16px}.dev-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.dev-section{padding:11px}.dev-header h2{font-size:35px}}
