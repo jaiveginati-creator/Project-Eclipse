@@ -282,7 +282,8 @@ wss.on('connection', ws => {
 
     if (message.type === 'shot') {
       if (!matches.get(c.room)?.active || !c.alive) return;
-      const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';\n      if (![c.primary,c.secondary].includes(weapon)) return;
+      const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';
+      if (![c.primary,c.secondary].includes(weapon)) return;
       const now = Date.now();
       if (now - (c.lastShot[weapon] || 0) < WEAPONS[weapon].cooldown) return;
       c.lastShot[weapon] = now;
