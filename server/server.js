@@ -179,45 +179,68 @@ function resolvePulseHit(shooter, shot) {
   }
   if (!best) return;
 
-  const target = best.target;
-  const falloff = weapon.radius ? Math.max(.3, 1 - (best.distance || 0) / weapon.radius * .62) : 1;
-  const headshot = best.distance <= (weapon.radius || 0.48) && best.rayY >= best.highY - .22;
-  target.health = Math.max(0, target.health - Math.round(weapon.damage * falloff));
-  target.lastDamageAt = Date.now();
-  const eliminated = target.health <= 0;
-  send(shooter.ws, {
-    type: 'hitConfirm', targetId: target.id, targetName: target.name,
-    damage: Math.round(weapon.damage * falloff), targetHealth: target.health, weapon: weaponId, eliminated, headshot
-  });
-  send(target.ws, {
-    type: 'damaged', sourceId: shooter.id, sourceName: shooter.name,
-    damage: Math.round(weapon.damage * falloff), health: target.health, eliminated, headshot
-  });
+  // Explosive weapons create a server-authoritative area effect around the
+  // first confirmed player impact. Other weapons retain single-target damage.
+  const impact = {
+    x: origin.x + direction.x * best.along,
+    y: origin.y + direction.y * best.along,
+    z: origin.z + direction.z * best.along
+  };
+  const affected = weapon.radius && (weaponId === 'needler' || weaponId === 'rocket')
+    ? members(shooter.room).filter(target => {
+        if (target.id === shooter.id || !target.alive) return false;
+        if (shooter.mode !== 'ffa' && target.team === shooter.team) return false;
+        return Math.hypot(target.x - impact.x, target.y - impact.y, target.z - impact.z) <= weapon.radius;
+      }).map(target => ({
+        target,
+        distance: Math.hypot(target.x - impact.x, target.y - impact.y, target.z - impact.z),
+        direct: target.id === best.target.id
+      }))
+    : [{ target: best.target, distance: best.distance || 0, direct: true }];
 
-  if (eliminated) {
-    target.alive = false;
-    shooter.score += 1;
-    broadcast(shooter.room, {
-      type: 'elimination', source: shooter.id, target: target.id,
-      sourceName: shooter.name, targetName: target.name,
-      players: publicPlayers(shooter.room)
+  for (const hit of affected) {
+    const target = hit.target;
+    const falloff = weapon.radius && (weaponId === 'needler' || weaponId === 'rocket')
+      ? Math.max(.25, 1 - hit.distance / weapon.radius * .75)
+      : weapon.radius ? Math.max(.3, 1 - (best.distance || 0) / weapon.radius * .62) : 1;
+    const damage = Math.max(1, Math.round(weapon.damage * falloff));
+    const headshot = hit.direct && best.distance <= (weapon.radius || 0.48) && best.rayY >= best.highY - .22;
+    target.health = Math.max(0, target.health - damage);
+    target.lastDamageAt = Date.now();
+    const eliminated = target.health <= 0;
+    send(shooter.ws, {
+      type: 'hitConfirm', targetId: target.id, targetName: target.name,
+      damage, targetHealth: target.health, weapon: weaponId, eliminated, headshot
     });
-    const room = shooter.room;
-    const targetId = target.id;
-    setTimeout(() => {
-      const current = clients.get(targetId);
-      const match = matches.get(room);
-      if (!current || current.room !== room || !match?.active) return;
-      const spawn = spawnForSlot(Math.floor(Math.random() * 8), current.map);
-      current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
-      current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true;
-      current.moving = false; current.crouching = false;
-      send(current.ws, { type: 'respawned', x: current.x, y: current.y, z: current.z, health: current.health });
-      sendRoomState(room, 'players');
-    }, RESPAWN_DELAY_MS);
-  } else {
-    sendRoomState(shooter.room, 'scoreUpdate');
+    send(target.ws, {
+      type: 'damaged', sourceId: shooter.id, sourceName: shooter.name,
+      damage, health: target.health, eliminated, headshot
+    });
+
+    if (eliminated) {
+      target.alive = false;
+      shooter.score += 1;
+      broadcast(shooter.room, {
+        type: 'elimination', source: shooter.id, target: target.id,
+        sourceName: shooter.name, targetName: target.name,
+        players: publicPlayers(shooter.room)
+      });
+      const room = shooter.room;
+      const targetId = target.id;
+      setTimeout(() => {
+        const current = clients.get(targetId);
+        const match = matches.get(room);
+        if (!current || current.room !== room || !match?.active) return;
+        const spawn = spawnForSlot(Math.floor(Math.random() * 8), current.map);
+        current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
+        current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true;
+        current.moving = false; current.crouching = false;
+        send(current.ws, { type: 'respawned', x: current.x, y: current.y, z: current.z, health: current.health });
+        sendRoomState(room, 'players');
+      }, RESPAWN_DELAY_MS);
+    }
   }
+  sendRoomState(shooter.room, 'scoreUpdate');
 }
 
 wss.on('connection', ws => {
