@@ -15,7 +15,7 @@
     <canvas id="world"></canvas>
     <div class="vignette"></div>
     <div id="menu" class="screen active">
-      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.12.0</div></div>
+      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.13.0</div></div>
       <div class="menu-content">
         <div class="eyebrow"><span></span> MULTIPLAYER TACTICAL EXPERIENCE</div>
         <h1>WHEN THE<br><em>LIGHT</em> FADES.</h1>
@@ -42,6 +42,15 @@
             <button class="crosshair-choice" data-crosshair="green" aria-label="Green precision crosshair"><i class="crosshair-preview" data-style="green"></i><span>PRECISION</span></button>
             <button class="crosshair-choice" data-crosshair="amber" aria-label="Amber circle crosshair"><i class="crosshair-preview" data-style="amber"></i><span>CIRCLE</span></button>
           </div></div>
+          <div class="loadout-settings">
+            <div class="operator-heading"><span class="panel-label">DEPLOYMENT LOADOUT</span><small>CONFIGURE YOUR WEAPONS & FIELD KIT</small></div>
+            <div class="loadout-grid">
+              <label>PRIMARY WEAPON<select id="primary-select"><option value="pulse">Pulse Carbine</option><option value="arc">Heavy Arc Rifle</option><option value="needler">Shard Needler</option><option value="rocket">RPG-7X Launcher</option><option value="shotgun">Breach Shotgun</option><option value="burst">Vector Burst Rifle</option></select></label>
+              <label>SECONDARY<select id="secondary-select"><option value="volt">Volt Pistol</option><option value="magnum">Nova Handcannon</option></select></label>
+              <label>FIELD EQUIPMENT<select id="equipment-select"><option value="shield">Shield Cell</option><option value="recon">Recon Pulse</option><option value="ammo">Ammo Pack</option></select></label>
+            </div>
+            <div id="loadout-summary" class="loadout-summary">PULSE CARBINE / VOLT PISTOL / SHIELD</div>
+          </div>
           <button id="deploy" class="deploy-button"><span>DEPLOY TO OPERATION</span><b>→</b></button>
           <button id="training" class="training-button">ENTER SOLO TRAINING <span>↗</span></button>
         </div>
@@ -56,7 +65,7 @@
       <div class="minimap" aria-label="Tactical minimap"><div class="minimap-heading">TACTICAL RADAR <span>LIVE</span></div><canvas id="minimap-canvas" width="200" height="200"></canvas><div class="minimap-legend"><span><i class="you"></i> YOU</span><span><i class="enemy"></i> ENEMY</span><span><i class="ally"></i> ALLY</span></div></div><div id="game-crosshair" class="crosshair" data-style="standard"><span></span><i></i></div>
       <div id="hit-marker" class="hit-marker">×</div>
       <div class="hud-bottom"><div class="player-status"><div class="status-icon">E</div><div><small>OPERATOR</small><strong id="player-name">ECLIPSE-01</strong></div><div class="health-track"><div id="health-fill"></div></div><b id="health-value">100</b></div><div class="objective-hint" id="objective-hint">ELIMINATIONS WIN THE OPERATION</div><div class="weapon-status"><div class="weapon-label"><small>ACTIVE WEAPON</small><strong><span id="weapon-name">PULSE CARBINE</span></strong><small id="weapon-class">MK.01 · BALANCED</small></div><div class="ammo"><b id="ammo">12</b><i>/</i><span id="reserve">48</span></div></div></div>
-      <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1/2/3 WEAPONS <i>·</i> CLICK FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> ESC MENU</div>
+      <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1 PRIMARY / 2 SIDEARM <i>·</i> Q EQUIPMENT <i>·</i> CLICK FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> Q EQUIPMENT <i>·</i> ESC MENU</div>
       <div id="feed" class="feed"></div>
       <div id="team-panel" class="team-panel hidden"></div>
     </div>

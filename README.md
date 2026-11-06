@@ -1,4 +1,13 @@
-# PROJECT: ECLIPSE — Prototype 0.9.0
+# PROJECT: ECLIPSE — Prototype 0.13.0
+
+## Prototype 0.13.0 — Combat & Atmosphere
+- Added pre-deployment primary/secondary weapon selection and three field-equipment choices, saved locally between visits.
+- Added the Shard Needler, RPG-7X Launcher, Breach Shotgun and Vector Burst Rifle alongside the Pulse Carbine, Volt Pistol and Heavy Arc Rifle.
+- Added server-validated damage profiles for the expanded arsenal, including explosive splash falloff for the Needler and rocket launcher.
+- Added drifting dust, procedural surface-detail textures, brighter shadow tuning, projectile impact particles, weapon sound cues and synthesized map ambience.
+- Added Q-key equipment activation: Shield Cell restores health in multiplayer, while Recon Pulse and Ammo Pack provide field utility; equipment use is rate-limited by the server.
+
+## Previous Prototype 0.9.0 — Complete Visual Rebuild
 
 A browser-based multiplayer FPS prototype with two rebuilt science-fiction arenas, rounded powered-armor operators, solo training, and a Node.js WebSocket service.
 
@@ -67,7 +76,7 @@ The current target is stable small matches (2–4 connected players). Larger lob
 - Space: jump
 - Shift: sprint
 - Ctrl: crouch
-- 1 / 2 / 3: switch weapons
+- 1: primary weapon; 2: secondary sidearm\n- Q: activate selected field equipment
 - R: reload
 - Esc: pause
 
