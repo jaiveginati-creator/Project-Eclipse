@@ -1,8 +1,8 @@
 {
   "name": "project-eclipse",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
-  "description": "A browser-based multiplayer arena FPS prototype with two sci-fi arenas, customizable operators, atmospheric effects, pre-deployment loadouts and an expanded fictional arsenal",
+  "description": "A browser-based multiplayer arena FPS prototype with two sci-fi arenas, customizable operators, atmospheric effects, pre-deployment loadouts and an expanded fictional arsenal with fullscreen support",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
