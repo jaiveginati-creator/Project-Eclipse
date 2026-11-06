@@ -408,6 +408,21 @@ function buildSublevel(){
   detailBox(x,5.425,z,2.2,.045,2.2,wallLight,false);
   detailBox(x,5.395,z,1.35,.025,1.35,cyan);
  }
+ // Ceiling fixtures provide actual illumination across the covered arena, not just glowing decoration.
+ const ceilingWhite=new THREE.MeshStandardMaterial({color:0xd9f5ff,emissive:0x8bdcf2,emissiveIntensity:1.35,roughness:.3});
+ const ceilingWarm=new THREE.MeshStandardMaterial({color:0xffd39a,emissive:0xffa94d,emissiveIntensity:1.1,roughness:.35});
+ for(const [i,x] of [-16,0,16].entries())for(const z of [-16,0,16]){
+  const warm=(i===1&&z===0)||((i===0||i===2)&&Math.abs(z)===16);
+  detailBox(x,5.335,z,1.75,.16,1.75,wall,false);
+  detailBox(x,5.235,z,1.22,.045,1.22,warm?ceilingWarm:ceilingWhite);
+  const lamp=new THREE.PointLight(warm?0xffbd78:0x9beaff,warm?1.35:1.55,19,2);
+  lamp.position.set(x,5.02,z);scene.add(lamp);mapObjects.push(lamp);
+ }
+ // Small route lights brighten the connecting tunnel mouths and corners.
+ for(const [x,z] of [[-9.5,-16],[-9.5,0],[-9.5,16],[9.5,-16],[9.5,0],[9.5,16],[-16,-9.5],[0,-9.5],[16,-9.5],[-16,9.5],[0,9.5],[16,9.5]]){
+  const lamp=new THREE.PointLight(0x54cde4,.62,9,2);lamp.position.set(x,4.35,z);scene.add(lamp);mapObjects.push(lamp);
+  detailBox(x,4.53,z,.72,.07,.72,ceilingWhite);
+ }
  // Central hub: open fighting space, waist-high cover and a small reactor console.
  addVisualMesh(new THREE.CylinderGeometry(1.35,1.6,1.55,12),new THREE.MeshStandardMaterial({color:0x405965,metalness:.72,roughness:.3}),0,.78,0,true);
  const hubRing=addVisualMesh(new THREE.TorusGeometry(1.72,.12,8,32),cyan,0,1.5,0);hubRing.rotation.x=Math.PI/2;
