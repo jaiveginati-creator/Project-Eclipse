@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+const APP_VERSION = require('../package.json').version;
 const PORT = Number(process.env.PORT || 3001);
 const TICK_MS = 50;
 const MATCH_SECONDS = 480;
@@ -26,7 +27,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.7.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: APP_VERSION, players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
