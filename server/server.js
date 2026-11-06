@@ -236,7 +236,7 @@ wss.on('connection', ws => {
       c.map = map;
       c.operator = ['vanguard','recon','assault','phantom'].includes(message.operator) ? message.operator : 'vanguard';
       c.primary = PRIMARY_WEAPONS.has(message.primary) ? message.primary : 'pulse';
-      c.secondary = message.secondary === 'volt' ? 'volt' : 'volt';
+      c.secondary = SECONDARY_WEAPONS.has(message.secondary) ? message.secondary : 'volt';
       c.equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : 'shield';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
@@ -266,14 +266,14 @@ wss.on('connection', ws => {
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
       c.moving = Boolean(message.moving);
       c.crouching = Boolean(message.crouching);
-      c.weapon = Object.prototype.hasOwnProperty.call(WEAPONS,message.weapon) ? message.weapon : c.weapon;
+      c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
       return;
     }
 
     if (message.type === 'equipment') {
       if (!matches.get(c.room)?.active || !c.alive) return;
-      const equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : c.equipment;
+      const equipment = c.equipment; if (message.equipment !== equipment) return;
       const now = Date.now(); if (now - c.lastEquipmentAt < 25000) return; c.lastEquipmentAt = now;
       if (equipment === 'shield') { c.health = Math.min(MAX_HEALTH, c.health + 35); c.lastDamageAt = now; send(ws,{type:'equipmentResult',equipment,health:c.health}); sendRoomState(c.room,'state'); }
       else broadcast(c.room,{type:'equipment',id:c.id,equipment});
@@ -282,7 +282,7 @@ wss.on('connection', ws => {
 
     if (message.type === 'shot') {
       if (!matches.get(c.room)?.active || !c.alive) return;
-      const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';
+      const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';\n      if (![c.primary,c.secondary].includes(weapon)) return;
       const now = Date.now();
       if (now - (c.lastShot[weapon] || 0) < WEAPONS[weapon].cooldown) return;
       c.lastShot[weapon] = now;
