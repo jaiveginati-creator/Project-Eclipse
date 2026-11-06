@@ -175,7 +175,7 @@ function resolvePulseHit(shooter, shot) {
     if (shooter.mode !== 'ffa' && target.team === shooter.team) continue;
     const hit = distanceRayToVerticalCapsule(origin, direction, target);
     if (!hit || hit.along > weapon.range || hit.distance > (weapon.radius || 0.48)) continue;
-    if (!best || hit.along < best.along) best = { target, along: hit.along, distance: hit.distance };
+    if (!best || hit.along < best.along) best = { target, along: hit.along, distance: hit.distance, rayY: hit.rayY, highY: hit.highY };
   }
   if (!best) return;
 
