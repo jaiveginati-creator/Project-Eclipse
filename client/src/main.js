@@ -402,8 +402,8 @@ function buildSublevel(){
  }
  // Cargo pockets in the corners retain open lanes around the cover.
  for(const [x,z] of [[-17,-17],[17,-17],[-17,17],[17,17]]){
-  box(x,.72,z,2.1,1.44,1.45,wallLight);
-  box(x+(x<0?3.1:-3.1),.55,z+(z<0?2.5:-2.5),1.25,1.1,1.15,materials.crate);
+  box(x+(x<0?3.2:-3.2),.72,z,2.1,1.44,1.45,wallLight);
+  box(x+(x<0?-3.2:3.2),.55,z+(z<0?3:-3),1.25,1.1,1.15,materials.crate);
  }
  // Pillars and short internal fins interrupt long sightlines without closing routes.
  for(const [x,z] of [[-20,-11],[20,-11],[-20,11],[20,11],[-11,-20],[11,-20],[-11,20],[11,20]]){
@@ -653,6 +653,12 @@ function drawMinimap(){
  ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;
  ctx.beginPath();ctx.moveTo(px(-7.5),py(-mapEdge));ctx.lineTo(px(-7.5),py(mapEdge));ctx.stroke();
  ctx.beginPath();ctx.moveTo(px(-mapEdge),py(-7));ctx.lineTo(px(mapEdge),py(-7));ctx.stroke();
+ if(selectedMap==='sublevel'){
+  ctx.strokeStyle='rgba(160,190,204,.34)';ctx.lineWidth=3.2;
+  const gaps=[-16,0,16],halfGap=2.35,edge=24.35;
+  for(const x of [-9.5,9.5]){let cursor=-edge;for(const center of gaps){ctx.beginPath();ctx.moveTo(px(x),py(cursor));ctx.lineTo(px(x),py(center-halfGap));ctx.stroke();cursor=center+halfGap;}ctx.beginPath();ctx.moveTo(px(x),py(cursor));ctx.lineTo(px(x),py(edge));ctx.stroke();}
+  for(const z of [-9.5,9.5]){let cursor=-edge;for(const center of gaps){ctx.beginPath();ctx.moveTo(px(cursor),py(z));ctx.lineTo(px(center-halfGap),py(z));ctx.stroke();cursor=center+halfGap;}ctx.beginPath();ctx.moveTo(px(cursor),py(z));ctx.lineTo(px(edge),py(z));ctx.stroke();}
+ }
  // Teammates are cyan; opponents are red. Training has no network contacts.
  for(const p of players){
   if(p.id===myId||p.alive===false)continue;
