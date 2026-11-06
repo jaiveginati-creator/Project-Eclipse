@@ -1,6 +1,6 @@
 {
   "name": "project-eclipse",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "private": true,
   "description": "A browser-based multiplayer arena FPS prototype with two sci-fi arenas, customizable operators, atmospheric effects, pre-deployment loadouts, fullscreen support, responsive deployment menu and a stationary-target training range",
   "scripts": {
