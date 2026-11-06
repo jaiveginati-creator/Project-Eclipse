@@ -24,6 +24,23 @@ const WEAPONS = {
 };
 const PRIMARY_WEAPONS = new Set(['pulse','arc','needler','rocket','shotgun','burst']);
 const SECONDARY_WEAPONS = new Set(['volt','magnum']);
+
+const PROFILE_FILE = path.join(__dirname, 'profiles.json');
+const LEVEL_XP = [0,500,1200,2100,3300,4800,6600,8700,11100,13800,16800,20100,23700,27600,31800];
+const WEAPON_LEVELS = {pulse:1,volt:1,magnum:2,arc:3,shotgun:4,burst:5,needler:6,rocket:8};
+const OPERATOR_LEVELS = {vanguard:1,recon:3,assault:6,phantom:9};
+const ATTACHMENT_LEVELS = {optic:{iron:0,reflex:200,holo:500,scope3x:900},barrel:{standard:0,extended:250,heavy:650},magazine:{standard:0,extended:350,quick:550},stock:{standard:0,tactical:450,weighted:750},underbarrel:{none:0,grip:300,laser:700}};
+const DEFAULT_BUILD = {name:'FIELD STANDARD',optic:'iron',barrel:'standard',magazine:'standard',stock:'standard',underbarrel:'none',camo:'standard'};
+let profileStore={};try{profileStore=JSON.parse(fs.readFileSync(PROFILE_FILE,'utf8'));}catch{profileStore={};}
+function levelForXP(xp){let level=1;for(let i=1;i<LEVEL_XP.length;i++){if(xp>=LEVEL_XP[i])level=i+1;else break;}return level;}
+function newProfile(id){return{id,xp:0,level:1,stats:{matches:0,kills:0,deaths:0,wins:0},weaponXP:{},builds:{},matchHistory:[],createdAt:Date.now(),updatedAt:Date.now(),lastMatchXP:0};}
+function getProfile(id){if(!profileStore[id])profileStore[id]=newProfile(id);const p=profileStore[id];p.stats={matches:0,kills:0,deaths:0,wins:0,...(p.stats||{})};p.weaponXP=p.weaponXP||{};p.builds=p.builds||{};p.matchHistory=Array.isArray(p.matchHistory)?p.matchHistory:[];p.level=levelForXP(Number(p.xp)||0);return p;}
+function saveProfiles(){try{const temp=PROFILE_FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(profileStore));fs.renameSync(temp,PROFILE_FILE);}catch(error){console.error('[profiles] save failed:',error.message);}}
+function unlockedWeapon(profile,id){return(WEAPON_LEVELS[id]||99)<=profile.level;}
+function sanitizeBuild(profile,raw={}){const xp=Number(profile.weaponXP?.[raw.weaponId])||0,result={...DEFAULT_BUILD,name:String(raw.name||'FIELD STANDARD').replace(/[<>]/g,'').slice(0,22)};for(const slot of Object.keys(ATTACHMENT_LEVELS)){const choice=raw[slot];if(Object.prototype.hasOwnProperty.call(ATTACHMENT_LEVELS[slot],choice)&&xp>=ATTACHMENT_LEVELS[slot][choice])result[slot]=choice;}const camoLevels={standard:1,arctic:4,ember:7,void:10};if(camoLevels[raw.camo]&&profile.level>=camoLevels[raw.camo])result.camo=raw.camo;return result;}
+function sanitizeBuilds(profile,raw={}){const result={};for(const id of Object.keys(WEAPONS))result[id]=sanitizeBuild(profile,{...(raw[id]||profile.builds?.[id]||{}),weaponId:id});return result;}
+function weaponStatsFor(player,id){const stats={...WEAPONS[id]},build=player.weaponBuilds?.[id]||{};if(build.barrel==='extended')stats.range*=1.18;if(build.barrel==='heavy'){stats.damage=Math.round(stats.damage*1.10);stats.cooldown=Math.round(stats.cooldown*1.12);}if(build.magazine==='quick')stats.cooldown=Math.round(stats.cooldown*.93);if(build.stock==='tactical')stats.cooldown=Math.round(stats.cooldown*.94);return stats;}
+
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
 
@@ -107,13 +124,19 @@ function assignTeam(mode, room) {
 }
 
 function endMatch(room) {
-  const match = matches.get(room);
-  if (!match || !match.active) return;
-  match.active = false;
-  const results = members(room)
-    .map(c => ({ id: c.id, name: c.name, team: c.team, score: c.score }))
-    .sort((a, b) => b.score - a.score);
-  broadcast(room, { type: 'matchEnd', results });
+  const match=matches.get(room);if(!match||!match.active)return;match.active=false;
+  const roomMembers=members(room);
+  const results=roomMembers.map(c=>({id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0})).sort((a,b)=>b.score-a.score);
+  const winnerId=results[0]?.id;
+  for(const c of roomMembers){
+    const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
+    const earned=250+kills*100+(c.id===winnerId?200:0);
+    profile.xp=(Number(profile.xp)||0)+earned;profile.level=levelForXP(profile.xp);profile.stats.matches++;profile.stats.kills+=kills;profile.stats.deaths+=deaths;if(c.id===winnerId)profile.stats.wins++;
+    for(const [weaponId,count] of Object.entries(c.matchWeaponKills||{}))profile.weaponXP[weaponId]=(profile.weaponXP[weaponId]||0)+count*100;
+    profile.builds=c.weaponBuilds||profile.builds;profile.lastMatchXP=earned;profile.matchHistory.unshift({date:Date.now(),mode:c.mode,map:c.map,kills,deaths,score:c.score||0,placement,xp:earned});profile.matchHistory=profile.matchHistory.slice(0,20);profile.updatedAt=Date.now();
+    send(c.ws,{type:'profileUpdate',profile});
+  }
+  saveProfiles();broadcast(room,{type:'matchEnd',results});
 }
 
 function distanceRayToVerticalCapsule(origin, direction, target) {
@@ -154,7 +177,7 @@ function sendRoomState(room, type = 'state') {
 
 function resolvePulseHit(shooter, shot) {
   const weaponId = Object.prototype.hasOwnProperty.call(WEAPONS, shot.weapon) ? shot.weapon : 'pulse';
-  const weapon = WEAPONS[weaponId];
+  const weapon = weaponStatsFor(shooter,weaponId);
   const direction = { x: finite(shot.dx), y: finite(shot.dy), z: finite(shot.dz) };
   const length = Math.hypot(direction.x, direction.y, direction.z);
   if (length < 0.9 || length > 1.1) return;
@@ -220,6 +243,7 @@ function resolvePulseHit(shooter, shot) {
     if (eliminated) {
       target.alive = false;
       shooter.score += 1;
+      shooter.matchKills=(shooter.matchKills||0)+1;shooter.matchWeaponKills=shooter.matchWeaponKills||{};shooter.matchWeaponKills[weaponId]=(shooter.matchWeaponKills[weaponId]||0)+1;target.matchDeaths=(target.matchDeaths||0)+1;
       broadcast(shooter.room, {
         type: 'elimination', source: shooter.id, target: target.id,
         sourceName: shooter.name, targetName: target.name,
@@ -249,6 +273,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard', primary: 'pulse', secondary: 'volt', equipment: 'shield',
+    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{},
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null), lastEquipmentAt: 0
   };
 
@@ -265,11 +290,13 @@ wss.on('connection', ws => {
       if (matches.get(room)?.active) return send(ws, { type: 'error', message: 'This match has already started' });
       if (members(room).length >= maxPlayers(mode)) return send(ws, { type: 'error', message: 'Lobby is full' });
 
-      c.mode = mode;
-      c.map = map;
-      c.operator = ['vanguard','recon','assault','phantom'].includes(message.operator) ? message.operator : 'vanguard';
-      c.primary = PRIMARY_WEAPONS.has(message.primary) ? message.primary : 'pulse';
-      c.secondary = SECONDARY_WEAPONS.has(message.secondary) ? message.secondary : 'volt';
+      c.mode=mode;c.map=map;
+      c.profileId=/^[a-f0-9-]{36}$/i.test(String(message.profileId||''))?String(message.profileId):crypto.randomUUID();
+      c.profile=getProfile(c.profileId);
+      c.operator=Object.prototype.hasOwnProperty.call(OPERATOR_LEVELS,message.operator)&&OPERATOR_LEVELS[message.operator]<=c.profile.level?message.operator:'vanguard';
+      c.primary=PRIMARY_WEAPONS.has(message.primary)&&unlockedWeapon(c.profile,message.primary)?message.primary:'pulse';
+      c.secondary=SECONDARY_WEAPONS.has(message.secondary)&&unlockedWeapon(c.profile,message.secondary)?message.secondary:'volt';
+      c.weaponBuilds=sanitizeBuilds(c.profile,message.builds||{});c.profile.builds=c.weaponBuilds;saveProfiles();
       c.equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : 'shield';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
@@ -278,7 +305,7 @@ wss.on('connection', ws => {
       c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
-      send(ws, { type: 'welcome', id: c.id, team: c.team, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
+      send(ws, { type: 'welcome', id: c.id, team: c.team, profile:c.profile, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
       broadcastPlayers(room);
       return;
     }
@@ -342,7 +369,7 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score = 0; player.health = MAX_HEALTH; player.lastDamageAt = 0; player.alive = true; }
+      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={}; }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });
