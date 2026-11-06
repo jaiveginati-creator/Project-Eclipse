@@ -26,7 +26,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.7.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.12.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -71,7 +71,7 @@ function publicPlayers(room) {
   return members(room).map(c => ({
     id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
-    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon
+    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator
   }));
 }
 function broadcastPlayers(room) {
@@ -214,7 +214,7 @@ wss.on('connection', ws => {
     ws, id: crypto.randomUUID().slice(0, 8), name: 'OPERATOR',
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
-    moving: false, crouching: false, weapon: 'pulse',
+    moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard',
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null)
   };
 
@@ -233,6 +233,7 @@ wss.on('connection', ws => {
 
       c.mode = mode;
       c.map = map;
+      c.operator = ['vanguard','recon','assault','phantom'].includes(message.operator) ? message.operator : 'vanguard';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
       const spawn = spawnForSlot(members(room).length);
