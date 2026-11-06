@@ -16,7 +16,7 @@
     <div class="vignette"></div>
     <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen" title="Enter fullscreen"><span class="fullscreen-icon" aria-hidden="true"></span><span class="fullscreen-label">FULLSCREEN</span></button>
     <div id="menu" class="screen active">
-      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.19.0</div></div>
+      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.20.0</div></div>
       <div class="menu-content">
         <div class="eyebrow"><span></span> MULTIPLAYER TACTICAL EXPERIENCE</div>
         <h1>WHEN THE<br><em>LIGHT</em> FADES.</h1>
@@ -91,6 +91,15 @@
     <div id="pause" class="screen overlay-screen"><div class="pause-card"><div class="eyebrow"><span></span> OPERATION PAUSED</div><h2>TAKE A<br><em>BREATHER.</em></h2><button id="resume" class="deploy-button"><span>RESUME OPERATION</span><b>→</b></button><button id="leave-match" class="secondary-button">LEAVE MATCH</button></div></div>
     <div id="results" class="screen overlay-screen"><div class="results-card"><div class="eyebrow"><span></span> OPERATION COMPLETE</div><h2 id="result-title">FIELD REPORT</h2><div class="result-stat-grid"><div><small>ELIMINATIONS</small><b id="result-kills">0</b></div><div><small>PLACEMENT</small><b id="result-place">—</b></div><div><small>XP EARNED</small><b id="result-xp">0</b></div></div><div id="results-list" class="results-list"></div><button id="return-menu" class="deploy-button"><span>RETURN TO BASE</span><b>→</b></button></div></div>
     <div id="toast" class="toast"></div>
+    <div id="dev-menu" class="screen overlay-screen dev-overlay">
+      <section class="dev-card" role="dialog" aria-modal="true" aria-labelledby="dev-title">
+        <header class="dev-header"><div><div class="eyebrow"><span></span> INTERNAL TESTING TOOLS</div><h2 id="dev-title">DEVELOPER <em>CONSOLE.</em></h2></div><button id="dev-close" class="secondary-button" type="button">CLOSE ×</button></header>
+        <div class="dev-status"><b id="dev-status">LOCAL TRAINING ONLY · CONNECT TO A DEV-ENABLED SERVER FOR XP TOOLS</b><span id="dev-profile-summary">LEVEL 1 · 0 XP</span></div>
+        <div class="dev-section"><div class="dev-section-title">PROGRESSION & UNLOCKS <small>SERVER DEV MODE REQUIRED</small></div><div class="dev-actions"><button id="dev-xp-500" data-dev-server>+500 XP</button><button id="dev-xp-5000" data-dev-server>+5,000 XP</button><button id="dev-max-level" data-dev-server>MAX LEVEL</button><button id="dev-max-weapons" data-dev-server>MAX WEAPON XP</button><button id="dev-unlock-all" data-dev-server>UNLOCK EVERYTHING</button><button id="dev-reset-profile" class="danger" data-dev-server>RESET PROFILE</button></div></div>
+        <div class="dev-section"><div class="dev-section-title">LIVE TEST CONTROLS <small>TRAINING RANGE / MATCH</small></div><div class="dev-actions"><button id="dev-heal">RESTORE HEALTH</button><button id="dev-refill">REFILL AMMO</button><button id="dev-respawn">FORCE REDEPLOY</button><button id="dev-reset-targets">RESET RANGE TARGETS</button></div></div>
+        <p class="dev-note">Press F2 or ~ to open this menu. Progression tools require ECLIPSE_DEV_MODE=true on a private test server. Do not enable developer mode on a public server.</p>
+      </section>
+    </div>
   </div>
   <script type="module" src="/client/src/main.js"></script>
 </body>

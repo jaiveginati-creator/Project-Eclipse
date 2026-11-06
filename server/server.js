@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = Number(process.env.PORT || 3001);
+// Keep progression-changing developer commands disabled on public servers by default.
+const DEV_MODE = process.env.ECLIPSE_DEV_MODE === 'true';
 const TICK_MS = 50;
 const MATCH_SECONDS = 480;
 const MAP_BOUNDS = 47.8;
@@ -50,7 +52,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.19.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.20.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -305,12 +307,49 @@ wss.on('connection', ws => {
       c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
-      send(ws, { type: 'welcome', id: c.id, team: c.team, profile:c.profile, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
+      send(ws, { type: 'welcome', id: c.id, team: c.team, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
       broadcastPlayers(room);
       return;
     }
 
     if (!c.room || !clients.has(c.id)) return;
+
+    if (message.type === 'devAction') {
+      if (!DEV_MODE) return send(ws,{type:'error',message:'Developer mode is disabled on this server'});
+      const action=String(message.action||'');
+      if (action==='grantXp') {
+        const amount=clamp(Math.floor(finite(message.amount)),1,50000);
+        c.profile.xp=(Number(c.profile.xp)||0)+amount;
+      } else if (action==='maxLevel') {
+        c.profile.xp=LEVEL_XP[LEVEL_XP.length-1];
+      } else if (action==='maxWeaponXP') {
+        for (const id of Object.keys(WEAPONS)) c.profile.weaponXP[id]=10000;
+      } else if (action==='unlockAll') {
+        c.profile.xp=LEVEL_XP[LEVEL_XP.length-1];
+        for (const id of Object.keys(WEAPONS)) c.profile.weaponXP[id]=10000;
+      } else if (action==='resetProfile') {
+        c.profile=newProfile(c.profileId);profileStore[c.profileId]=c.profile;
+        c.operator='vanguard';c.primary='pulse';c.secondary='volt';c.weaponBuilds=sanitizeBuilds(c.profile,{});
+      } else if (action==='heal') {
+        c.health=MAX_HEALTH;c.alive=true;c.lastDamageAt=Date.now();
+        send(ws,{type:'devResult',action,message:'HEALTH RESTORED',health:c.health});
+        broadcast(c.room,{type:'state',players:publicPlayers(c.room)});
+        return;
+      } else if (action==='respawn') {
+        const spawn=spawnForSlot(members(c.room).indexOf(c),c.map);
+        c.x=spawn.x;c.y=spawn.y;c.z=spawn.z;c.health=MAX_HEALTH;c.alive=true;c.lastDamageAt=0;
+        send(ws,{type:'devResult',action,message:'OPERATOR REDEPLOYED',health:c.health});
+        send(ws,{type:'respawned',x:c.x,y:c.y,z:c.z,health:c.health});
+        broadcast(c.room,{type:'state',players:publicPlayers(c.room)});
+        return;
+      } else {
+        return send(ws,{type:'error',message:'Unknown developer action'});
+      }
+      c.profile.level=levelForXP(c.profile.xp);c.profile.updatedAt=Date.now();
+      c.profile.builds=c.weaponBuilds||c.profile.builds;saveProfiles();
+      send(ws,{type:'devResult',action,message:'DEV ACTION APPLIED',profile:c.profile});
+      return;
+    }
 
     if (message.type === 'move') {
       if (!c.alive) return;

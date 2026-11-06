@@ -29,7 +29,7 @@ function refreshProgressionUI(){
 }
 function acceptProfile(profile){if(!profile)return;const previousLevel=playerProfile.level||1;playerProfile=profile;playerProfile.level=levelForXP(playerProfile.xp||0);if(profile.builds&&Object.keys(profile.builds).length){weaponBuilds=profile.builds;try{localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}}
  if((WEAPON_UNLOCK_LEVEL[selectedPrimary]||99)>playerProfile.level)selectedPrimary='pulse';if((WEAPON_UNLOCK_LEVEL[selectedSecondary]||99)>playerProfile.level)selectedSecondary='volt';if((OPERATOR_UNLOCK_LEVEL[selectedOperator]||99)>playerProfile.level)selectedOperator='vanguard';
- if($('primary-select'))$('primary-select').value=selectedPrimary;if($('secondary-select'))$('secondary-select').value=selectedSecondary;setOperator(selectedOperator,false);refreshProgressionUI();applyLoadout(true);updateArmoryPreview();if(playerProfile.level>previousLevel)toast('LEVEL UP · LEVEL '+playerProfile.level);}
+ if($('primary-select'))$('primary-select').value=selectedPrimary;if($('secondary-select'))$('secondary-select').value=selectedSecondary;setOperator(selectedOperator,false);refreshProgressionUI();applyLoadout(true);updateArmoryPreview();updateDevMenuStatus();if(playerProfile.level>previousLevel)toast('LEVEL UP · LEVEL '+playerProfile.level);}
 function updateArmoryAttachments(){
  const id=$('armory-weapon')?.value||selectedPrimary,xp=Number(playerProfile.weaponXP?.[id])||0;
  const options={optic:[['iron','Iron sights'],['reflex','Reflex sight'],['holo','Holographic sight'],['scope3x','3× optic']],barrel:[['standard','Standard barrel'],['extended','Extended barrel'],['heavy','Heavy barrel']],magazine:[['standard','Standard magazine'],['extended','Extended magazine'],['quick','Quick reload magazine']],stock:[['standard','Standard stock'],['tactical','Tactical stock'],['weighted','Weighted stock']],underbarrel:[['none','No underbarrel'],['grip','Stability grip'],['laser','Laser module']]},build=getWeaponBuild(id);
@@ -130,6 +130,7 @@ let selectedOperator='vanguard';
 let weaponIndex=0; let weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock})); let viewWeapon=null, weaponRecoil=0, moveBob=0, verticalVelocity=0, reloadTimer=null, mouseHeld=false;
 let weaponAnimation={kind:'idle',start:0,duration:0}; let slideUntil=0,slideDirection=new THREE.Vector3(),mantleState=null,sprintBlend=0,lastGroundedAt=0,slideTriggered=false; let equipmentReadyAt=0,dustField=null; const impactParticles=[]; let audioContext=null,ambientNodes=null;
 let socket=null, myId=null, players=[], teamId=null, matchStarted=false, lastShot=0, toastTimer=null, serverSpawn=null;
+let devModeEnabled=false,devReturnToGame=false;
 const player={pos:new THREE.Vector3(0,1.7,7),vel:new THREE.Vector3(),yaw:0,pitch:0,onGround:true,speed:5.2,moving:false,crouching:false};
 const ramps=[];
 const keys={}; let pointerLocked=false; const raycaster=new THREE.Raycaster();
@@ -697,7 +698,7 @@ function send(type,payload={}){if(socket&&socket.readyState===WebSocket.OPEN)soc
 function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment,profileId:PROFILE_ID,builds:weaponBuilds,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
 function handleNetwork(m){
  if(m.type==='welcome'){
-  myId=m.id;teamId=m.team;if(m.profile)acceptProfile(m.profile);players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
+  myId=m.id;teamId=m.team;devModeEnabled=Boolean(m.devMode);updateDevMenuStatus();if(m.profile)acceptProfile(m.profile);players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
   if(serverSpawn)applyServerPosition(serverSpawn);renderPlayers();
  }
  if(m.type==='players'||m.type==='state'||m.type==='scoreUpdate'||m.type==='elimination'){
@@ -739,6 +740,11 @@ function handleNetwork(m){
   toast('OPERATION LIVE');
  }
  if(m.type==='profileUpdate')acceptProfile(m.profile);
+ if(m.type==='devResult'){
+  if(m.profile)acceptProfile(m.profile);
+  if(Number.isFinite(m.health)){health=m.health;updateHealthHud();}
+  toast(m.message||'DEV ACTION COMPLETE');updateDevMenuStatus();
+ }
  if(m.type==='matchEnd')showResults(m.results||[]);
  if(m.type==='error')toast(m.message||'Server error');
 }
@@ -849,6 +855,10 @@ function reload(){const w=weapons[weaponIndex];if(reloading||ammo===w.mag||reser
 function respawn(){health=100;$('health-fill').style.width='100%';$('health-value').textContent='100';player.pos.set((Math.random()-.5)*12,1.7,(Math.random()-.5)*12);verticalVelocity=0;player.onGround=true;toast('REDEPLOYED');send('respawn');}
 function feed(text){const f=$('feed'),el=document.createElement('div');el.textContent=text;f.prepend(el);setTimeout(()=>el.remove(),4000);}
 function toast(text){const el=$('toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2200);}
+function updateDevMenuStatus(){const status=$('dev-status');if(status)status.textContent=devModeEnabled?'SERVER DEV MODE ENABLED':'LOCAL TRAINING ONLY · CONNECT TO A DEV-ENABLED SERVER FOR XP TOOLS';document.querySelectorAll('[data-dev-server]').forEach(b=>{b.disabled=!devModeEnabled;});const profile=$('dev-profile-summary');if(profile)profile.textContent='LEVEL '+(playerProfile.level||1)+' · '+(playerProfile.xp||0).toLocaleString()+' XP';}
+function runDevServerAction(action,amount){if(!devModeEnabled){toast('ENABLE ECLIPSE_DEV_MODE ON YOUR SERVER');return;}send('devAction',{action,amount});}
+function refillDevAmmo(){if(reloadTimer){clearTimeout(reloadTimer);reloadTimer=null;}reloading=false;weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock}));ammo=weaponAmmo[weaponIndex].ammo;reserve=weaponAmmo[weaponIndex].reserve;syncAmmo();toast('AMMO REFILLED');}
+function toggleDevMenu(){const panel=$('dev-menu');if(!panel)return;const opening=!panel.classList.contains('active');if(opening){devReturnToGame=running&&!paused;if(devReturnToGame){paused=true;document.exitPointerLock?.();}panel.classList.add('active');updateDevMenuStatus();}else{panel.classList.remove('active');if(devReturnToGame&&running){paused=false;canvas.requestPointerLock?.();}devReturnToGame=false;}}
 function beginMatch(isTraining=false){training=isTraining;trainingHits=0;applyLoadout(false);startAmbientAudio();running=true;paused=false;kills=0;health=100;weaponIndex=0;verticalVelocity=0;player.onGround=true;weaponAmmo.forEach((a,i)=>{a.ammo=weapons[i].mag;a.reserve=weapons[i].stock;});syncAmmo();buildViewWeapon();remaining=480;matchStarted=false;$('menu').classList.remove('active');$('lobby').classList.remove('active');$('pause').classList.remove('active');$('results').classList.remove('active');$('hud').classList.remove('hidden');$('hud-mode').textContent=training?'TRAINING RANGE':(selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase());$('hud-map').textContent=selectedMap.toUpperCase();$('ammo').textContent=ammo;$('reserve').textContent=reserve;$('health-fill').style.width='100%';$('health-value').textContent='100';$('objective-hint').textContent=training?'TARGETS HIT 0  ·  TEST WEAPONS & LOADOUTS':(selectedMode==='ffa'?'EVERY OPERATOR FOR THEMSELVES':'STAY WITH YOUR SQUAD');canvas.requestPointerLock?.();}
 function pauseGame(){if(!running)return;paused=true;document.exitPointerLock?.();$('pause').classList.add('active');}
 function resumeGame(){paused=false;$('pause').classList.remove('active');canvas.requestPointerLock?.();}
@@ -866,10 +876,22 @@ $('deploy').addEventListener('click',async()=>{const ok=await connectServer();if
 $('training').addEventListener('click',()=>{buildSelectedMap();createEclipse();createTrainingTargets();beginMatch(true);toast('TRAINING RANGE — TARGETS RESET AUTOMATICALLY');});
 $('start-match').addEventListener('click',()=>{if(!socket||socket.readyState!==WebSocket.OPEN){toast('NOT CONNECTED TO SERVER');return;}if(players.length<2){toast('AT LEAST 2 PLAYERS REQUIRED');return;}send('startMatch');toast('REQUESTING MATCH START');});
 $('back-menu').addEventListener('click',backToMenu);$('resume').addEventListener('click',resumeGame);$('leave-match').addEventListener('click',backToMenu);$('return-menu').addEventListener('click',backToMenu);
-canvas.addEventListener('click',()=>{if(running&&!paused&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===canvas;});document.addEventListener('mousemove',e=>{if(!pointerLocked||!running||paused)return;player.yaw-=e.movementX*.0021;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.35,1.35);updateCamera();});document.addEventListener('mousedown',e=>{if(e.button===0){mouseHeld=true;fire();}});document.addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false;});document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running){if(paused)resumeGame();else pauseGame();}if(e.code==='KeyR')reload();if(e.code==='Digit1')switchWeapon(0);if(e.code==='Digit2')switchWeapon(1);if(e.code==='Digit3')switchWeapon(0);if(e.code==='KeyQ')useEquipment();if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!reloading)playWeaponAnimation('inspect',780);if(e.code==='Space'&&running&&!paused&&(player.onGround||performance.now()-lastGroundedAt<120)){e.preventDefault();slideUntil=0;verticalVelocity=7.2;player.onGround=false;}});document.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+canvas.addEventListener('click',()=>{if(running&&!paused&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===canvas;});document.addEventListener('mousemove',e=>{if(!pointerLocked||!running||paused)return;player.yaw-=e.movementX*.0021;player.pitch-=e.movementY*.0018;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.35,1.35);updateCamera();});document.addEventListener('mousedown',e=>{if(e.button===0){mouseHeld=true;fire();}});document.addEventListener('mouseup',e=>{if(e.button===0)mouseHeld=false;});document.addEventListener('keydown',e=>{keys[e.code]=true;if((e.code==='F2'||e.code==='Backquote')&&!e.repeat){e.preventDefault();toggleDevMenu();return;}if(e.code==='Escape'&&$('dev-menu')?.classList.contains('active')){toggleDevMenu();return;}if(e.code==='Escape'&&running){if(paused)resumeGame();else pauseGame();}if(e.code==='KeyR')reload();if(e.code==='Digit1')switchWeapon(0);if(e.code==='Digit2')switchWeapon(1);if(e.code==='Digit3')switchWeapon(0);if(e.code==='KeyQ')useEquipment();if(e.code==='KeyV'&&!e.repeat&&running&&!paused&&!reloading)playWeaponAnimation('inspect',780);if(e.code==='Space'&&running&&!paused&&(player.onGround||performance.now()-lastGroundedAt<120)){e.preventDefault();slideUntil=0;verticalVelocity=7.2;player.onGround=false;}});document.addEventListener('keyup',e=>keys[e.code]=false);window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 initLoadout();refreshProgressionUI();buildDistrict();createEclipse();animate();
 $('open-armory')?.addEventListener('click',()=>{$('armory').classList.add('active');refreshProgressionUI();updateArmoryPreview();});
 $('close-armory')?.addEventListener('click',()=>{$('armory').classList.remove('active');});
 $('armory-weapon')?.addEventListener('change',()=>{const b=getWeaponBuild($('armory-weapon').value);$('build-name').value=b.name||'FIELD STANDARD';updateArmoryAttachments();updateArmoryPreview();});
 for(const id of ['part-optic','part-barrel','part-magazine','part-stock','part-underbarrel','part-camo'])$(id)?.addEventListener('change',updateArmoryPreview);
 $('save-build')?.addEventListener('click',saveArmoryBuild);
+$('dev-close')?.addEventListener('click',toggleDevMenu);
+$('dev-xp-500')?.addEventListener('click',()=>runDevServerAction('grantXp',500));
+$('dev-xp-5000')?.addEventListener('click',()=>runDevServerAction('grantXp',5000));
+$('dev-max-level')?.addEventListener('click',()=>runDevServerAction('maxLevel'));
+$('dev-max-weapons')?.addEventListener('click',()=>runDevServerAction('maxWeaponXP'));
+$('dev-unlock-all')?.addEventListener('click',()=>runDevServerAction('unlockAll'));
+$('dev-reset-profile')?.addEventListener('click',()=>{if(confirm('Reset this operator profile, including XP, unlocks, stats and match history?'))runDevServerAction('resetProfile');});
+$('dev-heal')?.addEventListener('click',()=>{if(training){health=100;updateHealthHud();toast('HEALTH RESTORED');}else runDevServerAction('heal');});
+$('dev-refill')?.addEventListener('click',refillDevAmmo);
+$('dev-reset-targets')?.addEventListener('click',()=>{if(!training){toast('TARGET RESET IS AVAILABLE IN TRAINING RANGE');return;}createTrainingTargets();toast('TRAINING TARGETS RESET');});
+$('dev-respawn')?.addEventListener('click',()=>{if(training){respawn();}else runDevServerAction('respawn');});
+updateDevMenuStatus();
