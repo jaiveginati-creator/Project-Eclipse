@@ -2,6 +2,29 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const $ = (id) => document.getElementById(id);
+const gameRoot = $('game-root');
+const fullscreenButton = $('fullscreen-toggle');
+function syncFullscreenButton(){
+  const active = Boolean(document.fullscreenElement);
+  fullscreenButton?.classList.toggle('is-fullscreen', active);
+  if(fullscreenButton){
+    fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+    fullscreenButton.title = active ? 'Exit fullscreen (Esc)' : 'Enter fullscreen';
+    fullscreenButton.innerHTML = active
+      ? '<span class="fullscreen-icon fullscreen-exit" aria-hidden="true"></span><span class="fullscreen-label">EXIT FULLSCREEN</span>'
+      : '<span class="fullscreen-icon" aria-hidden="true"></span><span class="fullscreen-label">FULLSCREEN</span>';
+  }
+}
+async function toggleFullscreen(){
+  try{
+    if(document.fullscreenElement) await document.exitFullscreen();
+    else if(gameRoot?.requestFullscreen) await gameRoot.requestFullscreen();
+    else toast('FULLSCREEN IS NOT SUPPORTED BY THIS BROWSER');
+  }catch(error){
+    toast('FULLSCREEN COULD NOT BE ENABLED');
+  }
+}
+
 const canvas = $('world');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7));
@@ -621,6 +644,9 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 function backToMenu(){running=false;paused=false;document.exitPointerLock?.();$('hud').classList.add('hidden');$('pause').classList.remove('active');$('results').classList.remove('active');$('lobby').classList.remove('active');$('menu').classList.add('active');if(socket){socket.close();socket=null;}for(const id of remotePlayers.keys())removeRemote(id);}
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(running&&!paused){movePlayer(dt);if(mouseHeld&&weapons[weaponIndex].automatic)fire();updateProjectiles(dt);updateRemoteModels(dt);remaining-=dt;if(remaining<=0){remaining=0;if(training)showResults([]);else send('endMatch');}const mins=Math.floor(remaining/60),secs=Math.floor(remaining%60);$('timer').textContent=`${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;if(!training&&performance.now()-lastMoveSend>=50){lastMoveSend=performance.now();send('move',{x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw:player.yaw,pitch:player.pitch,moving:player.moving,crouching:player.crouching,weapon:weapons[weaponIndex].id});}}else {updateProjectiles(dt);updateRemoteModels(dt);}drawMinimap();updateEnvironment(dt);renderer.render(scene,camera);}
 
+fullscreenButton?.addEventListener('click',toggleFullscreen);
+document.addEventListener('fullscreenchange',syncFullscreenButton);
+syncFullscreenButton();
 $('mode-grid');setOperator((()=>{try{return localStorage.getItem('eclipse-operator')||'vanguard';}catch{return 'vanguard';}})(),false);document.querySelectorAll('[data-operator]').forEach(b=>b.addEventListener('click',()=>setOperator(b.dataset.operator)));setCrosshair((()=>{try{return localStorage.getItem('eclipse-crosshair')||'standard';}catch{return 'standard';}})(),false);document.querySelectorAll('[data-crosshair]').forEach(b=>b.addEventListener('click',()=>setCrosshair(b.dataset.crosshair)));document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedMode=b.dataset.mode;}));
 document.querySelectorAll('.map-choice').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.map-choice').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMap=b.dataset.map;$('map-name').textContent=selectedMap.toUpperCase();}));
 $('deploy').addEventListener('click',async()=>{const ok=await connectServer();if(!ok){toast('SERVER UNAVAILABLE — START SERVER OR USE SOLO TRAINING');return;}$('lobby-title').textContent=selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase();$('lobby-subtitle').textContent=isLocalHost?'Connected to local operation server':'Connected to online operation server';$('lobby-map').textContent=selectedMap.toUpperCase();$('lobby-mode').textContent=selectedMode.toUpperCase();$('menu').classList.remove('active');$('lobby').classList.add('active');renderPlayers();});
