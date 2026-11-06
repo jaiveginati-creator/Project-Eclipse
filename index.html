@@ -52,11 +52,29 @@
             </div>
             <div id="loadout-summary" class="loadout-summary">PULSE CARBINE / VOLT PISTOL / SHIELD</div>
           </div>
+          <div class="progression-launch"><div class="progression-level"><small>OPERATOR PROGRESSION</small><strong id="profile-level">LEVEL 1 · 0 XP</strong><div class="xp-track"><i id="xp-fill"></i></div></div><button id="open-armory" type="button">OPEN ARMORY ↗</button></div>
           <button id="deploy" class="deploy-button"><span>DEPLOY TO OPERATION</span><b>→</b></button>
           <button id="training" class="training-button">ENTER TRAINING RANGE <span>↗</span></button><p class="training-description">STATIONARY TARGETS · WEAPON TESTING · MOVEMENT PRACTICE · LOADOUT CHECKS</p>
         </div>
       </div>
       <div class="menu-footer"><span>TACTICAL PLAY. CLEAR COMMS. ADAPT.</span><span>INDEPENDENT PROTOTYPE · 2026</span></div>
+    </div>
+    <div id="armory" class="screen overlay-screen">
+      <div class="armory-card">
+        <div class="armory-header"><div><div class="eyebrow"><span></span> OPERATOR DEVELOPMENT</div><h2>THE <em>ARMORY.</em></h2></div><button id="close-armory" class="secondary-button">CLOSE ×</button></div>
+        <div class="armory-stats"><div><small>LEVEL</small><b id="armory-level">1</b></div><div><small>TOTAL XP</small><b id="armory-xp">0</b></div><div><small>ELIMINATIONS</small><b id="armory-kills">0</b></div><div><small>WINS</small><b id="armory-wins">0</b></div><div><small>MATCHES</small><b id="armory-matches">0</b></div></div>
+        <div class="armory-section"><div class="armory-section-heading"><b>WEAPON WORKSHOP</b><small id="armory-weapon-xp">0 WEAPON XP</small></div>
+          <div class="armory-form-grid">
+            <label>BASE WEAPON<select id="armory-weapon"><option value="pulse">Pulse Carbine</option><option value="volt">Volt Pistol</option><option value="magnum">Nova Handcannon</option><option value="arc">Heavy Arc Rifle</option><option value="shotgun">Breach Shotgun</option><option value="burst">Vector Burst Rifle</option><option value="needler">Shard Needler</option><option value="rocket">RPG-7X Launcher</option></select></label>
+            <label>BUILD NAME<input id="build-name" maxlength="22" value="FIELD STANDARD"></label>
+            <label>OPTIC<select id="part-optic"></select></label><label>BARREL<select id="part-barrel"></select></label><label>MAGAZINE<select id="part-magazine"></select></label><label>STOCK<select id="part-stock"></select></label><label>UNDERBARREL<select id="part-underbarrel"></select></label>
+            <label>WEAPON CAMO<select id="part-camo"><option value="standard">Standard</option><option value="arctic">Arctic · Level 4</option><option value="ember">Ember · Level 7</option><option value="void">Void · Level 10</option></select></label>
+          </div>
+          <div id="armory-build-preview" class="build-preview">FIELD STANDARD / PULSE / STANDARD PARTS</div><button id="save-build" class="deploy-button"><span>SAVE CUSTOM WEAPON BUILD</span><b>↗</b></button>
+          <p class="armory-note">Attachments unlock through weapon XP earned with that weapon. Locked parts show their XP requirement. Builds are saved to your operator profile.</p>
+        </div>
+        <div class="armory-section"><div class="armory-section-heading"><b>CAREER RECORD</b><small>MOST RECENT OPERATIONS</small></div><div id="match-history" class="match-history">NO MATCHES RECORDED YET</div></div>
+      </div>
     </div>
     <div id="lobby" class="screen">
       <div class="lobby-card"><div class="eyebrow"><span></span> OPERATION PREPARATION</div><h2 id="lobby-title">FREE FOR ALL</h2><p id="lobby-subtitle">Waiting for operators to connect...</p><div class="lobby-meta"><div><small>MAP</small><b id="lobby-map">DISTRICT</b></div><div><small>MODE</small><b id="lobby-mode">FFA</b></div><div><small>OPERATORS</small><b id="lobby-count">1 / 8</b></div></div><div id="player-list" class="player-list"></div><div class="lobby-actions"><button id="back-menu" class="secondary-button">BACK</button><button id="start-match" class="deploy-button"><span>START MATCH</span><b>→</b></button></div><p class="lobby-note">Share this lobby link with friends. Everyone must use the same server, mode and map.</p></div>
