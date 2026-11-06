@@ -20,7 +20,7 @@ function getBuiltWeapon(base){const build=getWeaponBuild(base.id),w={...base,bui
 function refreshProgressionUI(){
  const level=playerProfile.level||levelForXP(playerProfile.xp||0),xp=playerProfile.xp||0,current=xpForCurrentLevel(level),next=xpForNextLevel(level);
  if($('profile-level'))$('profile-level').textContent='LEVEL '+level+' · '+xp.toLocaleString()+' XP';
- if($('xp-fill'))$('xp-fill').style.width+(next>current?Math.max(0,Math.min(100,(xp-current)/(next-current)*100)):100)+'%';
+ if($('xp-fill'))$('xp-fill').style.width=(next>current?Math.max(0,Math.min(100,(xp-current)/(next-current)*100)):100)+'%';
  const stats=playerProfile.stats||{};for(const [id,value] of [['armory-level',level],['armory-xp',xp.toLocaleString()],['armory-kills',stats.kills||0],['armory-wins',stats.wins||0],['armory-matches',stats.matches||0]])if($(id))$(id).textContent=String(value);
  const history=$('match-history');if(history){history.innerHTML='';(playerProfile.matchHistory||[]).slice(0,8).forEach(m=>{const row=document.createElement('div');row.className='history-row';const left=document.createElement('span');left.textContent=(m.mode||'MATCH').toUpperCase()+' · '+(m.map||'').toUpperCase()+' · '+(m.kills||0)+' K';const right=document.createElement('b');right.textContent='+'+(m.xp||0)+' XP';row.append(left,right);history.append(row);});if(!history.children.length)history.textContent='NO MATCHES RECORDED YET';}
  document.querySelectorAll('[data-operator]').forEach(b=>{const required=OPERATOR_UNLOCK_LEVEL[b.dataset.operator]||99;b.disabled=required>level;b.title=required>level?'Unlocks at level '+required:'';});
@@ -29,7 +29,7 @@ function refreshProgressionUI(){
 }
 function acceptProfile(profile){if(!profile)return;playerProfile=profile;playerProfile.level=levelForXP(playerProfile.xp||0);if(profile.builds&&Object.keys(profile.builds).length){weaponBuilds=profile.builds;try{localStorage.setItem('eclipse-weapon-builds',JSON.stringify(weaponBuilds));}catch{}}
  if((WEAPON_UNLOCK_LEVEL[selectedPrimary]||99)>playerProfile.level)selectedPrimary='pulse';if((WEAPON_UNLOCK_LEVEL[selectedSecondary]||99)>playerProfile.level)selectedSecondary='volt';if((OPERATOR_UNLOCK_LEVEL[selectedOperator]||99)>playerProfile.level)selectedOperator='vanguard';
- refreshProgressionUI();applyLoadout(true);updateArmoryPreview();}
+ if($('primary-select'))$('primary-select').value=selectedPrimary;if($('secondary-select'))$('secondary-select').value=selectedSecondary;refreshProgressionUI();applyLoadout(true);updateArmoryPreview();}
 function updateArmoryAttachments(){
  const id=$('armory-weapon')?.value||selectedPrimary,xp=Number(playerProfile.weaponXP?.[id])||0;
  const options={optic:[['iron','Iron sights'],['reflex','Reflex sight'],['holo','Holographic sight'],['scope3x','3× optic']],barrel:[['standard','Standard barrel'],['extended','Extended barrel'],['heavy','Heavy barrel']],magazine:[['standard','Standard magazine'],['extended','Extended magazine'],['quick','Quick reload magazine']],stock:[['standard','Standard stock'],['tactical','Tactical stock'],['weighted','Weighted stock']],underbarrel:[['none','No underbarrel'],['grip','Stability grip'],['laser','Laser module']]},build=getWeaponBuild(id);
