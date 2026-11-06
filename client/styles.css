@@ -130,3 +130,9 @@
   #menu .intro{margin:10px 0 14px}
   #menu .mode-panel{padding-top:12px;padding-bottom:12px}
 }
+
+
+/* v0.16.0 training range */
+.training-button{font-weight:800;font-size:9px;color:#e0e8ed;padding:5px 12px 3px}
+.training-button:hover{color:#f4c17c}
+.training-description{margin:5px auto 0;max-width:430px;text-align:center;color:#788895;font-size:7px;line-height:1.7;letter-spacing:.8px}
