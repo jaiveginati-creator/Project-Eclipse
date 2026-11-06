@@ -26,7 +26,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.12.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.13.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -71,7 +71,7 @@ function publicPlayers(room) {
   return members(room).map(c => ({
     id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
-    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator
+    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary, equipment: c.equipment
   }));
 }
 function broadcastPlayers(room) {
@@ -165,13 +165,13 @@ function resolvePulseHit(shooter, shot) {
     if (target.id === shooter.id || !target.alive) continue;
     if (shooter.mode !== 'ffa' && target.team === shooter.team) continue;
     const hit = distanceRayToVerticalCapsule(origin, direction, target);
-    if (!hit || hit.along > weapon.range || hit.distance > 0.48) continue;
+    if (!hit || hit.along > weapon.range || hit.distance > (weapon.radius || 0.48)) continue;
     if (!best || hit.along < best.along) best = { target, along: hit.along };
   }
   if (!best) return;
 
   const target = best.target;
-  target.health = Math.max(0, target.health - weapon.damage);
+  const falloff = weapon.radius ? Math.max(.3, 1 - (best.distance || 0) / weapon.radius * .62) : 1;\n  target.health = Math.max(0, target.health - Math.round(weapon.damage * falloff));
   target.lastDamageAt = Date.now();
   const eliminated = target.health <= 0;
   send(shooter.ws, {
@@ -233,7 +233,7 @@ wss.on('connection', ws => {
 
       c.mode = mode;
       c.map = map;
-      c.operator = ['vanguard','recon','assault','phantom'].includes(message.operator) ? message.operator : 'vanguard';
+      c.operator = ['vanguard','recon','assault','phantom'].includes(message.operator) ? message.operator : 'vanguard';\n      c.primary = PRIMARY_WEAPONS.has(message.primary) ? message.primary : 'pulse';\n      c.secondary = message.secondary === 'volt' ? 'volt' : 'volt';\n      c.equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : 'shield';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
       const spawn = spawnForSlot(members(room).length);
@@ -262,12 +262,12 @@ wss.on('connection', ws => {
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
       c.moving = Boolean(message.moving);
       c.crouching = Boolean(message.crouching);
-      c.weapon = ['pulse', 'volt', 'arc'].includes(message.weapon) ? message.weapon : c.weapon;
+      c.weapon = Object.prototype.hasOwnProperty.call(WEAPONS,message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
       return;
     }
 
-    if (message.type === 'shot') {
+    if (message.type === 'equipment') {\n      if (!matches.get(c.room)?.active || !c.alive) return;\n      const equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : c.equipment;\n      const now = Date.now(); if (now - c.lastEquipmentAt < 25000) return; c.lastEquipmentAt = now;\n      if (equipment === 'shield') { c.health = Math.min(MAX_HEALTH, c.health + 35); c.lastDamageAt = now; send(ws,{type:'equipmentResult',equipment,health:c.health}); sendRoomState(c.room,'state'); }\n      else broadcast(c.room,{type:'equipment',id:c.id,equipment});\n      return;\n    }\n\n    if (message.type === 'shot') {
       if (!matches.get(c.room)?.active || !c.alive) return;
       const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';
       const now = Date.now();
