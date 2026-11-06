@@ -12,7 +12,7 @@ A browser-based multiplayer FPS prototype with two rebuilt science-fiction arena
 ## 0.12.0 changes — connection status and multiplayer regression checks
 - The server health endpoint now reports the version from `package.json`, preventing the health response from falling behind the deployed client build.
 - The deployment status stays at `JOINING` until the server accepts the lobby join with a `welcome` message. Rejected joins and connection errors no longer appear as successful connections.
-- Added an automated two-client integration test covering lobby join, match start, disconnect cleanup, and health/player counts.
+- Added an automated four-client integration test covering lobby join, match start, disconnect cleanup, and health/player counts.
 - CI now runs the production build and multiplayer integration test on pull requests and pushes to `main`.
 
 ## Previous 0.8.0 visual pass (superseded)
