@@ -512,7 +512,7 @@ function handleNetwork(m){
   const remote=remotePlayers.get(m.id);if(remote)remote.userData.gun.rotation.x=-.2;
  }
  if(m.type==='equipmentResult'){if(m.equipment==='shield'){health=Number.isFinite(m.health)?m.health:health;updateHealthHud();}toast('EQUIPMENT READY');}
- if(m.type==='equipment'&&m.id!==myId){const p=players.find(x=>x.id===m.id);if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),m.equipment==='recon'?0x68d9ff:0x8bd7ff);}
+ if(m.type==='equipment'){if(m.id===myId){if(m.equipment==='ammo'){weaponAmmo[weaponIndex].reserve+=40;syncAmmo();}toast(m.equipment==='recon'?'RECON PULSE DEPLOYED':'AMMO PACK DEPLOYED');}else{const p=players.find(x=>x.id===m.id);if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),m.equipment==='recon'?0x68d9ff:0x8bd7ff);}}
  if(m.type==='hitConfirm'){
   showHit();feed(`HIT CONFIRMED · ${m.damage} DAMAGE`);
   if(m.eliminated)feed(`ELIMINATION · ${m.targetName||'OPERATOR'}`);
