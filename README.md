@@ -1,4 +1,14 @@
-# PROJECT: ECLIPSE — Prototype 0.19.0
+# PROJECT: ECLIPSE — Prototype 0.23.0
+
+## Prototype 0.23.0 — Industrial interiors and multiplayer regression checks
+- Replaced the four sealed Industrial hangar blockers with walk-in warehouse shells using the existing loading-bay builder. Each entrance faces the central yard and retains interior storage racks, structural frames and service lighting.
+- Corrected connection status so the client shows CONNECTING, JOINING and CONNECTED only after the server accepts the lobby join.
+- Added a four-client integration test covering lobby entry, match start, server-side health regeneration and disconnect cleanup.
+- The server health endpoint now reads its version from `package.json`.
+
+## Prototype 0.22.0 — Universal ammunition and scoped sniper
+- Added universal ammunition types and the sniper rifle with scoped aiming.
+
 
 ## Prototype 0.19.0 — Operator progression and gunsmith
 - Added persistent operator profiles identified by a browser-generated profile ID.
@@ -135,11 +145,10 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Browser rendering, actual hit registration under varied latency, and live internet multiplayer must still be tested with two or more clients on separate internet connections.
 
 ## Verification
-- `node --check server/server.js`: passed.
-- `node --check client/src/main.js`: passed.
-- `package.json` parse: passed.
-- Full Vite production build and browser rendering: pending dependency installation and browser testing.
-- Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
+- `npm test`: four-client local WebSocket integration test covers lobby joins, match start, health regeneration and disconnect cleanup; a source-level regression check confirms Industrial hangars use the walk-in warehouse builder.
+- `npm run build`: Vite production client build.
+- GitHub Actions runs the server syntax check, integration tests and production build on pull requests and pushes to `main`.
+- Browser rendering and live play across separate internet connections still require manual testing; a passing build does not prove deployed-host performance.
 
 
 ## Developer testing console (v0.20.0)

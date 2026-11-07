@@ -392,7 +392,15 @@ function buildIndustrial(){
  box(0,-.25,0,104,.5,104,deck,false);box(0,-.015,0,24,.09,100,steel,false);box(0,-.012,0,100,.09,20,steel,false);
  for(const s of [-1,1]){box(s*49,2.4,0,.8,4.8,100,materials.dark);box(0,2.4,s*49,100,4.8,.8,materials.dark);}
  const hangars=[[-34,-31,22,25,13],[34,-31,22,25,14],[-34,31,22,25,12],[34,31,22,25,13]];
- for(let i=0;i<hangars.length;i++){const [x,z,w,d,h]=hangars[i];box(x,h/2,z,w,h,d,new THREE.MeshStandardMaterial({color:i%2?0x3d535f:0x334954,metalness:.56,roughness:.48}),true);const roof=addVisualMesh(new THREE.CylinderGeometry(w*.56,w*.56,d,32,1,true,0,Math.PI),new THREE.MeshStandardMaterial({color:0x1c303b,metalness:.7,roughness:.32,side:THREE.DoubleSide}),x,h*.82,z);roof.rotation.z=Math.PI/2;roof.scale.set(1,1,.78);detailBox(x,h*.48,z+(z<0?1:-1)*(d/2+.08),w*.64,h*.72,.16,new THREE.MeshBasicMaterial({color:0x46b8d0,transparent:true,opacity:.18,side:THREE.DoubleSide}));for(let k=-3;k<=3;k++)detailBox(x+k*1.35,h*.48,z+(z<0?1:-1)*(d/2+.18),.12,h*.7,.2,hazard);for(const s of [-1,1]){box(x+s*(w/2+.35),h/2,z,.6,h+.6,d+.5,steel);detailBox(x+s*(w/2+.35),h*.72,z,.68,.2,d+.45,hazard);}mapLight(x,h*.7,z+(z<0?1:-1)*(d/2+1),0x53cce0,1.4,24);}
+ for(let i=0;i<hangars.length;i++){
+  const [x,z,w,d,h]=hangars[i],face=z<0?1:-1;
+  makeWarehouse(x,z,w,d,h,face,`HANGAR ${i+1}`);
+  // Retain the curved canopy while leaving the center-facing loading bay open.
+  const roof=addVisualMesh(new THREE.CylinderGeometry(w*.56,w*.56,d,32,1,true,0,Math.PI),new THREE.MeshStandardMaterial({color:0x1c303b,metalness:.7,roughness:.32,side:THREE.DoubleSide}),x,h*.82,z);
+  roof.rotation.z=Math.PI/2;roof.scale.set(1,1,.78);
+  for(const side of [-1,1]){box(x+side*(w/2+.35),h/2,z,.6,h+.6,d+.5,steel);detailBox(x+side*(w/2+.35),h*.72,z,.68,.2,d+.45,hazard);}
+  mapLight(x,h*.7,z+face*(d/2+1),0x53cce0,1.4,24);
+ }
  addVisualMesh(new THREE.CylinderGeometry(5.4,6.2,17,32),new THREE.MeshStandardMaterial({color:0x344d59,metalness:.72,roughness:.28}),0,8.5,-2,true);
  addVisualMesh(new THREE.CylinderGeometry(2.2,2.2,16,24),new THREE.MeshBasicMaterial({color:0x49d5eb,transparent:true,opacity:.52}),0,8.5,-2);
  for(const y of [2.2,6,10.5,14.5]){const r=addVisualMesh(new THREE.TorusGeometry(6.1,.25,10,64),new THREE.MeshStandardMaterial({color:0x74dce8,emissive:0x168da4,emissiveIntensity:.8,metalness:.55,roughness:.25}),0,y,-2);r.rotation.x=Math.PI/2;}
@@ -701,7 +709,20 @@ function applyServerPosition(data){if(!data)return;player.pos.set(Number(data.x)
 function removeRemote(id){const g=remotePlayers.get(id);if(g){scene.remove(g);g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>m.dispose());}});remotePlayers.delete(id);}}
 
 function send(type,payload={}){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type,...payload}));}
-function connectServer(){return new Promise((resolve)=>{let url=$('server-url').value.trim()||autoServerUrl();let done=false;try{socket=new WebSocket(url);}catch{resolve(false);return;}const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};const timeout=setTimeout(()=>{finish(false);try{socket?.close();}catch{}},8000);socket.onopen=()=>{$('server-dot').parentElement.classList.add('connected');$('server-label').textContent='CONNECTED';send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment,profileId:PROFILE_ID,builds:weaponBuilds,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome')finish(true);if(m.type==='error'&&!done)finish(false);handleNetwork(m);};socket.onclose=()=>{$('server-dot').parentElement.classList.remove('connected');$('server-label').textContent='OFFLINE / LOCAL';if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};socket.onerror=()=>{if(!done)finish(false);};});}
+function connectServer(){
+ return new Promise((resolve)=>{
+  let url=$('server-url').value.trim()||autoServerUrl(),done=false;
+  const setStatus=(label,connected=false)=>{const dot=$('server-dot');dot?.parentElement?.classList.toggle('connected',connected);$('server-label').textContent=label;};
+  setStatus('CONNECTING',false);
+  try{socket=new WebSocket(url);}catch{setStatus('OFFLINE / LOCAL',false);resolve(false);return;}
+  const finish=(ok)=>{if(done)return;done=true;clearTimeout(timeout);resolve(ok);};
+  const timeout=setTimeout(()=>{setStatus('TIMEOUT',false);finish(false);try{socket?.close();}catch{}},8000);
+  socket.onopen=()=>{setStatus('JOINING',false);send('join',{mode:selectedMode,map:selectedMap,operator:selectedOperator,primary:selectedPrimary,secondary:selectedSecondary,equipment:selectedEquipment,profileId:PROFILE_ID,builds:weaponBuilds,name:'ECLIPSE-'+Math.floor(10+Math.random()*89)});};
+  socket.onmessage=(ev)=>{let m;try{m=JSON.parse(ev.data);}catch{return;}if(m.type==='welcome'){setStatus('CONNECTED',true);finish(true);}if(m.type==='error'&&!done){setStatus('JOIN REJECTED',false);finish(false);try{socket?.close();}catch{}}handleNetwork(m);};
+  socket.onclose=()=>{setStatus('OFFLINE / LOCAL',false);if(!done)finish(false);if(running&&!training)toast('Connection lost. Returning to local training.');};
+  socket.onerror=()=>{if(!done){setStatus('CONNECTION ERROR',false);finish(false);}};
+ });
+}
 function handleNetwork(m){
  if(m.type==='welcome'){
   myId=m.id;teamId=m.team;devModeEnabled=Boolean(m.devMode);updateDevMenuStatus();if(m.profile)acceptProfile(m.profile);players=m.players||[];serverSpawn=m.self||players.find(p=>p.id===myId)||null;
