@@ -13,7 +13,7 @@ const MAP_BOUNDS = 47.8;
 const MAX_HEALTH = 100;
 const HEALTH_REGEN_DELAY_MS = 4000;
 const HEALTH_REGEN_PER_SECOND = 12;
-const RESPAWN_DELAY_MS = 2800;
+const RESPAWN_DELAY_MS = 5000;
 const WEAPONS = {
   pulse: { cooldown: 220, damage: 34, range: 42 },
   volt: { cooldown: 105, damage: 18, range: 34 },
@@ -53,7 +53,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.24.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.25.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -79,7 +79,7 @@ const matches = new Map();
 wss.on('error', err => console.error('[websocket] server error:', err.message));
 
 const VALID_MODES = new Set(['ffa', 'duos', 'trios']);
-const roomKey = (mode, map) => `${mode}:${map}`;
+const roomKey = (mode, map, code = '') => code ? `${mode}:${map}:private:${code}` : `${mode}:${map}`;
 const maxPlayers = mode => mode === 'trios' ? 12 : 8;
 const teamSize = mode => mode === 'trios' ? 3 : mode === 'duos' ? 2 : 1;
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -98,7 +98,7 @@ function publicPlayers(room) {
   return members(room).map(c => ({
     id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
-    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary, equipment: c.equipment
+    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary, equipment: c.equipment, supportPoints:c.supportPoints||0, supportShield:c.supportShield||0
   }));
 }
 function broadcastPlayers(room) {
@@ -129,17 +129,17 @@ function assignTeam(mode, room) {
 function endMatch(room) {
   const match=matches.get(room);if(!match||!match.active)return;match.active=false;
   const roomMembers=members(room);
-  const results=roomMembers.map(c=>({id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0})).sort((a,b)=>b.score-a.score);
-  const winnerId=results[0]?.id;
+  const results=roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}).sort((a,b)=>b.score-a.score||b.kills-a.kills);
+  const winnerId=results[0]?.id,mvpId=results[0]?.id;
   for(const c of roomMembers){
     const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
-    const earned=250+kills*100+(c.id===winnerId?200:0);
+    const earned=250+kills*100+(c.id===winnerId?200:0)+(c.matchAssists||0)*40;
     profile.xp=(Number(profile.xp)||0)+earned;profile.level=levelForXP(profile.xp);profile.stats.matches++;profile.stats.kills+=kills;profile.stats.deaths+=deaths;if(c.id===winnerId)profile.stats.wins++;
     for(const [weaponId,count] of Object.entries(c.matchWeaponKills||{}))profile.weaponXP[weaponId]=(profile.weaponXP[weaponId]||0)+count*100;
-    profile.builds=c.weaponBuilds||profile.builds;profile.lastMatchXP=earned;profile.matchHistory.unshift({date:Date.now(),mode:c.mode,map:c.map,kills,deaths,score:c.score||0,placement,xp:earned});profile.matchHistory=profile.matchHistory.slice(0,20);profile.updatedAt=Date.now();
+    profile.builds=c.weaponBuilds||profile.builds;profile.lastMatchXP=earned;profile.matchHistory.unshift({date:Date.now(),mode:c.mode,map:c.map,kills,deaths,assists:c.matchAssists||0,score:c.score||0,accuracy:results.find(p=>p.id===c.id)?.accuracy||0,placement,xp:earned});profile.matchHistory=profile.matchHistory.slice(0,20);profile.updatedAt=Date.now();
     send(c.ws,{type:'profileUpdate',profile});
   }
-  saveProfiles();broadcast(room,{type:'matchEnd',results});
+  saveProfiles();broadcast(room,{type:'matchEnd',results,mvpId});
 }
 
 function distanceRayToVerticalCapsule(origin, direction, target) {
@@ -228,12 +228,15 @@ function resolvePulseHit(shooter, shot) {
       }))
     : [{ target: best.target, distance: best.distance || 0, direct: true }];
 
+  if(affected.length)shooter.matchHits=(shooter.matchHits||0)+1;
   for (const hit of affected) {
     const target = hit.target;
     const falloff = splashRadius ? Math.max(.25, 1 - hit.distance / splashRadius * .75) : 1;
     const damage = Math.max(1, Math.round(weapon.damage * falloff));
     const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius || 0.48) && best.rayY >= best.highY - .22;
-    target.health = Math.max(0, target.health - damage);
+    target.damageContributors=target.damageContributors||{};target.damageContributors[shooter.id]=Date.now();
+    const absorbed=Math.min(target.supportShield||0,damage);target.supportShield=Math.max(0,(target.supportShield||0)-absorbed);
+    target.health = Math.max(0, target.health - (damage-absorbed));
     target.lastDamageAt = Date.now();
     const eliminated = target.health <= 0;
     send(shooter.ws, {
@@ -249,6 +252,8 @@ function resolvePulseHit(shooter, shot) {
       target.alive = false;
       shooter.score += 1;
       shooter.matchKills=(shooter.matchKills||0)+1;shooter.matchWeaponKills=shooter.matchWeaponKills||{};shooter.matchWeaponKills[weaponId]=(shooter.matchWeaponKills[weaponId]||0)+1;target.matchDeaths=(target.matchDeaths||0)+1;
+      for(const [helperId,at] of Object.entries(target.damageContributors||{})){if(helperId!==shooter.id&&Date.now()-at<12000){const helper=members(shooter.room).find(p=>p.id===helperId);if(helper)helper.matchAssists=(helper.matchAssists||0)+1;}}
+      shooter.supportPoints=(shooter.supportPoints||0)+100;if(shooter.supportPoints>=300&&!shooter.supportReady){shooter.supportReady=true;send(shooter.ws,{type:'supportReady',points:shooter.supportPoints});}
       broadcast(shooter.room, {
         type: 'elimination', source: shooter.id, target: target.id,
         sourceName: shooter.name, targetName: target.name,
@@ -262,7 +267,7 @@ function resolvePulseHit(shooter, shot) {
         if (!current || current.room !== room || !match?.active) return;
         const spawn = spawnForSlot(Math.floor(Math.random() * 8), current.map);
         current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
-        current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true;
+        current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true; current.supportShield=0; current.damageContributors={};
         current.moving = false; current.crouching = false;
         send(current.ws, { type: 'respawned', x: current.x, y: current.y, z: current.z, health: current.health });
         sendRoomState(room, 'players');
@@ -278,7 +283,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard', primary: 'pulse', secondary: 'volt', equipment: 'shield',
-    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{},
+    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0,
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null), lastEquipmentAt: 0
   };
 
@@ -291,11 +296,12 @@ wss.on('connection', ws => {
       if (c.room) return send(ws, { type: 'error', message: 'You are already in a lobby' });
       const mode = VALID_MODES.has(message.mode) ? message.mode : 'ffa';
       const map = ['district','industrial','sublevel'].includes(message.map) ? message.map : 'district';
-      const room = roomKey(mode, map);
+      const roomCode=String(message.roomCode||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+      const room = roomKey(mode, map, roomCode);
       if (matches.get(room)?.active) return send(ws, { type: 'error', message: 'This match has already started' });
       if (members(room).length >= maxPlayers(mode)) return send(ws, { type: 'error', message: 'Lobby is full' });
 
-      c.mode=mode;c.map=map;
+      c.mode=mode;c.map=map;c.roomCode=roomCode;
       c.profileId=/^[a-f0-9-]{36}$/i.test(String(message.profileId||''))?String(message.profileId):crypto.randomUUID();
       c.profile=getProfile(c.profileId);
       c.operator=Object.prototype.hasOwnProperty.call(OPERATOR_LEVELS,message.operator)&&OPERATOR_LEVELS[message.operator]<=c.profile.level?message.operator:'vanguard';
@@ -310,7 +316,7 @@ wss.on('connection', ws => {
       c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
-      send(ws, { type: 'welcome', id: c.id, team: c.team, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
+      send(ws, { type: 'welcome', id: c.id, team: c.team, roomCode:c.roomCode, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
       broadcastPlayers(room);
       return;
     }
@@ -383,6 +389,19 @@ wss.on('connection', ws => {
       return;
     }
 
+    if (message.type === 'supportAbility') {
+      const match=matches.get(c.room);if(!match?.active||!c.alive)return;
+      if(!c.supportReady||c.supportPoints<300||Date.now()-c.lastSupportAt<15000)return;
+      const ability=message.ability==='shield'?'shield':'rally';
+      c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=Date.now();
+      const squad=members(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
+      if(ability==='shield'){for(const p of squad)p.supportShield=Math.min(60,(p.supportShield||0)+25);}
+      else{for(const p of squad)p.health=Math.min(MAX_HEALTH,p.health+25);}
+      broadcast(c.room,{type:'supportUsed',id:c.id,ability,team:c.team,players:publicPlayers(c.room)});
+      send(c.ws,{type:'supportStatus',points:c.supportPoints});
+      return;
+    }
+
     if (message.type === 'shot') {
       if (!matches.get(c.room)?.active || !c.alive) return;
       const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';
@@ -390,6 +409,7 @@ wss.on('connection', ws => {
       const now = Date.now();
       const weaponStats=weaponStatsFor(c,weapon);
       if (now - (c.lastShot[weapon] || 0) < weaponStats.cooldown) return;
+      c.matchShots=(c.matchShots||0)+1;
       c.lastShot[weapon] = now;
       const shot = {
         weapon, dx: finite(message.dx), dy: finite(message.dy), dz: finite(message.dz),
@@ -412,7 +432,7 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={}; }
+      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.lastSupportAt=0; }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });

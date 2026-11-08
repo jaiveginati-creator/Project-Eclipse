@@ -282,3 +282,20 @@
   .mobile-action-cluster{transform:scale(.78)}
   .hud-bottom{bottom:108px}
 }
+
+/* Match experience v0.25.0 */
+.private-room-row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:12px 0;padding:10px 12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.1);font-size:11px;letter-spacing:.08em}
+.private-room-row label{display:flex;align-items:center;gap:8px;color:#c6d1dc}
+.private-room-row input[type=checkbox]{accent-color:#8bd7ff}
+.private-room-row input:not([type=checkbox]){width:180px;max-width:48%;background:#0a111a;border:1px solid rgba(255,255,255,.18);color:#fff;padding:9px 10px;letter-spacing:.15em;text-transform:uppercase}
+.private-code-display{display:flex;flex-direction:column;gap:5px;padding:12px 14px;margin:12px 0;background:rgba(108,190,255,.07);border:1px solid rgba(108,190,255,.22);color:#aebdca;font-size:10px;letter-spacing:.12em}
+.private-code-display b{font-size:24px;letter-spacing:.22em;color:#8bd7ff}
+.private-code-display small{letter-spacing:.04em;color:#8796a5}
+.support-abilities{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);display:flex;gap:8px;z-index:8}
+.support-abilities button{background:rgba(10,22,34,.9);border:1px solid rgba(125,205,255,.45);color:#b9e8ff;padding:9px 12px;font:600 10px 'Barlow Condensed',sans-serif;letter-spacing:.1em;cursor:pointer}
+.support-abilities button:disabled{opacity:.42;cursor:not-allowed}
+.mvp-banner{margin:12px 0;padding:13px 16px;background:rgba(255,190,95,.1);border:1px solid rgba(255,190,95,.3);display:flex;justify-content:space-between;align-items:center;color:#e8bd83;font-size:11px;letter-spacing:.14em}
+.mvp-banner b{font-size:18px;color:#fff;letter-spacing:.06em}
+.results-row small{display:block;color:#8998a8;font-size:10px;letter-spacing:.08em;margin-top:3px}
+.result-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:700px){.support-abilities{bottom:150px;gap:5px}.support-abilities button{padding:8px 7px;font-size:9px}.private-room-row{flex-wrap:wrap}.private-room-row input:not([type=checkbox]){max-width:100%;width:100%}}
