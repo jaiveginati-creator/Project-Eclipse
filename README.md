@@ -128,17 +128,17 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Added an impassable perimeter boundary on both maps, enforced by client collision and matching server-side movement bounds.
 
 ## Current implementation limits
-- The server validates shot direction, origin proximity, range, cooldown and player hit regions, but server-side line-of-sight against every map wall/prop is not yet implemented. Some shots may still pass through cover.
-- Player movement is not fully server-authoritative against map collision; a modified client could still attempt invalid movement within the broad server bounds.
+- The server validates movement against swept collision volumes for major structures on District, Industrial and Sublevel and checks shot line-of-sight against those volumes. Small decorative props and exact rounded/cylindrical contours are approximated rather than individually represented.
+- Movement remains client-predicted rather than a fully server-simulated physics system. The server rejects paths through major blockers and clients reconcile large position drift; ramps, mantle transitions and elevated-platform traversal still need live gameplay validation.
 - Ammo/reload inventory is currently client-side; production-grade anti-cheat, private room codes, accounts, reconnect recovery and persistent stats are not implemented.
 - The operator model and animations are procedural Three.js geometry/animation, not a professionally authored skeletal character asset. Remote reload animation and detailed weapon animation replication are future work.
 - Browser rendering, actual hit registration under varied latency, and live internet multiplayer must still be tested with two or more clients on separate internet connections.
 
 ## Verification
-- `node --check server/server.js`: passed.
-- `node --check client/src/main.js`: passed.
-- `package.json` parse: passed.
-- Full Vite production build and browser rendering: pending dependency installation and browser testing.
+- `node --check server/server.js` and `node --check server/map-collision.js`: run in GitHub Actions.
+- `npm test`: map geometry, line-of-sight, four-player match flow, health regeneration, disconnect cleanup and Industrial hangar regressions.
+- `npm run build`: Vite production build runs in GitHub Actions.
+- Browser rendering, ramp traversal and live multiplayer across separate internet connections still require manual testing.
 - Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
 
 
