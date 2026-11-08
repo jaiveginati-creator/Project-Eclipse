@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const APP_VERSION = require('../package.json').version;
+const { movementBlocked, hasLineOfSight } = require('./map-collision');
 
 const PORT = Number(process.env.PORT || 3001);
 // Keep progression-changing developer commands disabled on public servers by default.
@@ -53,7 +55,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.23.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: APP_VERSION, players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -165,6 +167,11 @@ function distanceRayToVerticalCapsule(origin, direction, target) {
 function spawnForSlot(slot, map = 'district') {
   const compactSpawns = [[-17,-17],[17,-17],[-17,17],[17,17],[-17,0],[17,0],[0,-17],[0,17]];
   if (map === 'sublevel') { const point = compactSpawns[slot % compactSpawns.length]; return { x: point[0], y: 1.7, z: point[1] }; }
+  if (map === 'industrial') {
+    const industrialSpawns = [[-12,0],[12,0],[0,-15],[0,15],[-12,16],[12,-16],[-12,-16],[12,16],[-20,0],[20,0],[0,-22],[0,22]];
+    const point = industrialSpawns[slot % industrialSpawns.length];
+    return { x: point[0], y: 1.7, z: point[1] };
+  }
   const spawns = [
     [-5, 0], [5, 0], [0, -8], [0, 8],
     [-8, -8], [8, 8], [-8, 8], [8, -8],
@@ -212,6 +219,7 @@ function resolvePulseHit(shooter, shot) {
     y: origin.y + direction.y * best.along,
     z: origin.z + direction.z * best.along
   };
+  if (!hasLineOfSight(shooter.map, origin, impact)) return;
   const splashRadius=weapon.splashRadius||((weaponId==='needler'||weaponId==='rocket')?weapon.radius:0);
   const affected = splashRadius
     ? members(shooter.room).filter(target => {
@@ -304,7 +312,7 @@ wss.on('connection', ws => {
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
       const spawn = spawnForSlot(members(room).length, map);
       c.x = spawn.x; c.y = spawn.y; c.z = spawn.z; c.yaw = 0; c.pitch = 0;
-      c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
+      c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false; c.lastMove = Date.now();
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
       send(ws, { type: 'welcome', id: c.id, team: c.team, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
@@ -356,21 +364,32 @@ wss.on('connection', ws => {
       const now = Date.now();
       const elapsed = Math.max(0.001, Math.min((now - c.lastMove) / 1000, 0.25));
       const bounds = c.map === 'sublevel' ? 23.8 : MAP_BOUNDS;
-      const nextX = clamp(finite(message.x, c.x), -bounds, bounds);
-      const nextZ = clamp(finite(message.z, c.z), -bounds, bounds);
-      const distance = Math.hypot(nextX - c.x, nextZ - c.z);
-      if (distance <= 10.5 * elapsed + 0.35) { c.x = nextX; c.z = nextZ; }
-      const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);
-      if (Math.abs(nextY - c.y) <= 14 * elapsed + 0.5) c.y = nextY;
+      const requestedX = clamp(finite(message.x, c.x), -bounds, bounds);
+      const requestedZ = clamp(finite(message.z, c.z), -bounds, bounds);
+      const requestedY = clamp(finite(message.y, c.y), 1.0, 7.5);
+      const horizontalDistance = Math.hypot(requestedX - c.x, requestedZ - c.z);
+      const withinHorizontalSpeed = horizontalDistance <= 10.5 * elapsed + 0.35;
+      const withinVerticalSpeed = Math.abs(requestedY - c.y) <= 14 * elapsed + 0.5;
+      const candidate = {
+        x: withinHorizontalSpeed ? requestedX : c.x,
+        y: withinVerticalSpeed ? requestedY : c.y,
+        z: withinHorizontalSpeed ? requestedZ : c.z
+      };
+      const previous = { x: c.x, y: c.y, z: c.z };
+      const blocked = movementBlocked(c.map, previous, candidate);
+      if (!blocked) {
+        c.x = candidate.x;
+        c.y = candidate.y;
+        c.z = candidate.z;
+      }
       c.yaw = finite(message.yaw, c.yaw);
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
-      c.moving = Boolean(message.moving);
+      c.moving = Boolean(message.moving) && !blocked && (Math.abs(c.x-previous.x)+Math.abs(c.z-previous.z)>.02);
       c.crouching = Boolean(message.crouching);
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
       return;
     }
-
     if (message.type === 'equipment') {
       if (!matches.get(c.room)?.active || !c.alive) return;
       const equipment = c.equipment; if (message.equipment !== equipment) return;
