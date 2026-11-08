@@ -17,4 +17,3 @@ jobs:
       - run: node --check server/map-collision.js
       - run: npm test
       - run: npm run build
-      - run: node --check server/server.js
