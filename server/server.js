@@ -228,12 +228,12 @@ function resolvePulseHit(shooter, shot) {
       }))
     : [{ target: best.target, distance: best.distance || 0, direct: true }];
 
+  if(affected.length)shooter.matchHits=(shooter.matchHits||0)+1;
   for (const hit of affected) {
     const target = hit.target;
     const falloff = splashRadius ? Math.max(.25, 1 - hit.distance / splashRadius * .75) : 1;
     const damage = Math.max(1, Math.round(weapon.damage * falloff));
     const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius || 0.48) && best.rayY >= best.highY - .22;
-    shooter.matchHits=(shooter.matchHits||0)+1;
     target.damageContributors=target.damageContributors||{};target.damageContributors[shooter.id]=Date.now();
     const absorbed=Math.min(target.supportShield||0,damage);target.supportShield=Math.max(0,(target.supportShield||0)-absorbed);
     target.health = Math.max(0, target.health - (damage-absorbed));
