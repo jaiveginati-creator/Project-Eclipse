@@ -322,12 +322,12 @@ wss.on('connection', ws => {
       if (!roomBots.has(room)) {
         const requested = clamp(Math.floor(finite(message.botCount)), 0, maxPlayers(mode) - 1);
         const bots = [];
+        roomBots.set(room, bots);
         for (let i = 0; i < Math.min(requested, maxPlayers(mode) - members(room).length); i++) {
           const point = spawnForSlot(members(room).length + i, map);
           const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:true, crouching:false, weapon:'', operator:'vanguard', primary:'', secondary:'', equipment:'', supportPoints:0, supportShield:0, isBot:true, phase:i*1.7, anchorX:point.x, anchorZ:point.z };
           bot.team = assignTeam(mode, room); bots.push(bot);
         }
-        roomBots.set(room, bots);
       }
       send(ws, { type: 'welcome', id: c.id, team: c.team, roomCode:c.roomCode, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
       broadcastPlayers(room);
