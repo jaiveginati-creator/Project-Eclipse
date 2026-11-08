@@ -1,4 +1,4 @@
-# PROJECT: ECLIPSE — Prototype 0.19.0
+# PROJECT: ECLIPSE — Prototype 0.24.0
 
 ## Prototype 0.19.0 — Operator progression and gunsmith
 - Added persistent operator profiles identified by a browser-generated profile ID.
@@ -141,6 +141,15 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Full Vite production build and browser rendering: pending dependency installation and browser testing.
 - Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
 
+
+## Prototype 0.24.0 — server collision and map fixes
+- Added server-side swept movement checks against major map blockers and server-side line-of-sight checks before damage is applied.
+- Added map-specific Industrial spawn points so players no longer spawn inside the central reactor volume.
+- Replaced the four sealed Industrial hangar blockers with walk-in warehouse shells. Loading bays face the central yard and retain interior racks, structural frames and service lighting.
+- Added client reconciliation when the server rejects a large movement correction.
+- Corrected connection status to show CONNECTING, JOINING and CONNECTED only after a successful server welcome.
+- The health endpoint now reports the package version instead of a hardcoded value.
+- Added automated multiplayer, map-collision and Industrial doorway regression tests.
 
 ## Developer testing console (v0.20.0)
 
