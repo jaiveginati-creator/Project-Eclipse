@@ -394,7 +394,7 @@ wss.on('connection', ws => {
       if(!c.supportReady||c.supportPoints<300||Date.now()-c.lastSupportAt<15000)return;
       const ability=message.ability==='shield'?'shield':'rally';
       c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=Date.now();
-      const squad=members(c.room).filter(p=>p.alive&&(c.mode==='ffa'||p.team===c.team));
+      const squad=members(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
       if(ability==='shield'){for(const p of squad)p.supportShield=Math.min(60,(p.supportShield||0)+25);}
       else{for(const p of squad)p.health=Math.min(MAX_HEALTH,p.health+25);}
       broadcast(c.room,{type:'supportUsed',id:c.id,ability,team:c.team,players:publicPlayers(c.room)});
