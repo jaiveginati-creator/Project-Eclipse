@@ -1,8 +1,8 @@
 {
   "name": "project-eclipse",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "private": true,
-  "description": "A multiplayer arena game with private lobbies, match progression and team support abilities",
+  "description": "A multiplayer arena game with optional roaming lobby bots, private lobbies and match progression",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
