@@ -53,7 +53,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.25.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.26.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -76,6 +76,9 @@ const httpServer = http.createServer((req, res) => {
 const wss = new WebSocket.Server({ server: httpServer, maxPayload: 16 * 1024 });
 const clients = new Map();
 const matches = new Map();
+const roomBots = new Map();
+const BOT_NAMES = ['NOVA-7','ORBIT-3','ECHO-9','COMET-4','LUMEN-2','ASTRA-8','PULSE-6','COSMO-5','ION-1','VEGA-3','SOL-8'];
+function botsIn(room) { return roomBots.get(room) || []; }
 wss.on('error', err => console.error('[websocket] server error:', err.message));
 
 const VALID_MODES = new Set(['ffa', 'duos', 'trios']);
@@ -95,11 +98,11 @@ function broadcast(room, obj, except = null) {
   for (const c of members(room)) if (c.ws !== except) send(c.ws, obj);
 }
 function publicPlayers(room) {
-  return members(room).map(c => ({
-    id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team,
+  return [...members(room).map(c => ({
+    id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team, isBot:false,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
     health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary, equipment: c.equipment, supportPoints:c.supportPoints||0, supportShield:c.supportShield||0
-  }));
+  })), ...botsIn(room).map(bot => ({ ...bot }))];
 }
 function broadcastPlayers(room) {
   broadcast(room, { type: 'players', players: publicPlayers(room) });
@@ -110,7 +113,7 @@ function assignTeam(mode, room) {
   if (mode === 'ffa') return null;
   const size = teamSize(mode);
   const counts = new Map();
-  for (const c of members(room)) {
+  for (const c of [...members(room), ...botsIn(room)]) {
     if (c.team !== null) counts.set(c.team, (counts.get(c.team) || 0) + 1);
   }
   const teamCount = Math.ceil(maxPlayers(mode) / size);
@@ -129,7 +132,7 @@ function assignTeam(mode, room) {
 function endMatch(room) {
   const match=matches.get(room);if(!match||!match.active)return;match.active=false;
   const roomMembers=members(room);
-  const results=roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}).sort((a,b)=>b.score-a.score||b.kills-a.kills);
+  const results=[...roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}),...botsIn(room).map(bot=>({id:bot.id,name:bot.name,team:bot.team,score:bot.score||0,kills:0,deaths:0,assists:0,shots:0,hits:0,accuracy:0,isBot:true}))].sort((a,b)=>b.score-a.score||b.kills-a.kills);
   const winnerId=results[0]?.id,mvpId=results[0]?.id;
   for(const c of roomMembers){
     const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
@@ -299,7 +302,7 @@ wss.on('connection', ws => {
       const roomCode=String(message.roomCode||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
       const room = roomKey(mode, map, roomCode);
       if (matches.get(room)?.active) return send(ws, { type: 'error', message: 'This match has already started' });
-      if (members(room).length >= maxPlayers(mode)) return send(ws, { type: 'error', message: 'Lobby is full' });
+      if (members(room).length + botsIn(room).length >= maxPlayers(mode)) return send(ws, { type: 'error', message: 'Lobby is full' });
 
       c.mode=mode;c.map=map;c.roomCode=roomCode;
       c.profileId=/^[a-f0-9-]{36}$/i.test(String(message.profileId||''))?String(message.profileId):crypto.randomUUID();
@@ -311,11 +314,21 @@ wss.on('connection', ws => {
       c.equipment = ['shield','recon','ammo'].includes(message.equipment) ? message.equipment : 'shield';
       c.room = room;
       c.name = String(message.name || 'OPERATOR').replace(/[<>]/g, '').slice(0, 18) || 'OPERATOR';
-      const spawn = spawnForSlot(members(room).length, map);
+      const spawn = spawnForSlot(members(room).length + botsIn(room).length, map);
       c.x = spawn.x; c.y = spawn.y; c.z = spawn.z; c.yaw = 0; c.pitch = 0;
       c.score = 0; c.health = MAX_HEALTH; c.lastDamageAt = 0; c.alive = true; c.moving = false; c.crouching = false;
       clients.set(c.id, c);
       c.team = assignTeam(mode, room);
+      if (!roomBots.has(room)) {
+        const requested = clamp(Math.floor(finite(message.botCount)), 0, maxPlayers(mode) - 1);
+        const bots = [];
+        for (let i = 0; i < Math.min(requested, maxPlayers(mode) - members(room).length); i++) {
+          const point = spawnForSlot(members(room).length + i, map);
+          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:true, crouching:false, weapon:'', operator:'vanguard', primary:'', secondary:'', equipment:'', supportPoints:0, supportShield:0, isBot:true, phase:i*1.7, anchorX:point.x, anchorZ:point.z };
+          bot.team = assignTeam(mode, room); bots.push(bot);
+        }
+        roomBots.set(room, bots);
+      }
       send(ws, { type: 'welcome', id: c.id, team: c.team, roomCode:c.roomCode, profile:c.profile, devMode:DEV_MODE, players: publicPlayers(room), self: publicPlayers(room).find(p => p.id === c.id) });
       broadcastPlayers(room);
       return;
@@ -427,7 +440,7 @@ wss.on('connection', ws => {
 
     if (message.type === 'startMatch') {
       if (matches.get(c.room)?.active) return;
-      const roomPlayers = members(c.room);
+      const roomPlayers = [...members(c.room), ...botsIn(c.room)];
       if (roomPlayers.length < 2) return send(ws, { type: 'error', message: 'At least 2 players are required to start' });
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
@@ -446,7 +459,7 @@ wss.on('connection', ws => {
     if (!c.room) return;
     const room = c.room;
     clients.delete(c.id);
-    if (members(room).length === 0) matches.delete(room);
+    if (members(room).length === 0) { matches.delete(room); roomBots.delete(room); }
     broadcastPlayers(room);
   });
 });
@@ -462,7 +475,17 @@ setInterval(() => {
         }
       }
     }
-    if (members(room).length) broadcast(room, { type: 'state', players: publicPlayers(room) });
+    if (members(room).length) {
+      for (const bot of botsIn(room)) {
+        if (!match.active) continue;
+        bot.phase += TICK_MS / 1000 * (0.45 + (Number(bot.id.slice(4)) % 4) * 0.08);
+        const radius = bot.map === 'sublevel' ? 2.2 : 3.2;
+        bot.x = clamp(bot.anchorX + Math.cos(bot.phase) * radius, -MAP_BOUNDS + 2, MAP_BOUNDS - 2);
+        bot.z = clamp(bot.anchorZ + Math.sin(bot.phase) * radius, -MAP_BOUNDS + 2, MAP_BOUNDS - 2);
+        bot.yaw = bot.phase + Math.PI / 2;
+      }
+      broadcast(room, { type: 'state', players: publicPlayers(room) });
+    }
   }
 }, TICK_MS);
 
