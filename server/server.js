@@ -53,7 +53,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.26.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.27.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -175,6 +175,98 @@ function spawnForSlot(slot, map = 'district') {
   ];
   const point = spawns[slot % spawns.length];
   return { x: point[0], y: 1.7, z: point[1] };
+}
+
+
+// Server-authoritative arcade navigation. Bots patrol safe traversal lanes, adapt
+// their route when an area is crowded, and use the same replicated movement state
+// as remote operators. This intentionally contains no combat or attack behaviour.
+const BOT_ROUTES = {
+  district: [[-42,0],[-22,0],[0,0],[22,0],[42,0],[0,0],[0,42],[0,22],[0,-22],[0,-42],[0,0]],
+  industrial: [[-43,0],[-22,0],[0,0],[22,0],[43,0],[0,0],[0,43],[0,22],[0,-22],[0,-43],[0,0]],
+  sublevel: [[-16,-16],[-16,0],[-16,16],[0,16],[16,16],[16,0],[16,-16],[0,-16]]
+};
+function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now) {
+  if (!bot.nav) {
+    const index = Math.max(0, Number(bot.id.slice(4)) - 1);
+    bot.nav = {
+      route: BOT_ROUTES[bot.map] || BOT_ROUTES.district,
+      waypoint: index % (BOT_ROUTES[bot.map] || BOT_ROUTES.district).length,
+      nextRouteChoice: now + 1800,
+      nextJump: now + 3500 + (index % 5) * 900,
+      jumpUntil: 0,
+      nextCrouch: now + 5200 + (index % 4) * 1100,
+      crouchUntil: 0,
+      phase: index * 1.73,
+      speed: 6.0 + (index % 4) * 0.32
+    };
+  }
+  const nav = bot.nav;
+  const bounds = bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS - 1.5;
+  const route = nav.route;
+  let target = route[nav.waypoint];
+  let dx = target[0] - bot.x;
+  let dz = target[1] - bot.z;
+  let distance = Math.hypot(dx, dz);
+  if (distance < 1.35) {
+    nav.waypoint = (nav.waypoint + 1) % route.length;
+    target = route[nav.waypoint];
+    dx = target[0] - bot.x;
+    dz = target[1] - bot.z;
+    distance = Math.hypot(dx, dz);
+  }
+  if (now >= nav.nextRouteChoice) {
+    // Avoid crowded waypoints instead of repeatedly walking into a group.
+    const candidate = route[nav.waypoint];
+    const crowded = nearbyPlayers.some(p => p.id !== bot.id && p.alive &&
+      Math.hypot(p.x - candidate[0], p.z - candidate[1]) < 3.1);
+    if (crowded && route.length > 3) {
+      const forward = (nav.waypoint + 1) % route.length;
+      const alternate = (nav.waypoint + 2) % route.length;
+      const crowdAt = point => nearbyPlayers.reduce((sum,p) =>
+        p.id !== bot.id && p.alive ? sum + Math.max(0, 4.2 - Math.hypot(p.x-point[0],p.z-point[1])) : sum, 0);
+      nav.waypoint = crowdAt(route[alternate]) < crowdAt(route[forward]) ? alternate : forward;
+    }
+    nav.nextRouteChoice = now + 1800 + (Math.abs(Math.sin(nav.phase)) * 900);
+  }
+  let moveX = dx / Math.max(distance, 0.001);
+  let moveZ = dz / Math.max(distance, 0.001);
+  // Gentle separation keeps bots from stacking on players or one another.
+  let avoidX = 0, avoidZ = 0;
+  for (const other of nearbyPlayers) {
+    if (other.id === bot.id || !other.alive) continue;
+    const ox = bot.x - other.x, oz = bot.z - other.z;
+    const separation = Math.hypot(ox, oz);
+    if (separation > 0.01 && separation < 2.4) {
+      const force = (2.4 - separation) / 2.4;
+      avoidX += ox / separation * force;
+      avoidZ += oz / separation * force;
+    }
+  }
+  moveX += avoidX * 1.35;
+  moveZ += avoidZ * 1.35;
+  const edgeMargin = bot.map === 'sublevel' ? 21.5 : 45.5;
+  if (Math.abs(bot.x) > edgeMargin) moveX += -Math.sign(bot.x) * 1.8;
+  if (Math.abs(bot.z) > edgeMargin) moveZ += -Math.sign(bot.z) * 1.8;
+  const magnitude = Math.hypot(moveX, moveZ) || 1;
+  moveX /= magnitude;
+  moveZ /= magnitude;
+  bot.x = clamp(bot.x + moveX * nav.speed * deltaSeconds, -bounds, bounds);
+  bot.z = clamp(bot.z + moveZ * nav.speed * deltaSeconds, -bounds, bounds);
+  bot.yaw = Math.atan2(moveX, moveZ);
+  bot.moving = distance > 0.2;
+  nav.phase += deltaSeconds * 5.5;
+  if (now >= nav.nextJump) {
+    nav.jumpUntil = now + 520;
+    nav.nextJump = now + 6200 + (Math.abs(Math.sin(nav.phase)) * 3200);
+  }
+  if (now >= nav.nextCrouch) {
+    nav.crouchUntil = now + 720;
+    nav.nextCrouch = now + 8500 + (Math.abs(Math.cos(nav.phase)) * 4200);
+  }
+  bot.crouching = now < nav.crouchUntil;
+  const jumpProgress = nav.jumpUntil > now ? 1 - (nav.jumpUntil - now) / 520 : 0;
+  bot.y = 1.7 + (nav.jumpUntil > now ? Math.sin(jumpProgress * Math.PI) * 1.05 : 0);
 }
 
 function sendRoomState(room, type = 'state') {
@@ -476,13 +568,10 @@ setInterval(() => {
       }
     }
     if (members(room).length) {
+      const activePlayers = [...members(room), ...botsIn(room)].filter(player => player.alive);
       for (const bot of botsIn(room)) {
-        if (!match.active) continue;
-        bot.phase += TICK_MS / 1000 * (0.45 + (Number(bot.id.slice(4)) % 4) * 0.08);
-        const radius = bot.map === 'sublevel' ? 2.2 : 3.2;
-        bot.x = clamp(bot.anchorX + Math.cos(bot.phase) * radius, -MAP_BOUNDS + 2, MAP_BOUNDS - 2);
-        bot.z = clamp(bot.anchorZ + Math.sin(bot.phase) * radius, -MAP_BOUNDS + 2, MAP_BOUNDS - 2);
-        bot.yaw = bot.phase + Math.PI / 2;
+        if (!match.active || !bot.alive) continue;
+        stepArcadeBot(bot, activePlayers, TICK_MS / 1000, now);
       }
       broadcast(room, { type: 'state', players: publicPlayers(room) });
     }
