@@ -3,9 +3,9 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feature/v0.9.0-total-visual-rebuild]
+    branches: [main]
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,5 +13,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - run: node --check server/server.js
+      - run: node --check server/map-collision.js
+      - run: npm test
       - run: npm run build
       - run: node --check server/server.js
