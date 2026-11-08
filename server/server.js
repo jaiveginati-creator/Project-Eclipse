@@ -13,7 +13,7 @@ const MAP_BOUNDS = 47.8;
 const MAX_HEALTH = 100;
 const HEALTH_REGEN_DELAY_MS = 4000;
 const HEALTH_REGEN_PER_SECOND = 12;
-const RESPAWN_DELAY_MS = 2800;
+const RESPAWN_DELAY_MS = 5000;
 const WEAPONS = {
   pulse: { cooldown: 220, damage: 34, range: 42 },
   volt: { cooldown: 105, damage: 18, range: 34 },
@@ -129,7 +129,7 @@ function assignTeam(mode, room) {
 function endMatch(room) {
   const match=matches.get(room);if(!match||!match.active)return;match.active=false;
   const roomMembers=members(room);
-  const results=roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.round(hits/shots*100):0};}).sort((a,b)=>b.score-a.score||b.kills-a.kills);
+  const results=roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}).sort((a,b)=>b.score-a.score||b.kills-a.kills);
   const winnerId=results[0]?.id,mvpId=results[0]?.id;
   for(const c of roomMembers){
     const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
@@ -407,9 +407,9 @@ wss.on('connection', ws => {
       const weapon = Object.prototype.hasOwnProperty.call(WEAPONS, message.weapon) ? message.weapon : 'pulse';
       if (![c.primary,c.secondary].includes(weapon)) return;
       const now = Date.now();
-      c.matchShots=(c.matchShots||0)+1;
       const weaponStats=weaponStatsFor(c,weapon);
       if (now - (c.lastShot[weapon] || 0) < weaponStats.cooldown) return;
+      c.matchShots=(c.matchShots||0)+1;
       c.lastShot[weapon] = now;
       const shot = {
         weapon, dx: finite(message.dx), dy: finite(message.dy), dz: finite(message.dz),
