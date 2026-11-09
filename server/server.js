@@ -35,7 +35,7 @@ const PROFILE_FILE = path.join(__dirname, 'profiles.json');
 const LEVEL_XP = [0,500,1200,2100,3300,4800,6600,8700,11100,13800,16800,20100,23700,27600,31800];
 const WEAPON_LEVELS = {pulse:1,volt:1,magnum:2,arc:3,shotgun:4,burst:5,needler:6,rocket:8,sniper:1};
 const OPERATOR_LEVELS = {vanguard:1,recon:3,assault:6,phantom:9};
-const ATTACHMENT_LEVELS = {ammoType:{standard:0,incendiary:0,shock:0,rapid:0,heavy:0},barrel:{standard:0,extended:250,heavy:650},magazine:{standard:0,extended:350,quick:550},stock:{standard:0,tactical:450,weighted:750},underbarrel:{none:0,grip:300,laser:700}};
+const ATTACHMENT_LEVELS = {ammoType:{standard:0,incendiary:0,shock:0,rapid:0,heavy:0,explosive:0},barrel:{standard:0,extended:250,heavy:650},magazine:{standard:0,extended:350,quick:550},stock:{standard:0,tactical:450,weighted:750},underbarrel:{none:0,grip:300,laser:700}};
 const DEFAULT_BUILD = {name:'FIELD STANDARD',ammoType:'standard',barrel:'standard',magazine:'standard',stock:'standard',underbarrel:'none',camo:'standard'};
 let profileStore={};try{profileStore=JSON.parse(fs.readFileSync(PROFILE_FILE,'utf8'));}catch{profileStore={};}
 function levelForXP(xp){let level=1;for(let i=1;i<LEVEL_XP.length;i++){if(xp>=LEVEL_XP[i])level=i+1;else break;}return level;}
@@ -45,7 +45,7 @@ function saveProfiles(){try{const temp=PROFILE_FILE+'.tmp';fs.writeFileSync(temp
 function unlockedWeapon(profile,id){return(WEAPON_LEVELS[id]||99)<=profile.level;}
 function sanitizeBuild(profile,raw={}){const xp=Number(profile.weaponXP?.[raw.weaponId])||0,result={...DEFAULT_BUILD,name:String(raw.name||'FIELD STANDARD').replace(/[<>]/g,'').slice(0,22)};for(const slot of Object.keys(ATTACHMENT_LEVELS)){const choice=raw[slot];if(Object.prototype.hasOwnProperty.call(ATTACHMENT_LEVELS[slot],choice)&&xp>=ATTACHMENT_LEVELS[slot][choice])result[slot]=choice;}const camoLevels={standard:1,arctic:4,ember:7,void:10};if(camoLevels[raw.camo]&&profile.level>=camoLevels[raw.camo])result.camo=raw.camo;return result;}
 function sanitizeBuilds(profile,raw={}){const result={};for(const id of Object.keys(WEAPONS))result[id]=sanitizeBuild(profile,{...(raw[id]||profile.builds?.[id]||{}),weaponId:id});return result;}
-function weaponStatsFor(player,id){const stats={...WEAPONS[id]},build=player.weaponBuilds?.[id]||{},ammoType=build.ammoType||'standard';if(build.barrel==='extended')stats.range*=1.18;if(build.barrel==='heavy'){stats.damage=Math.round(stats.damage*1.10);stats.cooldown=Math.round(stats.cooldown*1.12);}if(build.magazine==='quick')stats.cooldown=Math.round(stats.cooldown*.93);if(build.stock==='tactical')stats.cooldown=Math.round(stats.cooldown*.94);if(['rocket','needler'].includes(id)){stats.splashRadius=stats.radius;}if(ammoType==='explosive'){stats.damage=Math.round(stats.damage*.85);}if(ammoType==='incendiary'){stats.damage=Math.round(stats.damage*1.12);stats.range*=.9;}if(ammoType==='shock'){stats.damage=Math.round(stats.damage*.92);stats.range*=1.1;}if(ammoType==='rapid'){stats.damage=Math.round(stats.damage*.72);stats.cooldown=Math.max(55,Math.round(stats.cooldown*.72));}if(ammoType==='heavy'){stats.damage=Math.round(stats.damage*1.3);stats.cooldown=Math.round(stats.cooldown*1.22);}return stats;}
+function weaponStatsFor(player,id){const stats={...WEAPONS[id]},build=player.weaponBuilds?.[id]||{},ammoType=build.ammoType||'standard';if(build.barrel==='extended')stats.range*=1.18;if(build.barrel==='heavy'){stats.damage=Math.round(stats.damage*1.10);stats.cooldown=Math.round(stats.cooldown*1.12);}if(build.magazine==='quick')stats.cooldown=Math.round(stats.cooldown*.93);if(build.stock==='tactical')stats.cooldown=Math.round(stats.cooldown*.94);if(['rocket','needler'].includes(id)){stats.splashRadius=stats.radius;}if(ammoType==='explosive'){stats.damage=Math.round(stats.damage*.85);stats.splashRadius=Math.max(stats.splashRadius||0,2.8);}if(ammoType==='incendiary'){stats.damage=Math.round(stats.damage*1.12);stats.range*=.9;}if(ammoType==='shock'){stats.damage=Math.round(stats.damage*.92);stats.range*=1.1;}if(ammoType==='rapid'){stats.damage=Math.round(stats.damage*.72);stats.cooldown=Math.max(55,Math.round(stats.cooldown*.72));}if(ammoType==='heavy'){stats.damage=Math.round(stats.damage*1.3);stats.cooldown=Math.round(stats.cooldown*1.22);}return stats;}
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
@@ -447,8 +447,8 @@ function resolvePulseHit(shooter, shot) {
     const hit = distanceRayToVerticalCapsule(origin, direction, target);
     if (!hit || hit.along > weapon.range) continue;
     const direct = hit.distance <= (weapon.hitRadius || .48);
-    const rocketProximity = weaponId === 'rocket' && hit.distance <= splashRadius;
-    if (!direct && !rocketProximity) continue;
+    const splashProximity = splashRadius > 0 && hit.distance <= splashRadius;
+    if (!direct && !splashProximity) continue;
     const targetPoint = { x: target.x, y: target.y - (target.crouching ? .55 : .7), z: target.z };
     if (!hasLineOfSight(shooter.map, origin, targetPoint)) continue;
     if (!best || hit.along < best.along) best = { target, along: hit.along, distance: hit.distance, rayY: hit.rayY, highY: hit.highY, direct };
