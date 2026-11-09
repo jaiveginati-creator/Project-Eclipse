@@ -35,12 +35,15 @@ const PROFILE_FILE = path.join(__dirname, 'profiles.json');
 const LEVEL_XP = [0,500,1200,2100,3300,4800,6600,8700,11100,13800,16800,20100,23700,27600,31800];
 const WEAPON_LEVELS = {pulse:1,volt:1,magnum:2,arc:3,shotgun:4,burst:5,needler:6,rocket:8,sniper:1};
 const OPERATOR_LEVELS = {vanguard:1,recon:3,assault:6,phantom:9};
+const OPERATOR_XP_STEPS=[0,400,1000,1800,2800,4000],OPERATOR_SKINS={standard:1,arctic:2,ember:3,void:5},OPERATOR_HELMETS={standard:1,recon:2,heavy:3,phantom:4},OPERATOR_POSES={ready:1,salute:2,champion:4,hero:6},OPERATOR_FINISHERS={pulse:1,solar:3,void:5};
+function operatorLevelForXP(xp){let level=1;for(let i=1;i<OPERATOR_XP_STEPS.length;i++){if(xp>=OPERATOR_XP_STEPS[i])level=i+1;else break;}return level;}
+function sanitizeOperatorLoadout(profile,operator,raw={}){const level=operatorLevelForXP(Number(profile.operatorXP?.[operator])||0),pick=(value,table,fallback)=>Object.prototype.hasOwnProperty.call(table,value)&&level>=table[value]?value:fallback;return{skin:pick(raw.skin,OPERATOR_SKINS,'standard'),helmet:pick(raw.helmet,OPERATOR_HELMETS,'standard'),pose:pick(raw.pose,OPERATOR_POSES,'ready'),finisher:pick(raw.finisher,OPERATOR_FINISHERS,'pulse')};}
 const ATTACHMENT_LEVELS = {ammoType:{standard:0,incendiary:0,shock:0,rapid:0,heavy:0,explosive:0},barrel:{standard:0,extended:250,heavy:650},magazine:{standard:0,extended:350,quick:550},stock:{standard:0,tactical:450,weighted:750},underbarrel:{none:0,grip:300,laser:700}};
 const DEFAULT_BUILD = {name:'FIELD STANDARD',ammoType:'standard',barrel:'standard',magazine:'standard',stock:'standard',underbarrel:'none',camo:'standard'};
 let profileStore={};try{profileStore=JSON.parse(fs.readFileSync(PROFILE_FILE,'utf8'));}catch{profileStore={};}
 function levelForXP(xp){let level=1;for(let i=1;i<LEVEL_XP.length;i++){if(xp>=LEVEL_XP[i])level=i+1;else break;}return level;}
-function newProfile(id){return{id,xp:0,level:1,stats:{matches:0,kills:0,deaths:0,wins:0},weaponXP:{},builds:{},matchHistory:[],createdAt:Date.now(),updatedAt:Date.now(),lastMatchXP:0};}
-function getProfile(id){if(!profileStore[id])profileStore[id]=newProfile(id);const p=profileStore[id];p.stats={matches:0,kills:0,deaths:0,wins:0,...(p.stats||{})};p.weaponXP=p.weaponXP||{};p.builds=p.builds||{};p.matchHistory=Array.isArray(p.matchHistory)?p.matchHistory:[];p.level=levelForXP(Number(p.xp)||0);return p;}
+function newProfile(id){return{id,xp:0,level:1,stats:{matches:0,kills:0,deaths:0,wins:0},weaponXP:{},operatorXP:{},operatorLoadouts:{},builds:{},matchHistory:[],createdAt:Date.now(),updatedAt:Date.now(),lastMatchXP:0};}
+function getProfile(id){if(!profileStore[id])profileStore[id]=newProfile(id);const p=profileStore[id];p.stats={matches:0,kills:0,deaths:0,wins:0,...(p.stats||{})};p.weaponXP=p.weaponXP||{};p.operatorXP=p.operatorXP||{};p.operatorLoadouts=p.operatorLoadouts||{};p.builds=p.builds||{};p.matchHistory=Array.isArray(p.matchHistory)?p.matchHistory:[];p.level=levelForXP(Number(p.xp)||0);return p;}
 function saveProfiles(){try{const temp=PROFILE_FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(profileStore));fs.renameSync(temp,PROFILE_FILE);}catch(error){console.error('[profiles] save failed:',error.message);}}
 function unlockedWeapon(profile,id){return(WEAPON_LEVELS[id]||99)<=profile.level;}
 function sanitizeBuild(profile,raw={}){const xp=Number(profile.weaponXP?.[raw.weaponId])||0,result={...DEFAULT_BUILD,name:String(raw.name||'FIELD STANDARD').replace(/[<>]/g,'').slice(0,22)};for(const slot of Object.keys(ATTACHMENT_LEVELS)){const choice=raw[slot];if(Object.prototype.hasOwnProperty.call(ATTACHMENT_LEVELS[slot],choice)&&xp>=ATTACHMENT_LEVELS[slot][choice])result[slot]=choice;}const camoLevels={standard:1,arctic:4,ember:7,void:10};if(camoLevels[raw.camo]&&profile.level>=camoLevels[raw.camo])result.camo=raw.camo;return result;}
@@ -107,14 +110,14 @@ function publicPlayers(room) {
     id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team, isBot: false,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
     health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching,
-    weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary,
+    weapon: c.weapon, operator: c.operator, operatorSkin:c.operatorSkin||'standard', helmetStyle:c.helmetStyle||'standard', primary: c.primary, secondary: c.secondary,
     equipment: c.equipment, supportPoints: c.supportPoints || 0, supportShield: c.supportShield || 0
   }));
   const bots = botsIn(room).map(bot => ({
     id: bot.id, name: bot.name, mode: bot.mode, map: bot.map, team: bot.team, isBot: true,
     x: bot.x, y: bot.y, z: bot.z, yaw: bot.yaw, pitch: bot.pitch, score: bot.score,
     health: bot.health, alive: bot.alive, moving: bot.moving, crouching: bot.crouching,
-    weapon: bot.weapon, operator: bot.operator, primary: bot.primary, secondary: bot.secondary,
+    weapon: bot.weapon, operator: bot.operator, operatorSkin:bot.operatorSkin||'standard', helmetStyle:bot.helmetStyle||'standard', primary: bot.primary, secondary: bot.secondary,
     equipment: bot.equipment, supportPoints: bot.supportPoints || 0, supportShield: bot.supportShield || 0
   }));
   return [...humans, ...bots];
@@ -152,9 +155,9 @@ function endMatch(room) {
   for(const c of roomMembers){
     const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
     const earned=250+kills*100+(c.id===winnerId?200:0)+(c.matchAssists||0)*40;
-    profile.xp=(Number(profile.xp)||0)+earned;profile.level=levelForXP(profile.xp);profile.stats.matches++;profile.stats.kills+=kills;profile.stats.deaths+=deaths;if(c.id===winnerId)profile.stats.wins++;
+    profile.xp=(Number(profile.xp)||0)+earned;profile.level=levelForXP(profile.xp);profile.operatorXP[c.operator]=(Number(profile.operatorXP[c.operator])||0)+earned;profile.operatorLoadouts[c.operator]={skin:c.operatorSkin||'standard',helmet:c.helmetStyle||'standard',pose:c.victoryPose||'ready',finisher:c.finisher||'pulse'};profile.stats.matches++;profile.stats.kills+=kills;profile.stats.deaths+=deaths;if(c.id===winnerId)profile.stats.wins++;
     for(const [weaponId,count] of Object.entries(c.matchWeaponKills||{}))profile.weaponXP[weaponId]=(profile.weaponXP[weaponId]||0)+count*100;
-    profile.builds=c.weaponBuilds||profile.builds;profile.lastMatchXP=earned;profile.matchHistory.unshift({date:Date.now(),mode:c.mode,map:c.map,kills,deaths,assists:c.matchAssists||0,score:c.score||0,accuracy:results.find(p=>p.id===c.id)?.accuracy||0,placement,xp:earned});profile.matchHistory=profile.matchHistory.slice(0,20);profile.updatedAt=Date.now();
+    profile.builds=c.weaponBuilds||profile.builds;profile.lastMatchXP=earned;profile.matchHistory.unshift({date:Date.now(),mode:c.mode,map:c.map,kills,deaths,assists:c.matchAssists||0,score:c.score||0,accuracy:results.find(p=>p.id===c.id)?.accuracy||0,placement,xp:earned,operator:c.operator,victoryPose:c.victoryPose||'ready'});profile.matchHistory=profile.matchHistory.slice(0,20);profile.updatedAt=Date.now();
     send(c.ws,{type:'profileUpdate',profile});
   }
   saveProfiles();broadcast(room,{type:'matchEnd',results,mvpId});
@@ -477,9 +480,14 @@ function resolvePulseHit(shooter, shot) {
     const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius||.48) && best.rayY >= best.highY-.22;
     target.damageContributors = target.damageContributors || {};
     target.damageContributors[shooter.id] = Date.now();
-    const absorbed = Math.min(target.supportShield||0,damage);
-    target.supportShield = Math.max(0,(target.supportShield||0)-absorbed);
-    target.health = Math.max(0,target.health-(damage-absorbed));
+    if((target.operatorShieldUntil||0)<=Date.now())target.operatorShield=0;
+    const reducedDamage=target.damageReductionUntil>Date.now()?Math.max(1,Math.round(damage*.68)):damage;
+    const operatorAbsorbed=Math.min(target.operatorShield||0,reducedDamage);
+    target.operatorShield=Math.max(0,(target.operatorShield||0)-operatorAbsorbed);
+    const supportAbsorbed=Math.min(target.supportShield||0,reducedDamage-operatorAbsorbed);
+    target.supportShield=Math.max(0,(target.supportShield||0)-supportAbsorbed);
+    const absorbed=operatorAbsorbed+supportAbsorbed;
+    target.health = Math.max(0,target.health-(reducedDamage-absorbed));
     target.lastDamageAt = Date.now();
     const eliminated = target.health <= 0;
     if (shooter.ws) send(shooter.ws,{type:'hitConfirm',targetId:target.id,targetName:target.name,damage,targetHealth:target.health,weapon:weaponId,eliminated,headshot});
@@ -502,7 +510,7 @@ function resolvePulseHit(shooter, shot) {
         shooter.supportReady=true;
         if (shooter.ws) send(shooter.ws,{type:'supportReady',points:shooter.supportPoints});
       }
-      broadcast(shooter.room,{type:'elimination',source:shooter.id,target:target.id,sourceName:shooter.name,targetName:target.name,players:publicPlayers(shooter.room)});
+      broadcast(shooter.room,{type:'elimination',source:shooter.id,target:target.id,sourceName:shooter.name,targetName:target.name,finisher:shooter.finisher||'pulse',operator:shooter.operator,players:publicPlayers(shooter.room)});
       const room = shooter.room, targetId = target.id;
       setTimeout(() => {
         const currentHuman = clients.get(targetId);
@@ -535,7 +543,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard', primary: 'pulse', secondary: 'volt', equipment: 'shield',
-    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0,
+    profileId:null, profile:null, weaponBuilds:{}, operatorSkin:'standard',helmetStyle:'standard',victoryPose:'ready',finisher:'pulse',operatorShield:0,operatorShieldUntil:0,damageReductionUntil:0,speedBoostUntil:0,lastOperatorAbilityAt:0, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0,
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null), lastEquipmentAt: 0
   };
 
@@ -557,6 +565,9 @@ wss.on('connection', ws => {
       c.profileId=/^[a-f0-9-]{36}$/i.test(String(message.profileId||''))?String(message.profileId):crypto.randomUUID();
       c.profile=getProfile(c.profileId);
       c.operator=Object.prototype.hasOwnProperty.call(OPERATOR_LEVELS,message.operator)&&OPERATOR_LEVELS[message.operator]<=c.profile.level?message.operator:'vanguard';
+      const operatorLoadout=sanitizeOperatorLoadout(c.profile,c.operator,{skin:message.operatorSkin,helmet:message.helmetStyle,pose:message.victoryPose,finisher:message.finisher});
+      c.operatorSkin=operatorLoadout.skin;c.helmetStyle=operatorLoadout.helmet;c.victoryPose=operatorLoadout.pose;c.finisher=operatorLoadout.finisher;
+      c.profile.operatorLoadouts[c.operator]=operatorLoadout;
       c.primary=PRIMARY_WEAPONS.has(message.primary)&&unlockedWeapon(c.profile,message.primary)?message.primary:'pulse';
       c.secondary=SECONDARY_WEAPONS.has(message.secondary)&&unlockedWeapon(c.profile,message.secondary)?message.secondary:'volt';
       c.weaponBuilds=sanitizeBuilds(c.profile,message.builds||{});c.profile.builds=c.weaponBuilds;saveProfiles();
@@ -575,7 +586,7 @@ wss.on('connection', ws => {
         for (let i = 0; i < Math.min(requested, maxPlayers(mode) - members(room).length); i++) {
           const point = spawnForSlot(members(room).length + i, map);
           const loadout = BOT_LOADOUTS[i % BOT_LOADOUTS.length];
-          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, room, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:false, crouching:false, weapon:loadout.primary, operator:'vanguard', primary:loadout.primary, secondary:loadout.secondary, equipment:'shield', supportPoints:0, supportShield:0, isBot:true, spawnSlot:members(room).length+i, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchAssists:0, matchShots:0, matchHits:0, matchWeaponKills:{}, damageContributors:{}, lastDamageAt:0, lastEquipmentAt:0, lastSupportAt:0, lastShot:Object.create(null), nav:null, combat:{targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0} };
+          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, room, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:false, crouching:false, weapon:loadout.primary, operator:'vanguard',operatorSkin:'standard',helmetStyle:'standard', primary:loadout.primary, secondary:loadout.secondary, equipment:'shield', supportPoints:0, supportShield:0, isBot:true, spawnSlot:members(room).length+i, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchAssists:0, matchShots:0, matchHits:0, matchWeaponKills:{}, damageContributors:{}, lastDamageAt:0, lastEquipmentAt:0, lastSupportAt:0, lastShot:Object.create(null), nav:null, combat:{targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0} };
           bot.team = assignTeam(mode, room); bots.push(bot);
         }
       }
@@ -633,7 +644,8 @@ wss.on('connection', ws => {
       const distance = Math.hypot(nextX - c.x, nextZ - c.z);
       const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);
       const candidate = { x: nextX, y: nextY, z: nextZ };
-      const withinSpeed = distance <= 10.5 * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
+      const moveLimit=c.speedBoostUntil>Date.now()?13.5:10.5;
+      const withinSpeed = distance <= moveLimit * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
       const accepted = withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
       if (accepted) { c.x = nextX; c.y = nextY; c.z = nextZ; }
       c.yaw = finite(message.yaw, c.yaw);
@@ -642,6 +654,23 @@ wss.on('connection', ws => {
       c.crouching = Boolean(message.crouching);
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
+      return;
+    }
+
+    if (message.type === 'operatorAbility') {
+      const match=matches.get(c.room);if(!match?.active||!c.alive)return;
+      const now=Date.now();if(now-(c.lastOperatorAbilityAt||0)<26000)return send(ws,{type:'operatorAbilityDenied',reason:'cooldown'});
+      c.lastOperatorAbilityAt=now;
+      const abilityByOperator={vanguard:'bulwark',recon:'recon-pulse',assault:'overdrive',phantom:'veil'};
+      const ability=abilityByOperator[c.operator]||'bulwark';
+      if(ability==='bulwark'){c.operatorShield=40;c.operatorShieldUntil=now+6500;}
+      else if(ability==='recon-pulse'){
+        const targets=combatants(c.room).filter(p=>p.alive&&isEnemy(c,p)&&Math.hypot(p.x-c.x,p.z-c.z)<=32).map(p=>({id:p.id,x:p.x,y:p.y,z:p.z,name:p.name}));
+        send(ws,{type:'operatorScan',targets,duration:4500});
+      }else if(ability==='overdrive'){c.speedBoostUntil=now+4500;}
+      else if(ability==='veil'){c.damageReductionUntil=now+5000;}
+      broadcast(c.room,{type:'operatorAbilityUsed',id:c.id,operator:c.operator,ability});
+      send(ws,{type:'operatorAbilityResult',operator:c.operator,ability,cooldownMs:26000,shield:c.operatorShield||0});
       return;
     }
 
@@ -697,7 +726,7 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.lastSupportAt=0;if(player.isBot){player.lastShot=Object.create(null);player.nav=null;player.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};} }
+      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.operatorShield=0;player.operatorShieldUntil=0;player.damageReductionUntil=0;player.speedBoostUntil=0;player.lastOperatorAbilityAt=0;player.supportReady=false;player.lastSupportAt=0;if(player.isBot){player.lastShot=Object.create(null);player.nav=null;player.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};} }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });
