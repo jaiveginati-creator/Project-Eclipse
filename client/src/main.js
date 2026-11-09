@@ -733,7 +733,7 @@ function handleNetwork(m){
  }
  if(m.type==='operatorAbilityResult'){
   operatorAbilityPending=false;
-  if(!m.ok){toast(m.message||'ABILITY UNAVAILABLE');return;}
+  if(!m.ok){if(m.cooldownMs>0)operatorAbilityReadyAt=performance.now()+m.cooldownMs;toast(m.message||'ABILITY UNAVAILABLE');updateOperatorAbilityHud();return;}
   operatorAbilityReadyAt=performance.now()+(m.cooldownMs||30000);
   if(m.ability==='overdrive')operatorBoostUntil=performance.now()+(m.durationMs||4500);
   if(m.ability==='sensor'){reconContacts=(m.contacts||[]).map(p=>({...p,expires:performance.now()+5000}));toast('SENSOR SWEEP · '+reconContacts.length+' CONTACTS');}
