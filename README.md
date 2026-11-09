@@ -1,4 +1,10 @@
-# PROJECT: ECLIPSE — Prototype 0.31.0
+# PROJECT: ECLIPSE — Prototype 0.32.0
+
+## Prototype 0.32.0 — Operator abilities
+- Rebuilt Vanguard, Recon, Assault and Phantom as four distinct operator classes with server-authoritative active abilities.
+- Vanguard deploys Aegis Barrier to add squad shields; Recon activates Overclock for faster weapon cycling; Assault activates Breach Surge for increased damage; Phantom activates Veil Matrix to reduce incoming damage.
+- Operator abilities charge through combat support points, cost 300 points, and are protected by server-side charge and cooldown checks.
+- Added operator ability descriptions to selection cards and a contextual in-match ability control.
 
 ## Prototype 0.31.0 — Explosive ammo compatibility
 - Added Explosive ammo as a selectable gunsmith ammo type for all weapons, including the Volt Pistol.
