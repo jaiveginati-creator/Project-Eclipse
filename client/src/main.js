@@ -499,7 +499,7 @@ function buildSublevel(){
  for(const [x,z,sx,sz] of [[-5.8,-9.5,2.6,.42],[5.8,9.5,2.6,.42],[9.5,-5.8,.42,2.6],[-9.5,5.8,.42,2.6]]){
   const fin=box(x,1.8,z,sx,3.6,sz,wallLight);detailBox(x,3.68,z,sx*.82,.1,sz*.8,amber);
  }
- // Service ribs, exposed pipes and route lights reinforce the enclosed orbital-station setting.
+ // Service ribs, exposed pipes and route lights reinforce the enclosed starfall-station setting.
  for(const z of [-22,-7,7,22]){
   detailBox(0,5.15,z,47,.18,.22,wallLight);
   for(const x of [-21,-14,-7,0,7,14,21])detailBox(x,5.0,z,.12,.42,.12,amber);
@@ -516,83 +516,74 @@ function buildSublevel(){
  player.pos.set(0,1.7,17);player.yaw=0;updateCamera();
 }
 
-function buildOrbital(){
- clearMap();scene.background.set(0x091827);scene.fog.color.set(0x10283a);scene.fog.density=.0065;
- hemi.color.set(0x9ac6dc);hemi.groundColor.set(0x111c29);hemi.intensity=1.5;
- moonLight.color.set(0xffd5a0);moonLight.intensity=2.15;moonLight.position.set(-34,52,-28);
- fill.color.set(0x4d9fc2);fill.intensity=.82;
- const deck=new THREE.MeshStandardMaterial({color:0x293b49,roughness:.72,metalness:.42});
- const steel=new THREE.MeshStandardMaterial({color:0x172a38,roughness:.38,metalness:.78});
- const panel=new THREE.MeshStandardMaterial({color:0x405866,roughness:.5,metalness:.58});
- const glass=new THREE.MeshPhysicalMaterial({color:0x79b6d0,metalness:.35,roughness:.16,transparent:true,opacity:.42,side:THREE.DoubleSide});
- const cyan=new THREE.MeshStandardMaterial({color:0x58d9e8,emissive:0x168a9d,emissiveIntensity:1.05,metalness:.45,roughness:.3});
- const amber=new THREE.MeshStandardMaterial({color:0xdba45c,emissive:0x75451a,emissiveIntensity:.55,metalness:.35,roughness:.45});
- box(0,-.28,0,104,.56,104,deck,false);
- box(0,-.015,0,22,.08,100,steel,false);box(0,-.012,0,100,.08,22,steel,false);
- // Sealed station perimeter, with bright structural ribs and emergency strips.
- for(const s of [-1,1]){
-  box(s*49,3,0,.8,6,100,steel);box(0,3,s*49,100,6,.8,steel);
-  detailBox(s*48.45,5.8,0,.12,.12,96,cyan);detailBox(0,5.8,s*48.45,96,.12,.12,cyan);
+
+function buildStarfall(){
+ clearMap();scene.background.set(0x071321);scene.fog.color.set(0x102638);scene.fog.density=.0052;
+ hemi.color.set(0xa6d9ed);hemi.groundColor.set(0x101b29);hemi.intensity=1.65;
+ moonLight.color.set(0xb8e5ff);moonLight.intensity=2.25;moonLight.position.set(-28,48,-34);
+ fill.color.set(0x64a9c8);fill.intensity=.95;
+ const floor=new THREE.MeshStandardMaterial({color:0x263b4a,roughness:.76,metalness:.35});
+ const wall=new THREE.MeshStandardMaterial({color:0x182c3b,roughness:.48,metalness:.72});
+ const trim=new THREE.MeshStandardMaterial({color:0x526d7d,roughness:.4,metalness:.62});
+ const glass=new THREE.MeshPhysicalMaterial({color:0x73c6e8,metalness:.22,roughness:.16,transparent:true,opacity:.38,side:THREE.DoubleSide});
+ const blue=new THREE.MeshStandardMaterial({color:0x50d9ed,emissive:0x117d9a,emissiveIntensity:1.15,metalness:.35,roughness:.28});
+ const gold=new THREE.MeshStandardMaterial({color:0xd7a45d,emissive:0x74451d,emissiveIntensity:.6,metalness:.3,roughness:.4});
+ const white=new THREE.MeshStandardMaterial({color:0x9bb8c6,emissive:0x263e4a,emissiveIntensity:.3,metalness:.25,roughness:.5});
+ box(0,-.28,0,100,.56,100,floor,false);
+ // Outer station shell and illuminated perimeter ribs.
+ for(const side of [-1,1]){
+  box(side*48.5,3,0,.9,6,99,wall);box(0,3,side*48.5,99,6,.9,wall);
+  detailBox(side*47.95,5.65,0,.12,.14,96,blue);detailBox(0,5.65,side*47.95,96,.14,.12,blue);
  }
- for(let p=-40;p<=40;p+=10){for(const s of [-1,1]){box(s*47.9,3,p,.35,6,.35,panel);box(p,3,s*47.9,.35,6,.35,panel);}}
- // Central atrium: a low circular command hub with a visible reactor spine.
- const hub=addVisualMesh(new THREE.CylinderGeometry(13.5,14.5,.28,64),panel,0,.16,0);
- const ring=addVisualMesh(new THREE.TorusGeometry(12.3,.22,10,96),cyan,0,.34,0);ring.rotation.x=Math.PI/2;
- box(0,2.5,0,5.5,5,5.5,steel);
- for(const y of [1.2,2.5,3.8]){const r=addVisualMesh(new THREE.TorusGeometry(4.2,.16,8,48),cyan,0,y,0);r.rotation.x=Math.PI/2;}
- mapLight(0,4.2,0,0x54d8ed,2.5,28);
- // Cargo bay — stacked freight, loading lanes and overhead gantry.
- for(const [x,z,w,h,rot,color] of [
-  [-31,-25,12,3,0,0x526879],[-31,-17,9,3,0,0x78624b],[-31,-9,12,3,0,0x405b69],
-  [-20,-29,8,3,Math.PI/2,0x586b68],[-20,-11,8,3,Math.PI/2,0x6a5c4d],
-  [-36,4,10,3,0,0x536b76],[-25,8,8,3,0,0x6d5c49]
- ]){
-  const m=box(x,h/2,z,w,h,2.8,new THREE.MeshStandardMaterial({color,metalness:.52,roughness:.52}),true);m.rotation.y=rot;
-  for(let k=-Math.floor(w/2)+1;k<Math.floor(w/2);k++){const rib=detailBox(x+k*1.5,1.5,z,.07,h+.05,2.9,steel);rib.rotation.y=rot;}
+ for(let p=-40;p<=40;p+=10){box(p,3,-47.9,.28,6,.28,trim);box(p,3,47.9,.28,6,.28,trim);}
+ // Central transfer hub — a circular power core with four open approaches.
+ const hub=addVisualMesh(new THREE.CylinderGeometry(9.5,10.5,.22,48),trim,0,.12,0);
+ const ring=addVisualMesh(new THREE.TorusGeometry(8.7,.18,8,64),blue,0,.28,0);ring.rotation.x=Math.PI/2;
+ box(0,2.8,0,4.8,5.6,4.8,wall);
+ for(const y of [1.25,2.8,4.35]){const r=addVisualMesh(new THREE.TorusGeometry(3.7,.13,8,40),blue,0,y,0);r.rotation.x=Math.PI/2;}
+ mapLight(0,5.2,0,0x5bdff2,2.2,25);
+ // Three distinct traversable lanes: a straight transit avenue and two curved side galleries.
+ // Transit avenue cover islands.
+ for(const [x,z,w,d] of [[-7,-27,4,2],[7,-16,4,2],[-7,16,4,2],[7,27,4,2]]){
+  box(x,.9,z,w,1.8,d,trim);detailBox(x,1.85,z,w-.3,.1,d-.2,gold);
  }
- for(const x of [-43,-18]){box(x,5,-19,.5,10,.5,steel);box((x-18)/2,9,-19,25,.55,.65,steel);detailBox((x-18)/2,9.35,-19,24,.12,.72,amber);}
- // Observation gallery at the north end: wide eclipse-facing windows and a control rail.
- box(0,.12,-39,30,.24,14,steel);
- for(const x of [-15,15])box(x,4.2,-39,.55,8,.55,steel);
- box(0,4.2,-45,30,8,.45,steel);
- box(-15,4.2,-39,.45,8,12,steel);box(15,4.2,-39,.45,8,12,steel);
- detailBox(0,4.15,-44.72,28,7.4,.12,glass);
- for(const x of [-12,-6,0,6,12]){detailBox(x,4.2,-44.58,.12,7.2,.16,cyan);detailBox(x,7.95,-39,1.2,.12,11,amber);}
- for(const x of [-10,0,10])mapLight(x,6.5,-38,0x8bdff2,1.2,22);
- // Maintenance spine — offset bulkheads create a winding, readable corridor.
- for(const z of [-29,-17,-5,7,19,31]){
-  box(28,2.3,z, .55,4.6,9,steel);
-  box(40,2.3,z+4, .55,4.6,9,steel);
-  detailBox(28.34,3.7,z,.08,.12,7,cyan);detailBox(39.66,3.7,z+4,.08,.12,7,amber);
+ // West gallery: staggered research pods and a curved line of light.
+ for(const [x,z,w,d,h] of [[-31,-29,12,9,5],[-35,-12,8,10,4],[-31,10,12,8,5],[-36,31,9,10,5]]){
+  box(x,h/2,z,w,h,d,wall);detailBox(x,h+.05,z,w-.8,.14,d-.8,blue);
+  box(x,1.2,z+(z<0?d/2:-d/2),w*.55,2.4,.35,trim);
  }
- for(const z of [-35,-23,-11,1,13,25,37]){box(34,4.8,z,12,.25,.3,steel);detailBox(34,4.95,z,10,.08,.12,cyan);}
- // Engineering bay south of the atrium, with power cells and service cover.
- for(const [x,z] of [[-10,29],[0,32],[10,29],[ -10,40],[10,40]]){
-  const tank=addVisualMesh(new THREE.CylinderGeometry(1.55,1.7,5.8,20),panel,x,2.9,z,true);
-  for(const y of [1,2.9,4.8]){const band=addVisualMesh(new THREE.TorusGeometry(1.62,.11,8,32),amber,x,y,z);band.rotation.x=Math.PI/2;}
-  mapLight(x,4.5,z,0x62d8e8,.8,13);
+ for(const z of [-39,-24,-8,9,25,40]){box(-23,2.2,z,.45,4.4,5.5,wall);mapLight(-21.8,4.2,z,0x58d8ec,.8,11);}
+ // East gallery: solar observatory, power conduits and equipment alcoves.
+ for(const [x,z,w,d,h] of [[31,-31,13,10,6],[36,-9,8,12,4.5],[31,16,12,9,5],[36,36,8,8,5]]){
+  box(x,h/2,z,w,h,d,wall);detailBox(x,h+.05,z,w-.8,.14,d-.8,gold);
+  box(x,1.15,z+(z<0?d/2:-d/2),w*.52,2.3,.35,trim);
  }
- for(const [x,z] of [[-7,17],[7,17],[-7,43],[7,43]]){box(x,.65,z,3.2,1.3,2.4,steel);detailBox(x,1.35,z,2.8,.1,2.1,amber);}
- // Two elevated service gantries create alternate routes over the central floor.
- for(const x of [-15,15]){
-  makeWalkway(x,0,4.5,28,4.2,0);
-  makeRamp(x,20,4.5,10,4.2,0);
-  makeRamp(x,-20,4.5,10,4.2,Math.PI);
-  for(const z of [-12,0,12])mapLight(x,5.2,z,0x55d9eb,.8,12);
+ for(const z of [-38,-22,-5,13,30,42]){box(23,2.2,z,.45,4.4,5.5,wall);mapLight(21.8,4.2,z,0x58d8ec,.8,11);}
+ // North observation deck with panoramic eclipse glass.
+ box(0,.12,-40,24,.24,12,trim);
+ box(-12,4,-40,.5,8,12,wall);box(12,4,-40,.5,8,12,wall);box(0,4,-46,24,8,.45,wall);
+ detailBox(0,4,-45.72,22.8,7.4,.12,glass);
+ for(const x of [-8,-4,0,4,8])detailBox(x,4,-45.55,.1,7.1,.16,blue);
+ for(const x of [-8,0,8])mapLight(x,6.4,-39,0x91e5ff,1.2,18);
+ // South docking gallery: open loading floor, pods and bright docking markers.
+ for(const [x,z,color] of [[-13,34,0x536e7d],[-13,42,0x7a6249],[13,34,0x496a78],[13,42,0x6d5c4b]]){
+  box(x,1.5,z,7,3,3,new THREE.MeshStandardMaterial({color,metalness:.45,roughness:.58}));
+  detailBox(x,3.05,z,6.5,.1,2.6,gold);
  }
- // Short cover islands keep the ground lanes from becoming one long sightline.
- for(const [x,z,rot] of [[-8,-20,.2],[9,-19,-.25],[-8,18,-.2],[9,19,.25],[0,10,Math.PI/2]]){
-  const cover=box(x,.8,z,4.2,1.6,1.25,panel,true);cover.rotation.y=rot;
-  detailBox(x,.86,z,3.7,.1,1.28,amber).rotation.y=rot;
+ for(const x of [-20,20]){box(x,3,39,.5,6,18,wall);detailBox(x,5.8,39,.12,.12,17,blue);}
+ // Cross-links between the side galleries and central hub; low barriers create short cover decisions.
+ for(const [x,z,rot] of [[-15,-5,.15],[15,5,-.15],[-15,24,-.2],[15,-24,.2],[-5,37,Math.PI/2],[5,-37,Math.PI/2]]){
+  const cover=box(x,.78,z,4.8,1.56,1.35,trim);cover.rotation.y=rot;
+  detailBox(x,.84,z,4.25,.1,1.38,gold).rotation.y=rot;
  }
- for(const [x,z] of [[-44,-42],[44,-42],[-44,42],[44,42],[0,-47],[0,47]])mapLight(x,4,z,0x62d8e8,1.3,20);
- player.pos.set(0,1.7,42);player.yaw=Math.PI;updateCamera();
+ for(const [x,z] of [[-43,-43],[43,-43],[-43,43],[43,43],[0,-47],[0,47]])mapLight(x,4,z,0x63dff0,1.25,18);
+ player.pos.set(0,1.7,43);player.yaw=Math.PI;updateCamera();
 }
 
 function buildSelectedMap(){
  if(selectedMap==='district')buildDistrict();
  else if(selectedMap==='industrial')buildIndustrial();
- else if(selectedMap==='orbital')buildOrbital();
+ else if(selectedMap==='starfall')buildStarfall();
  else buildSublevel();
 }
 
@@ -665,7 +656,7 @@ function startAmbientAudio(){
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  if(!audioContext){audioContext=new AudioCtx();const master=audioContext.createGain();master.gain.value=.18;master.connect(audioContext.destination);
   const low=audioContext.createOscillator(),high=audioContext.createOscillator(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();low.type='sine';low.frequency.value=48;high.type='triangle';high.frequency.value=73;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.12;low.connect(filter);high.connect(filter);filter.connect(gain);gain.connect(master);low.start();high.start();ambientNodes={low,high,filter,gain,master};
- }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='orbital'?46:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='orbital'?68:79,audioContext.currentTime,1);}
+ }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='starfall'?48:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='starfall'?72:79,audioContext.currentTime,1);}
 }
 function playSfx(kind='pulse',color=0xffc16e){
  if(!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();const now=audioContext.currentTime;
