@@ -231,24 +231,34 @@ function chooseBotWeapon(bot, distance) {
 }
 function chooseBotTarget(bot, all, now) {
   bot.combat = bot.combat || { targetId: null, nextTargetScan: 0, reactionUntil: 0, nextFire: 0 };
+  // Bots deliberately spend several seconds roaming before noticing anyone.
+  if (bot.combat.acquireAfter == null) bot.combat.acquireAfter = now + 3500 + Math.random() * 3000;
   const current = all.find(p => p.id === bot.combat.targetId && isEnemy(bot, p));
   if (current && now < bot.combat.nextTargetScan) return current;
-  bot.combat.nextTargetScan = now + 320 + Math.random() * 180;
+  if (!current && bot.combat.targetId) {
+    bot.combat.targetId = null;
+    bot.combat.acquireAfter = now + 2200 + Math.random() * 2200;
+    bot.combat.nextTargetScan = bot.combat.acquireAfter;
+    return null;
+  }
+  if (!current && now < bot.combat.acquireAfter) return null;
+  if (!current && now < bot.combat.nextTargetScan) return null;
+  bot.combat.nextTargetScan = now + 1100 + Math.random() * 900;
   let best = null, bestScore = Infinity;
   const origin = { x: bot.x, y: bot.y - .25, z: bot.z };
   for (const candidate of all) {
     if (!isEnemy(bot, candidate)) continue;
     const distance = Math.hypot(candidate.x - bot.x, candidate.y - bot.y, candidate.z - bot.z);
-    if (distance > 82) continue;
+    if (distance > 58) continue;
     const aimPoint = { x: candidate.x, y: candidate.y - (candidate.crouching ? .55 : .7), z: candidate.z };
     const visible = hasLineOfSight(bot.map, origin, aimPoint);
-    const score = distance - (visible ? 14 : 0) - (candidate.damageContributors?.[bot.id] ? 2 : 0);
+    const score = distance - (visible ? 8 : 0) - (candidate.damageContributors?.[bot.id] ? 1 : 0);
     if (score < bestScore) { best = candidate; bestScore = score; }
   }
   if (best?.id !== bot.combat.targetId) {
     bot.combat.targetId = best?.id || null;
-    bot.combat.reactionUntil = now + 450 + Math.random() * 350;
-    bot.combat.nextFire = Math.max(bot.combat.nextFire || 0, now + 450 + Math.random() * 350);
+    bot.combat.reactionUntil = now + 900 + Math.random() * 900;
+    bot.combat.nextFire = Math.max(bot.combat.nextFire || 0, now + 900 + Math.random() * 900);
   }
   return best;
 }
@@ -359,7 +369,9 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
     }
   }
   bot.moving = moved && (Math.abs(moveX) + Math.abs(moveZ) > .05);
-  bot.yaw = combatTarget ? Math.atan2(combatTarget.x - bot.x, combatTarget.z - bot.z) : Math.atan2(moveX, moveZ);
+  const desiredYaw = combatTarget ? Math.atan2(combatTarget.x - bot.x, combatTarget.z - bot.z) : Math.atan2(moveX, moveZ);
+  const yawDelta = Math.atan2(Math.sin(desiredYaw - bot.yaw), Math.cos(desiredYaw - bot.yaw));
+  bot.yaw += clamp(yawDelta, -1.35 * deltaSeconds, 1.35 * deltaSeconds);
   nav.phase += deltaSeconds * 5.5;
   if (now >= nav.nextJump) { nav.jumpUntil = now + 520; nav.nextJump = now + 5600 + Math.abs(Math.sin(nav.phase))*2800; }
   if (now >= nav.nextCrouch) { nav.crouchUntil = now + 620; nav.nextCrouch = now + 7000 + Math.abs(Math.cos(nav.phase))*3500; }
@@ -401,7 +413,7 @@ function stepCombatBot(bot, all, deltaSeconds, now) {
   bot.lastShot[weapon] = now;
   bot.combat.nextFire = now + stats.cooldown + Math.random() * 28;
   // Deliberately imperfect arcade aim: bots react slowly and shots become less reliable with distance.
-  const spread = .018 + Math.min(.075, distance * .0011);
+  const spread = .14 + Math.min(.22, distance * .0045);
   const aim = { x: dx/length + (Math.random()-.5)*spread, y: dy/length + (Math.random()-.5)*spread*.55, z: dz/length + (Math.random()-.5)*spread };
   const aimLength = Math.hypot(aim.x,aim.y,aim.z) || 1;
   const shot = { weapon, dx: aim.x/aimLength, dy: aim.y/aimLength, dz: aim.z/aimLength, ox: origin.x, oy: origin.y, oz: origin.z };
