@@ -136,9 +136,14 @@ test('movement recovers after a transient speed-check timing outlier', { timeout
     const welcome = waitForMessage(a, 'welcome');
     a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'MOVEMENT-TEST', profileId: '00000000-0000-4000-8000-000000000051' }));
     const joined = await welcome;
+    const observer = await connectClient(server.port); clients.push(observer);
+    const observerWelcome = waitForMessage(observer, 'welcome');
+    observer.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'MOVEMENT-OBSERVER', profileId: '00000000-0000-4000-8000-000000000052' }));
+    await observerWelcome;
     const started = waitForMessage(a, 'matchStart');
+    const observerStarted = waitForMessage(observer, 'matchStart');
     a.send(JSON.stringify({ type: 'startMatch' }));
-    const match = await started;
+    const [match] = await Promise.all([started, observerStarted]);
     const self = match.players.find(player => player.id === joined.id);
     assert.ok(self);
 
