@@ -1,6 +1,6 @@
 {
   "name": "project-eclipse",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "private": true,
   "description": "A tactical multiplayer FPS with combat-capable server-authoritative bots, map collision and private lobbies",
   "scripts": {
