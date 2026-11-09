@@ -174,3 +174,11 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 Open the in-game developer console with **F2** or **~**. Health, ammo, redeploy and training-target controls are available for local testing. Progression controls (grant XP, max level, max weapon XP, unlock everything and reset profile) require the server environment variable `ECLIPSE_DEV_MODE=true` and an active server connection.
 
 **Security:** developer mode is disabled by default. Only enable it on a private/local test server; anyone who can connect while it is enabled can use the progression commands. Never enable it on a public production server.
+
+
+## 0.35.0 — BAZAAR map
+
+- Replaced STARFALL with BAZAAR, an original sunlit old-town market district with sandstone architecture, courtyards, stalls, alleys and a central fountain.
+- Rebuilt the minimap to show BAZAAR's building footprints, central square, market stalls and raised terrace.
+- Added matching server collision, player spawns and bot navigation for the new map.
+- Removed the eclipse/space sky treatment while BAZAAR is active.
