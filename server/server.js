@@ -348,7 +348,7 @@ function useBotSupport(bot, all, now) {
 }
 function stepCombatBot(bot, all, deltaSeconds, now) {
   const target = chooseBotTarget(bot, all, now);
-  if (!target) { stepArcadeBot(bot, all, deltaSeconds, now); return; }
+  if (!target) { stepArcadeBot(bot, all, deltaSeconds, now); useBotSupport(bot, all, now); return; }
   const distance = Math.hypot(target.x-bot.x,target.y-bot.y,target.z-bot.z);
   const weapon = chooseBotWeapon(bot, distance);
   if (bot.weapon !== weapon) { bot.weapon = weapon; bot.combat.nextFire = Math.max(bot.combat.nextFire, now + 80); }
@@ -408,7 +408,7 @@ function resolvePulseHit(shooter, shot) {
   const affected = splashRadius
     ? all.filter(target => {
         if (!isEnemy(shooter,target)) return false;
-        const targetPoint = { x: target.x, y: target.y-(target.crouching?.55:.7), z: target.z };
+        const targetPoint = { x: target.x, y: target.y - (target.crouching ? .55 : .7), z: target.z };
         const distance = Math.hypot(target.x-impact.x,target.y-impact.y,target.z-impact.z);
         return distance <= splashRadius && hasLineOfSight(shooter.map, impact, targetPoint);
       }).map(target => ({
@@ -523,7 +523,7 @@ wss.on('connection', ws => {
         for (let i = 0; i < Math.min(requested, maxPlayers(mode) - members(room).length); i++) {
           const point = spawnForSlot(members(room).length + i, map);
           const loadout = BOT_LOADOUTS[i % BOT_LOADOUTS.length];
-          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, room, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:true, crouching:false, weapon:loadout.primary, operator:'vanguard', primary:loadout.primary, secondary:loadout.secondary, equipment:'shield', supportPoints:0, supportShield:0, isBot:true, spawnSlot:members(room).length+i, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchAssists:0, matchShots:0, matchHits:0, matchWeaponKills:{}, damageContributors:{}, lastDamageAt:0, lastEquipmentAt:0, lastSupportAt:0, lastShot:Object.create(null), nav:null, combat:{targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0} };
+          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, room, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:false, crouching:false, weapon:loadout.primary, operator:'vanguard', primary:loadout.primary, secondary:loadout.secondary, equipment:'shield', supportPoints:0, supportShield:0, isBot:true, spawnSlot:members(room).length+i, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchAssists:0, matchShots:0, matchHits:0, matchWeaponKills:{}, damageContributors:{}, lastDamageAt:0, lastEquipmentAt:0, lastSupportAt:0, lastShot:Object.create(null), nav:null, combat:{targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0} };
           bot.team = assignTeam(mode, room); bots.push(bot);
         }
       }
