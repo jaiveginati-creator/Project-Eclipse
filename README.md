@@ -85,7 +85,7 @@ If your host asks for a start command manually, use `npm run start:production`. 
 - **Duos:** two-player squads.
 - **Trios:** three-player squads.
 
-The current target is stable small matches (2–4 connected players). Larger lobby limits are present in the prototype but are not a claim of tested scale.
+The current target is stable small matches (2–4 connected human players). Optional server-authoritative combat bots can fill a lobby; larger lobby limits are present but are not a claim of tested scale.
 
 ## Controls
 - WASD: move
@@ -128,18 +128,18 @@ Click **Enter Solo Training** to explore without connecting to multiplayer.
 - Added an impassable perimeter boundary on both maps, enforced by client collision and matching server-side movement bounds.
 
 ## Current implementation limits
-- The server validates shot direction, origin proximity, range, cooldown and player hit regions, but server-side line-of-sight against every map wall/prop is not yet implemented. Some shots may still pass through cover.
-- Player movement is not fully server-authoritative against map collision; a modified client could still attempt invalid movement within the broad server bounds.
-- Ammo/reload inventory is currently client-side; production-grade anti-cheat, private room codes, accounts, reconnect recovery and persistent stats are not implemented.
+- Server movement and line-of-sight use conservative AABB volumes for major structures. Small decorative props, rounded surfaces and every minor collision detail are not represented; ramps and elevated catwalk traversal still need browser playtesting.
+- Movement remains client-predicted. The server rejects swept paths through modeled blockers and the client reconciles large position drift, but this is not a fully server-simulated physics engine.
+- Combat bots now use high-accuracy targeting, weapon switching, movement, jumping/crouching, support and respawn. Navigation uses tactical steering over existing waypoints rather than a full navmesh; advanced player actions such as sliding and mantling are not yet fully simulated by bots.
+- Ammo/reload inventory remains client-side; production-grade anti-cheat, account authentication and reconnect recovery are not implemented.
 - The operator model and animations are procedural Three.js geometry/animation, not a professionally authored skeletal character asset. Remote reload animation and detailed weapon animation replication are future work.
-- Browser rendering, actual hit registration under varied latency, and live internet multiplayer must still be tested with two or more clients on separate internet connections.
+- Automated tests cover four connected clients and bot-vs-player damage, but browser rendering, ramp traversal and live internet multiplayer across separate connections still require manual playtesting.
 
 ## Verification
-- `node --check server/server.js`: passed.
-- `node --check client/src/main.js`: passed.
-- `package.json` parse: passed.
-- Full Vite production build and browser rendering: pending dependency installation and browser testing.
-- Live internet multiplayer and hit registration: not yet independently tested; deploy this build and test with two separate clients before treating combat as verified.
+- GitHub Actions runs `npm install`, server/client/map-collision syntax checks, `npm test` and `npm run build`.
+- Six automated tests cover map collision, wall-shot blocking, Industrial loading-bay openings, four-client match flow, health regeneration, disconnect cleanup and combat bot damage/elimination.
+- The Vite build completes successfully; it still reports a non-blocking JavaScript chunk-size warning above 500 KB.
+- Browser rendering, advanced movement and separate-internet hit registration remain unverified.
 
 
 ## Developer testing console (v0.20.0)

@@ -393,7 +393,14 @@ function buildIndustrial(){
  box(0,-.25,0,104,.5,104,deck,false);box(0,-.015,0,24,.09,100,steel,false);box(0,-.012,0,100,.09,20,steel,false);
  for(const s of [-1,1]){box(s*49,2.4,0,.8,4.8,100,materials.dark);box(0,2.4,s*49,100,4.8,.8,materials.dark);}
  const hangars=[[-34,-31,22,25,13],[34,-31,22,25,14],[-34,31,22,25,12],[34,31,22,25,13]];
- for(let i=0;i<hangars.length;i++){const [x,z,w,d,h]=hangars[i];box(x,h/2,z,w,h,d,new THREE.MeshStandardMaterial({color:i%2?0x3d535f:0x334954,metalness:.56,roughness:.48}),true);const roof=addVisualMesh(new THREE.CylinderGeometry(w*.56,w*.56,d,32,1,true,0,Math.PI),new THREE.MeshStandardMaterial({color:0x1c303b,metalness:.7,roughness:.32,side:THREE.DoubleSide}),x,h*.82,z);roof.rotation.z=Math.PI/2;roof.scale.set(1,1,.78);detailBox(x,h*.48,z+(z<0?1:-1)*(d/2+.08),w*.64,h*.72,.16,new THREE.MeshBasicMaterial({color:0x46b8d0,transparent:true,opacity:.18,side:THREE.DoubleSide}));for(let k=-3;k<=3;k++)detailBox(x+k*1.35,h*.48,z+(z<0?1:-1)*(d/2+.18),.12,h*.7,.2,hazard);for(const s of [-1,1]){box(x+s*(w/2+.35),h/2,z,.6,h+.6,d+.5,steel);detailBox(x+s*(w/2+.35),h*.72,z,.68,.2,d+.45,hazard);}mapLight(x,h*.7,z+(z<0?1:-1)*(d/2+1),0x53cce0,1.4,24);}
+ for(let i=0;i<hangars.length;i++){
+  const [x,z,w,d,h]=hangars[i],face=z<0?1:-1;
+  makeWarehouse(x,z,w,d,h,face,`HANGAR ${i+1}`);
+  const roof=addVisualMesh(new THREE.CylinderGeometry(w*.56,w*.56,d,32,1,true,0,Math.PI),new THREE.MeshStandardMaterial({color:0x1c303b,metalness:.7,roughness:.32,side:THREE.DoubleSide}),x,h*.82,z);
+  roof.rotation.z=Math.PI/2;roof.scale.set(1,1,.78);
+  for(const side of [-1,1]){box(x+side*(w/2+.35),h/2,z,.6,h+.6,d+.5,steel);detailBox(x+side*(w/2+.35),h*.72,z,.68,.2,d+.45,hazard);}
+  mapLight(x,h*.7,z+face*(d/2+1),0x53cce0,1.4,24);
+ }
  addVisualMesh(new THREE.CylinderGeometry(5.4,6.2,17,32),new THREE.MeshStandardMaterial({color:0x344d59,metalness:.72,roughness:.28}),0,8.5,-2,true);
  addVisualMesh(new THREE.CylinderGeometry(2.2,2.2,16,24),new THREE.MeshBasicMaterial({color:0x49d5eb,transparent:true,opacity:.52}),0,8.5,-2);
  for(const y of [2.2,6,10.5,14.5]){const r=addVisualMesh(new THREE.TorusGeometry(6.1,.25,10,64),new THREE.MeshStandardMaterial({color:0x74dce8,emissive:0x168da4,emissiveIntensity:.8,metalness:.55,roughness:.25}),0,y,-2);r.rotation.x=Math.PI/2;}
@@ -712,7 +719,10 @@ function handleNetwork(m){
   players=m.players||players;if(m.type==='players'||m.type==='elimination')renderPlayers();
   players.forEach(p=>{if(p.id!==myId)updateRemote(p);});
   const ids=new Set(players.map(p=>p.id));for(const id of remotePlayers.keys())if(!ids.has(id))removeRemote(id);
-  const mine=players.find(p=>p.id===myId);if(mine){health=Number.isFinite(mine.health)?mine.health:health;updateHealthHud();}
+  const mine=players.find(p=>p.id===myId);if(mine){
+   health=Number.isFinite(mine.health)?mine.health:health;updateHealthHud();
+   if(!training){const drift=Math.hypot(mine.x-player.pos.x,mine.y-player.pos.y,mine.z-player.pos.z);if(drift>1.8){player.pos.set(mine.x,mine.y,mine.z);verticalVelocity=0;mantleState=null;updateCamera();}}
+  }
   $('scoreboard-mini').innerHTML=`YOU <b>${kills}</b> <i>—</i> TOP <b>${Math.max(0,...players.map(p=>p.score||0))}</b>`;
  }
  if(m.type==='shot'&&m.id!==myId){
@@ -736,7 +746,7 @@ function handleNetwork(m){
  }
  if(m.type==='elimination'){
   if(m.source===myId){kills++;feed(`ELIMINATED ${m.targetName||'OPERATOR'}`);}
-  if(m.target===myId){health=0;updateHealthHud();spectating=true;spectateTarget=(m.players||players).find(p=>p.id!==myId&&p.alive)?.id||null;feed('ELIMINATED · SPECTATING UNTIL REDEPLOYMENT');document.exitPointerLock?.();}
+  if(m.target===myId){health=0;updateHealthHud();spectating=true;spectateTarget=(m.players||players).find(p=>p.id!==myId&&p.alive)?.id||null;feed(`ELIMINATED BY ${m.sourceName||'OPERATOR'} · SPECTATING`);document.exitPointerLock?.();}
   (m.players||[]).forEach(p=>{if(p.id!==myId)updateRemote(p);});
  }
  if(m.type==='respawned'){

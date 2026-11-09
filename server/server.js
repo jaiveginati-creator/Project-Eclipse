@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const APP_VERSION = require('../package.json').version;
+const { isPlayerPositionBlocked, movementBlocked, hasLineOfSight } = require('./map-collision');
 
 const PORT = Number(process.env.PORT || 3001);
 // Keep progression-changing developer commands disabled on public servers by default.
@@ -53,7 +55,7 @@ const httpServer = http.createServer((req, res) => {
   const pathname = new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname;
   if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: '0.27.0', players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
+    return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: APP_VERSION, players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
     const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
@@ -98,11 +100,21 @@ function broadcast(room, obj, except = null) {
   for (const c of members(room)) if (c.ws !== except) send(c.ws, obj);
 }
 function publicPlayers(room) {
-  return [...members(room).map(c => ({
-    id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team, isBot:false,
+  const humans = members(room).map(c => ({
+    id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team, isBot: false,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
-    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching, weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary, equipment: c.equipment, supportPoints:c.supportPoints||0, supportShield:c.supportShield||0
-  })), ...botsIn(room).map(bot => ({ ...bot }))];
+    health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching,
+    weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary,
+    equipment: c.equipment, supportPoints: c.supportPoints || 0, supportShield: c.supportShield || 0
+  }));
+  const bots = botsIn(room).map(bot => ({
+    id: bot.id, name: bot.name, mode: bot.mode, map: bot.map, team: bot.team, isBot: true,
+    x: bot.x, y: bot.y, z: bot.z, yaw: bot.yaw, pitch: bot.pitch, score: bot.score,
+    health: bot.health, alive: bot.alive, moving: bot.moving, crouching: bot.crouching,
+    weapon: bot.weapon, operator: bot.operator, primary: bot.primary, secondary: bot.secondary,
+    equipment: bot.equipment, supportPoints: bot.supportPoints || 0, supportShield: bot.supportShield || 0
+  }));
+  return [...humans, ...bots];
 }
 function broadcastPlayers(room) {
   broadcast(room, { type: 'players', players: publicPlayers(room) });
@@ -132,7 +144,7 @@ function assignTeam(mode, room) {
 function endMatch(room) {
   const match=matches.get(room);if(!match||!match.active)return;match.active=false;
   const roomMembers=members(room);
-  const results=[...roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}),...botsIn(room).map(bot=>({id:bot.id,name:bot.name,team:bot.team,score:bot.score||0,kills:0,deaths:0,assists:0,shots:0,hits:0,accuracy:0,isBot:true}))].sort((a,b)=>b.score-a.score||b.kills-a.kills);
+  const results=[...roomMembers.map(c=>{const shots=c.matchShots||0,hits=c.matchHits||0;return {id:c.id,name:c.name,team:c.team,score:c.score,kills:c.matchKills||0,deaths:c.matchDeaths||0,assists:c.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0};}),...botsIn(room).map(bot=>{const shots=bot.matchShots||0,hits=bot.matchHits||0;return{id:bot.id,name:bot.name,team:bot.team,score:bot.score||0,kills:bot.matchKills||0,deaths:bot.matchDeaths||0,assists:bot.matchAssists||0,shots,hits,accuracy:shots?Math.min(100,Math.round(hits/shots*100)):0,isBot:true};})].sort((a,b)=>b.score-a.score||b.kills-a.kills);
   const winnerId=results[0]?.id,mvpId=results[0]?.id;
   for(const c of roomMembers){
     const profile=c.profile||getProfile(c.profileId),kills=c.matchKills||0,deaths=c.matchDeaths||0,placement=results.findIndex(p=>p.id===c.id)+1;
@@ -167,107 +179,202 @@ function distanceRayToVerticalCapsule(origin, direction, target) {
 
 function spawnForSlot(slot, map = 'district') {
   const compactSpawns = [[-17,-17],[17,-17],[-17,17],[17,17],[-17,0],[17,0],[0,-17],[0,17]];
-  if (map === 'sublevel') { const point = compactSpawns[slot % compactSpawns.length]; return { x: point[0], y: 1.7, z: point[1] }; }
-  const spawns = [
-    [-5, 0], [5, 0], [0, -8], [0, 8],
-    [-8, -8], [8, 8], [-8, 8], [8, -8],
-    [-12, 0], [12, 0], [0, -14], [0, 14]
-  ];
-  const point = spawns[slot % spawns.length];
-  return { x: point[0], y: 1.7, z: point[1] };
+  const industrialSpawns = [[-12,0],[12,0],[0,-15],[0,15],[-12,16],[12,-16],[-12,-16],[12,16],[-20,0],[20,0],[0,-22],[0,22]];
+  const districtSpawns = [[-5,0],[5,0],[0,-8],[0,8],[-8,-8],[8,8],[-8,8],[8,-8],[-12,0],[12,0],[0,-14],[0,14]];
+  const points = map === 'sublevel' ? compactSpawns : map === 'industrial' ? industrialSpawns : districtSpawns;
+  for (let offset = 0; offset < points.length; offset++) {
+    const point = points[(Math.max(0, slot) + offset) % points.length];
+    if (!isPlayerPositionBlocked(map, point[0], 1.7, point[1])) return { x: point[0], y: 1.7, z: point[1] };
+  }
+  // A deterministic open-area fallback prevents a blocked spawn if a map volume is added later.
+  const fallback = map === 'sublevel' ? [[0,-17],[0,17],[-17,0],[17,0]] : [[-42,-8],[42,8],[-42,8],[42,-8]];
+  for (const point of fallback) if (!isPlayerPositionBlocked(map, point[0], 1.7, point[1])) return { x: point[0], y: 1.7, z: point[1] };
+  return { x: 0, y: 1.7, z: map === 'industrial' ? 18 : 0 };
 }
 
 
-// Server-authoritative arcade navigation. Bots patrol safe traversal lanes, adapt
-// their route when an area is crowded, and use the same replicated movement state
-// as remote operators. This intentionally contains no combat or attack behaviour.
+// Server-authoritative combat bots use the same weapon profiles,
+// hit resolver, team rules, health, respawn and match scoring as human operators.
+const BOT_LOADOUTS = [
+  { primary: 'pulse', secondary: 'volt' },
+  { primary: 'arc', secondary: 'magnum' },
+  { primary: 'shotgun', secondary: 'volt' },
+  { primary: 'sniper', secondary: 'magnum' },
+  { primary: 'needler', secondary: 'volt' },
+  { primary: 'rocket', secondary: 'magnum' },
+  { primary: 'burst', secondary: 'volt' }
+];
 const BOT_ROUTES = {
   district: [[-42,0],[-22,0],[0,0],[22,0],[42,0],[0,0],[0,42],[0,22],[0,-22],[0,-42],[0,0]],
   industrial: [[-43,0],[-22,0],[0,0],[22,0],[43,0],[0,0],[0,43],[0,22],[0,-22],[0,-43],[0,0]],
   sublevel: [[-16,-16],[-16,0],[-16,16],[0,16],[16,16],[16,0],[16,-16],[0,-16]]
 };
-function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now) {
+function combatants(room) { return [...members(room), ...botsIn(room)]; }
+function isEnemy(shooter, target) {
+  return target.id !== shooter.id && target.alive &&
+    (shooter.mode === 'ffa' || target.team !== shooter.team);
+}
+function botPreferredRange(weapon) {
+  return ({ sniper: 34, rocket: 18, shotgun: 8, needler: 19, arc: 23, burst: 25, magnum: 12, volt: 10, pulse: 22 })[weapon] || 20;
+}
+function chooseBotWeapon(bot, distance) {
+  const primary = bot.primary || 'pulse';
+  const secondary = bot.secondary || 'volt';
+  if (primary === 'sniper') return distance > 19 ? primary : secondary;
+  if (primary === 'shotgun') return distance < 11 ? primary : secondary;
+  if (primary === 'rocket') return distance > 7 && distance < 31 ? primary : secondary;
+  if (primary === 'needler') return distance < 31 ? primary : secondary;
+  if (primary === 'arc') return distance > 9 ? primary : secondary;
+  if (primary === 'burst') return distance > 8 ? primary : secondary;
+  return distance < 8 ? secondary : primary;
+}
+function chooseBotTarget(bot, all, now) {
+  bot.combat = bot.combat || { targetId: null, nextTargetScan: 0, reactionUntil: 0, nextFire: 0 };
+  const current = all.find(p => p.id === bot.combat.targetId && isEnemy(bot, p));
+  if (current && now < bot.combat.nextTargetScan) return current;
+  bot.combat.nextTargetScan = now + 180;
+  let best = null, bestScore = Infinity;
+  const origin = { x: bot.x, y: bot.y - .25, z: bot.z };
+  for (const candidate of all) {
+    if (!isEnemy(bot, candidate)) continue;
+    const distance = Math.hypot(candidate.x - bot.x, candidate.y - bot.y, candidate.z - bot.z);
+    if (distance > 82) continue;
+    const aimPoint = { x: candidate.x, y: candidate.y - (candidate.crouching ? .55 : .7), z: candidate.z };
+    const visible = hasLineOfSight(bot.map, origin, aimPoint);
+    const score = distance - (visible ? 14 : 0) - (candidate.damageContributors?.[bot.id] ? 2 : 0);
+    if (score < bestScore) { best = candidate; bestScore = score; }
+  }
+  if (best?.id !== bot.combat.targetId) {
+    bot.combat.targetId = best?.id || null;
+    bot.combat.reactionUntil = now + 145;
+    bot.combat.nextFire = Math.max(bot.combat.nextFire || 0, now + 145);
+  }
+  return best;
+}
+function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = null) {
   if (!bot.nav) {
     const index = Math.max(0, Number(bot.id.slice(4)) - 1);
+    const route = BOT_ROUTES[bot.map] || BOT_ROUTES.district;
     bot.nav = {
-      route: BOT_ROUTES[bot.map] || BOT_ROUTES.district,
-      waypoint: index % (BOT_ROUTES[bot.map] || BOT_ROUTES.district).length,
-      nextRouteChoice: now + 1800,
-      nextJump: now + 3500 + (index % 5) * 900,
-      jumpUntil: 0,
-      nextCrouch: now + 5200 + (index % 4) * 1100,
-      crouchUntil: 0,
-      phase: index * 1.73,
-      speed: 6.0 + (index % 4) * 0.32
+      route, waypoint: index % route.length,
+      nextRouteChoice: now + 1800, nextJump: now + 2800 + (index % 5) * 650,
+      jumpUntil: 0, nextCrouch: now + 4200 + (index % 4) * 800,
+      crouchUntil: 0, phase: index * 1.73,
+      speed: 7.3 + (index % 4) * .28,
+      strafeDirection: index % 2 ? 1 : -1, nextStrafe: now + 500
     };
   }
-  const nav = bot.nav;
-  const bounds = bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS - 1.5;
-  const route = nav.route;
-  let target = route[nav.waypoint];
-  let dx = target[0] - bot.x;
-  let dz = target[1] - bot.z;
-  let distance = Math.hypot(dx, dz);
-  if (distance < 1.35) {
+  const nav = bot.nav, route = nav.route;
+  let waypoint = route[nav.waypoint];
+  let routeX = waypoint[0] - bot.x, routeZ = waypoint[1] - bot.z;
+  let routeDistance = Math.hypot(routeX, routeZ);
+  if (routeDistance < 1.35) {
     nav.waypoint = (nav.waypoint + 1) % route.length;
-    target = route[nav.waypoint];
-    dx = target[0] - bot.x;
-    dz = target[1] - bot.z;
-    distance = Math.hypot(dx, dz);
+    waypoint = route[nav.waypoint];
+    routeX = waypoint[0] - bot.x; routeZ = waypoint[1] - bot.z;
+    routeDistance = Math.hypot(routeX, routeZ);
   }
-  if (now >= nav.nextRouteChoice) {
-    // Avoid crowded waypoints instead of repeatedly walking into a group.
+  if (!combatTarget && now >= nav.nextRouteChoice) {
     const candidate = route[nav.waypoint];
-    const crowded = nearbyPlayers.some(p => p.id !== bot.id && p.alive &&
-      Math.hypot(p.x - candidate[0], p.z - candidate[1]) < 3.1);
+    const crowded = nearbyPlayers.some(p => p.id !== bot.id && p.alive && Math.hypot(p.x - candidate[0], p.z - candidate[1]) < 3.1);
     if (crowded && route.length > 3) {
-      const forward = (nav.waypoint + 1) % route.length;
-      const alternate = (nav.waypoint + 2) % route.length;
-      const crowdAt = point => nearbyPlayers.reduce((sum,p) =>
-        p.id !== bot.id && p.alive ? sum + Math.max(0, 4.2 - Math.hypot(p.x-point[0],p.z-point[1])) : sum, 0);
+      const forward = (nav.waypoint + 1) % route.length, alternate = (nav.waypoint + 2) % route.length;
+      const crowdAt = point => nearbyPlayers.reduce((sum,p) => p.id !== bot.id && p.alive ? sum + Math.max(0,4.2-Math.hypot(p.x-point[0],p.z-point[1])) : sum,0);
       nav.waypoint = crowdAt(route[alternate]) < crowdAt(route[forward]) ? alternate : forward;
     }
-    nav.nextRouteChoice = now + 1800 + (Math.abs(Math.sin(nav.phase)) * 900);
+    nav.nextRouteChoice = now + 1600 + Math.abs(Math.sin(nav.phase)) * 850;
   }
-  let moveX = dx / Math.max(distance, 0.001);
-  let moveZ = dz / Math.max(distance, 0.001);
-  // Gentle separation keeps bots from stacking on players or one another.
+  let moveX = routeX / Math.max(routeDistance, .001), moveZ = routeZ / Math.max(routeDistance, .001);
+  if (combatTarget) {
+    const dx = combatTarget.x - bot.x, dz = combatTarget.z - bot.z, distance = Math.hypot(dx, dz) || 1;
+    const tx = dx / distance, tz = dz / distance, ideal = botPreferredRange(bot.weapon);
+    if (distance > ideal + 2.2) { moveX = tx; moveZ = tz; }
+    else if (distance < ideal - 2.0) { moveX = -tx; moveZ = -tz; }
+    else {
+      if (now >= nav.nextStrafe) { nav.strafeDirection *= -1; nav.nextStrafe = now + 520 + Math.abs(Math.sin(nav.phase)) * 520; }
+      const radial = clamp((distance - ideal) / Math.max(ideal, 1), -.24, .24);
+      moveX = -tz * nav.strafeDirection + tx * radial;
+      moveZ = tx * nav.strafeDirection + tz * radial;
+    }
+  }
   let avoidX = 0, avoidZ = 0;
   for (const other of nearbyPlayers) {
     if (other.id === bot.id || !other.alive) continue;
-    const ox = bot.x - other.x, oz = bot.z - other.z;
-    const separation = Math.hypot(ox, oz);
-    if (separation > 0.01 && separation < 2.4) {
-      const force = (2.4 - separation) / 2.4;
-      avoidX += ox / separation * force;
-      avoidZ += oz / separation * force;
+    const ox = bot.x - other.x, oz = bot.z - other.z, separation = Math.hypot(ox, oz);
+    if (separation > .01 && separation < 2.1) {
+      const force = (2.1 - separation) / 2.1;
+      avoidX += ox / separation * force; avoidZ += oz / separation * force;
     }
   }
-  moveX += avoidX * 1.35;
-  moveZ += avoidZ * 1.35;
+  moveX += avoidX * 1.25; moveZ += avoidZ * 1.25;
   const edgeMargin = bot.map === 'sublevel' ? 21.5 : 45.5;
   if (Math.abs(bot.x) > edgeMargin) moveX += -Math.sign(bot.x) * 1.8;
   if (Math.abs(bot.z) > edgeMargin) moveZ += -Math.sign(bot.z) * 1.8;
-  const magnitude = Math.hypot(moveX, moveZ) || 1;
-  moveX /= magnitude;
-  moveZ /= magnitude;
-  bot.x = clamp(bot.x + moveX * nav.speed * deltaSeconds, -bounds, bounds);
-  bot.z = clamp(bot.z + moveZ * nav.speed * deltaSeconds, -bounds, bounds);
-  bot.yaw = Math.atan2(moveX, moveZ);
-  bot.moving = distance > 0.2;
+  const magnitude = Math.hypot(moveX, moveZ) || 1; moveX /= magnitude; moveZ /= magnitude;
+  const speed = nav.speed * deltaSeconds;
+  const directions = [[moveX,moveZ]];
+  for (const angle of [.72,-.72,1.42,-1.42,2.25,-2.25,Math.PI]) {
+    directions.push([moveX*Math.cos(angle)-moveZ*Math.sin(angle),moveX*Math.sin(angle)+moveZ*Math.cos(angle)]);
+  }
+  if (routeDistance > .01) directions.push([routeX/routeDistance,routeZ/routeDistance]);
+  let moved = false;
+  for (const [vx,vz] of directions) {
+    const next = { x: clamp(bot.x + vx*speed, - (bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), y: bot.y, z: clamp(bot.z + vz*speed, -(bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5) };
+    if (!movementBlocked(bot.map, { x: bot.x, y: bot.y, z: bot.z }, next)) { bot.x = next.x; bot.z = next.z; moved = true; break; }
+  }
+  bot.moving = moved && (Math.abs(moveX) + Math.abs(moveZ) > .05);
+  bot.yaw = combatTarget ? Math.atan2(combatTarget.x - bot.x, combatTarget.z - bot.z) : Math.atan2(moveX, moveZ);
   nav.phase += deltaSeconds * 5.5;
-  if (now >= nav.nextJump) {
-    nav.jumpUntil = now + 520;
-    nav.nextJump = now + 6200 + (Math.abs(Math.sin(nav.phase)) * 3200);
-  }
-  if (now >= nav.nextCrouch) {
-    nav.crouchUntil = now + 720;
-    nav.nextCrouch = now + 8500 + (Math.abs(Math.cos(nav.phase)) * 4200);
-  }
-  bot.crouching = now < nav.crouchUntil;
+  if (now >= nav.nextJump) { nav.jumpUntil = now + 520; nav.nextJump = now + 5600 + Math.abs(Math.sin(nav.phase))*2800; }
+  if (now >= nav.nextCrouch) { nav.crouchUntil = now + 620; nav.nextCrouch = now + 7000 + Math.abs(Math.cos(nav.phase))*3500; }
+  bot.crouching = now < nav.crouchUntil || Boolean(combatTarget && Math.hypot(combatTarget.x-bot.x,combatTarget.z-bot.z)<10 && Math.sin(now/230 + nav.phase)>0.35);
   const jumpProgress = nav.jumpUntil > now ? 1 - (nav.jumpUntil - now) / 520 : 0;
   bot.y = 1.7 + (nav.jumpUntil > now ? Math.sin(jumpProgress * Math.PI) * 1.05 : 0);
 }
+function useBotSupport(bot, all, now) {
+  if (bot.supportPoints >= 300 && now - bot.lastSupportAt >= 15000) {
+    const squad = all.filter(p => p.alive && (bot.mode === 'ffa' ? p.id === bot.id : p.team === bot.team));
+    const ability = squad.some(p => p.health < 72) ? 'rally' : 'shield';
+    if (ability === 'shield') for (const p of squad) p.supportShield = Math.min(60, (p.supportShield || 0) + 25);
+    else for (const p of squad) { p.health = Math.min(MAX_HEALTH, p.health + 25); p.lastDamageAt = now; }
+    bot.supportPoints -= 300; bot.supportReady = false; bot.lastSupportAt = now;
+    broadcast(bot.room, { type: 'supportUsed', id: bot.id, ability, team: bot.team, players: publicPlayers(bot.room) });
+  }
+  if (bot.equipment === 'shield' && bot.health < 58 && now - bot.lastEquipmentAt >= 25000) {
+    bot.health = Math.min(MAX_HEALTH, bot.health + 35); bot.lastDamageAt = now; bot.lastEquipmentAt = now;
+    broadcast(bot.room, { type: 'equipment', id: bot.id, equipment: 'shield' });
+    sendRoomState(bot.room, 'state');
+  }
+}
+function stepCombatBot(bot, all, deltaSeconds, now) {
+  const target = chooseBotTarget(bot, all, now);
+  if (!target) { stepArcadeBot(bot, all, deltaSeconds, now); useBotSupport(bot, all, now); return; }
+  const distance = Math.hypot(target.x-bot.x,target.y-bot.y,target.z-bot.z);
+  const weapon = chooseBotWeapon(bot, distance);
+  if (bot.weapon !== weapon) { bot.weapon = weapon; bot.combat.nextFire = Math.max(bot.combat.nextFire, now + 80); }
+  stepArcadeBot(bot, all, deltaSeconds, now, target);
+  const origin = { x: bot.x, y: bot.y - .25, z: bot.z };
+  const aimPoint = { x: target.x, y: target.y - (target.crouching ? .55 : .7), z: target.z };
+  const dx = aimPoint.x-origin.x, dy = aimPoint.y-origin.y, dz = aimPoint.z-origin.z;
+  const length = Math.hypot(dx,dy,dz) || 1;
+  const range = weaponStatsFor(bot, weapon).range;
+  if (distance > range || !hasLineOfSight(bot.map, origin, aimPoint)) { useBotSupport(bot, all, now); return; }
+  if (now < bot.combat.reactionUntil || now < bot.combat.nextFire) { useBotSupport(bot, all, now); return; }
+  const stats = weaponStatsFor(bot, weapon);
+  if (now - (bot.lastShot[weapon] || 0) < stats.cooldown) { useBotSupport(bot, all, now); return; }
+  bot.lastShot[weapon] = now;
+  bot.combat.nextFire = now + stats.cooldown + Math.random() * 28;
+  // Very high accuracy, but a small distance-scaled error keeps shots from being perfect hitscan.
+  const spread = .004 + Math.min(.006, distance * .000075);
+  const aim = { x: dx/length + (Math.random()-.5)*spread, y: dy/length + (Math.random()-.5)*spread*.55, z: dz/length + (Math.random()-.5)*spread };
+  const aimLength = Math.hypot(aim.x,aim.y,aim.z) || 1;
+  const shot = { weapon, dx: aim.x/aimLength, dy: aim.y/aimLength, dz: aim.z/aimLength, ox: origin.x, oy: origin.y, oz: origin.z };
+  bot.matchShots = (bot.matchShots || 0) + 1;
+  broadcast(bot.room, { type: 'shot', id: bot.id, x: bot.x, y: bot.y, z: bot.z, ammoType: 'standard', ...shot });
+  resolvePulseHit(bot, shot);
+  useBotSupport(bot, all, now);
+}
+
 
 function sendRoomState(room, type = 'state') {
   broadcast(room, { type, players: publicPlayers(room) });
@@ -275,103 +382,101 @@ function sendRoomState(room, type = 'state') {
 
 function resolvePulseHit(shooter, shot) {
   const weaponId = Object.prototype.hasOwnProperty.call(WEAPONS, shot.weapon) ? shot.weapon : 'pulse';
-  const weapon = weaponStatsFor(shooter,weaponId);
+  const weapon = weaponStatsFor(shooter, weaponId);
   const direction = { x: finite(shot.dx), y: finite(shot.dy), z: finite(shot.dz) };
   const length = Math.hypot(direction.x, direction.y, direction.z);
   if (length < 0.9 || length > 1.1) return;
-  direction.x /= length;
-  direction.y /= length;
-  direction.z /= length;
-
-  const origin = {
-    x: finite(shot.ox, shooter.x),
-    y: finite(shot.oy, shooter.y),
-    z: finite(shot.oz, shooter.z)
-  };
-  if (Math.hypot(origin.x - shooter.x, origin.y - shooter.y, origin.z - shooter.z) > 1.25) return;
-
-  const splashRadius=weapon.splashRadius||((weaponId==='needler'||weaponId==='rocket')?weapon.radius:0);
+  direction.x /= length; direction.y /= length; direction.z /= length;
+  const origin = { x: finite(shot.ox, shooter.x), y: finite(shot.oy, shooter.y), z: finite(shot.oz, shooter.z) };
+  if (Math.hypot(origin.x-shooter.x,origin.y-shooter.y,origin.z-shooter.z)>1.25) return;
+  const all = combatants(shooter.room);
+  const splashRadius = weapon.splashRadius || ((weaponId === 'needler' || weaponId === 'rocket') ? weapon.radius : 0);
   let best = null;
-  for (const target of members(shooter.room)) {
-    if (target.id === shooter.id || !target.alive) continue;
-    if (shooter.mode !== 'ffa' && target.team === shooter.team) continue;
+  for (const target of all) {
+    if (!isEnemy(shooter, target)) continue;
     const hit = distanceRayToVerticalCapsule(origin, direction, target);
     if (!hit || hit.along > weapon.range) continue;
-    const direct=hit.distance <= (weapon.hitRadius || 0.48);
-    // Rockets can detonate on a close pass, not only on a perfect capsule hit.
-    const rocketProximity=weaponId==='rocket'&&hit.distance<=splashRadius;
-    if (!direct&&!rocketProximity) continue;
+    const direct = hit.distance <= (weapon.hitRadius || .48);
+    const rocketProximity = weaponId === 'rocket' && hit.distance <= splashRadius;
+    if (!direct && !rocketProximity) continue;
+    const targetPoint = { x: target.x, y: target.y - (target.crouching ? .55 : .7), z: target.z };
+    if (!hasLineOfSight(shooter.map, origin, targetPoint)) continue;
     if (!best || hit.along < best.along) best = { target, along: hit.along, distance: hit.distance, rayY: hit.rayY, highY: hit.highY, direct };
   }
   if (!best) return;
-
-  // Built-in explosive weapons apply server-authoritative splash damage.
-  const impact = {
-    x: origin.x + direction.x * best.along,
-    y: origin.y + direction.y * best.along,
-    z: origin.z + direction.z * best.along
-  };
+  const impact = { x: origin.x+direction.x*best.along, y: origin.y+direction.y*best.along, z: origin.z+direction.z*best.along };
   const affected = splashRadius
-    ? members(shooter.room).filter(target => {
-        if (target.id === shooter.id || !target.alive) return false;
-        if (shooter.mode !== 'ffa' && target.team === shooter.team) return false;
-        return Math.hypot(target.x - impact.x, target.y - impact.y, target.z - impact.z) <= splashRadius;
+    ? all.filter(target => {
+        if (!isEnemy(shooter,target)) return false;
+        const targetPoint = { x: target.x, y: target.y - (target.crouching ? .55 : .7), z: target.z };
+        const distance = Math.hypot(target.x-impact.x,target.y-impact.y,target.z-impact.z);
+        return distance <= splashRadius && hasLineOfSight(shooter.map, impact, targetPoint);
       }).map(target => ({
         target,
-        distance: Math.hypot(target.x - impact.x, target.y - impact.y, target.z - impact.z),
+        distance: Math.hypot(target.x-impact.x,target.y-impact.y,target.z-impact.z),
         direct: target.id === best.target.id && best.direct
       }))
     : [{ target: best.target, distance: best.distance || 0, direct: true }];
-
-  if(affected.length)shooter.matchHits=(shooter.matchHits||0)+1;
+  if (affected.length) shooter.matchHits = (shooter.matchHits || 0) + 1;
   for (const hit of affected) {
     const target = hit.target;
-    const falloff = splashRadius ? Math.max(.25, 1 - hit.distance / splashRadius * .75) : 1;
-    const damage = Math.max(1, Math.round(weapon.damage * falloff));
-    const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius || 0.48) && best.rayY >= best.highY - .22;
-    target.damageContributors=target.damageContributors||{};target.damageContributors[shooter.id]=Date.now();
-    const absorbed=Math.min(target.supportShield||0,damage);target.supportShield=Math.max(0,(target.supportShield||0)-absorbed);
-    target.health = Math.max(0, target.health - (damage-absorbed));
+    const falloff = splashRadius ? Math.max(.25,1-hit.distance/splashRadius*.75) : 1;
+    const damage = Math.max(1,Math.round(weapon.damage*falloff));
+    const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius||.48) && best.rayY >= best.highY-.22;
+    target.damageContributors = target.damageContributors || {};
+    target.damageContributors[shooter.id] = Date.now();
+    const absorbed = Math.min(target.supportShield||0,damage);
+    target.supportShield = Math.max(0,(target.supportShield||0)-absorbed);
+    target.health = Math.max(0,target.health-(damage-absorbed));
     target.lastDamageAt = Date.now();
     const eliminated = target.health <= 0;
-    send(shooter.ws, {
-      type: 'hitConfirm', targetId: target.id, targetName: target.name,
-      damage, targetHealth: target.health, weapon: weaponId, eliminated, headshot
-    });
-    send(target.ws, {
-      type: 'damaged', sourceId: shooter.id, sourceName: shooter.name,
-      damage, health: target.health, eliminated, headshot
-    });
-
+    if (shooter.ws) send(shooter.ws,{type:'hitConfirm',targetId:target.id,targetName:target.name,damage,targetHealth:target.health,weapon:weaponId,eliminated,headshot});
+    if (target.ws) send(target.ws,{type:'damaged',sourceId:shooter.id,sourceName:shooter.name,damage,health:target.health,eliminated,headshot});
     if (eliminated) {
       target.alive = false;
-      shooter.score += 1;
-      shooter.matchKills=(shooter.matchKills||0)+1;shooter.matchWeaponKills=shooter.matchWeaponKills||{};shooter.matchWeaponKills[weaponId]=(shooter.matchWeaponKills[weaponId]||0)+1;target.matchDeaths=(target.matchDeaths||0)+1;
-      for(const [helperId,at] of Object.entries(target.damageContributors||{})){if(helperId!==shooter.id&&Date.now()-at<12000){const helper=members(shooter.room).find(p=>p.id===helperId);if(helper)helper.matchAssists=(helper.matchAssists||0)+1;}}
-      shooter.supportPoints=(shooter.supportPoints||0)+100;if(shooter.supportPoints>=300&&!shooter.supportReady){shooter.supportReady=true;send(shooter.ws,{type:'supportReady',points:shooter.supportPoints});}
-      broadcast(shooter.room, {
-        type: 'elimination', source: shooter.id, target: target.id,
-        sourceName: shooter.name, targetName: target.name,
-        players: publicPlayers(shooter.room)
-      });
-      const room = shooter.room;
-      const targetId = target.id;
+      shooter.score = (shooter.score||0)+1;
+      shooter.matchKills = (shooter.matchKills||0)+1;
+      shooter.matchWeaponKills = shooter.matchWeaponKills || {};
+      shooter.matchWeaponKills[weaponId] = (shooter.matchWeaponKills[weaponId]||0)+1;
+      target.matchDeaths = (target.matchDeaths||0)+1;
+      for (const [helperId,at] of Object.entries(target.damageContributors||{})) {
+        if (helperId !== shooter.id && Date.now()-at < 12000) {
+          const helper = all.find(p=>p.id===helperId);
+          if (helper) helper.matchAssists = (helper.matchAssists||0)+1;
+        }
+      }
+      shooter.supportPoints = (shooter.supportPoints||0)+100;
+      if (shooter.supportPoints>=300 && !shooter.supportReady) {
+        shooter.supportReady=true;
+        if (shooter.ws) send(shooter.ws,{type:'supportReady',points:shooter.supportPoints});
+      }
+      broadcast(shooter.room,{type:'elimination',source:shooter.id,target:target.id,sourceName:shooter.name,targetName:target.name,players:publicPlayers(shooter.room)});
+      const room = shooter.room, targetId = target.id;
       setTimeout(() => {
-        const current = clients.get(targetId);
+        const currentHuman = clients.get(targetId);
+        const currentBot = botsIn(room).find(p=>p.id===targetId);
         const match = matches.get(room);
-        if (!current || current.room !== room || !match?.active) return;
-        const spawn = spawnForSlot(Math.floor(Math.random() * 8), current.map);
-        current.x = spawn.x; current.y = spawn.y; current.z = spawn.z;
-        current.health = MAX_HEALTH; current.lastDamageAt = 0; current.alive = true; current.supportShield=0; current.damageContributors={};
-        current.moving = false; current.crouching = false;
-        send(current.ws, { type: 'respawned', x: current.x, y: current.y, z: current.z, health: current.health });
-        sendRoomState(room, 'players');
-      }, RESPAWN_DELAY_MS);
+        if (!match?.active) return;
+        const current = currentHuman || currentBot;
+        if (!current || current.room !== room) return;
+        const spawn = spawnForSlot(current.spawnSlot ?? Math.floor(Math.random()*12),current.map);
+        current.x=spawn.x;current.y=spawn.y;current.z=spawn.z;
+        current.health=MAX_HEALTH;current.lastDamageAt=0;current.alive=true;
+        current.supportShield=0;current.damageContributors={};
+        current.moving=false;current.crouching=false;
+        if (current.isBot) {
+          current.nav=null;
+          current.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};
+          current.lastShot=Object.create(null);
+        } else {
+          send(current.ws,{type:'respawned',x:current.x,y:current.y,z:current.z,health:current.health});
+        }
+        sendRoomState(room,'players');
+      },RESPAWN_DELAY_MS);
     }
   }
-  sendRoomState(shooter.room, 'scoreUpdate');
+  sendRoomState(shooter.room,'scoreUpdate');
 }
-
 wss.on('connection', ws => {
   const c = {
     ws, id: crypto.randomUUID().slice(0, 8), name: 'OPERATOR',
@@ -417,7 +522,8 @@ wss.on('connection', ws => {
         roomBots.set(room, bots);
         for (let i = 0; i < Math.min(requested, maxPlayers(mode) - members(room).length); i++) {
           const point = spawnForSlot(members(room).length + i, map);
-          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:true, crouching:false, weapon:'', operator:'vanguard', primary:'', secondary:'', equipment:'', supportPoints:0, supportShield:0, isBot:true, phase:i*1.7, anchorX:point.x, anchorZ:point.z };
+          const loadout = BOT_LOADOUTS[i % BOT_LOADOUTS.length];
+          const bot = { id:'bot-'+(i+1), name:BOT_NAMES[i % BOT_NAMES.length], mode, map, room, team:null, x:point.x, y:1.7, z:point.z, yaw:0, pitch:0, score:0, health:MAX_HEALTH, alive:true, moving:false, crouching:false, weapon:loadout.primary, operator:'vanguard', primary:loadout.primary, secondary:loadout.secondary, equipment:'shield', supportPoints:0, supportShield:0, isBot:true, spawnSlot:members(room).length+i, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchAssists:0, matchShots:0, matchHits:0, matchWeaponKills:{}, damageContributors:{}, lastDamageAt:0, lastEquipmentAt:0, lastSupportAt:0, lastShot:Object.create(null), nav:null, combat:{targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0} };
           bot.team = assignTeam(mode, room); bots.push(bot);
         }
       }
@@ -473,12 +579,14 @@ wss.on('connection', ws => {
       const nextX = clamp(finite(message.x, c.x), -bounds, bounds);
       const nextZ = clamp(finite(message.z, c.z), -bounds, bounds);
       const distance = Math.hypot(nextX - c.x, nextZ - c.z);
-      if (distance <= 10.5 * elapsed + 0.35) { c.x = nextX; c.z = nextZ; }
       const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);
-      if (Math.abs(nextY - c.y) <= 14 * elapsed + 0.5) c.y = nextY;
+      const candidate = { x: nextX, y: nextY, z: nextZ };
+      const withinSpeed = distance <= 10.5 * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
+      const accepted = withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
+      if (accepted) { c.x = nextX; c.y = nextY; c.z = nextZ; }
       c.yaw = finite(message.yaw, c.yaw);
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
-      c.moving = Boolean(message.moving);
+      c.moving = Boolean(message.moving) && accepted;
       c.crouching = Boolean(message.crouching);
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
@@ -499,7 +607,7 @@ wss.on('connection', ws => {
       if(!c.supportReady||c.supportPoints<300||Date.now()-c.lastSupportAt<15000)return;
       const ability=message.ability==='shield'?'shield':'rally';
       c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=Date.now();
-      const squad=members(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
+      const squad=combatants(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
       if(ability==='shield'){for(const p of squad)p.supportShield=Math.min(60,(p.supportShield||0)+25);}
       else{for(const p of squad)p.health=Math.min(MAX_HEALTH,p.health+25);}
       broadcast(c.room,{type:'supportUsed',id:c.id,ability,team:c.team,players:publicPlayers(c.room)});
@@ -537,7 +645,7 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.lastSupportAt=0; }
+      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.lastSupportAt=0;if(player.isBot){player.lastShot=Object.create(null);player.nav=null;player.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};} }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });
@@ -560,18 +668,19 @@ setInterval(() => {
   const now = Date.now();
   for (const [room, match] of matches) {
     if (match.active && now - match.startedAt >= match.duration * 1000) endMatch(room);
+    const all = combatants(room);
     if (match.active) {
-      for (const player of members(room)) {
+      for (const player of all) {
         if (player.alive && player.health < MAX_HEALTH && now - player.lastDamageAt >= HEALTH_REGEN_DELAY_MS) {
           player.health = Math.min(MAX_HEALTH, player.health + HEALTH_REGEN_PER_SECOND * TICK_MS / 1000);
         }
       }
     }
     if (members(room).length) {
-      const activePlayers = [...members(room), ...botsIn(room)].filter(player => player.alive);
+      const activePlayers = all.filter(player => player.alive);
       for (const bot of botsIn(room)) {
         if (!match.active || !bot.alive) continue;
-        stepArcadeBot(bot, activePlayers, TICK_MS / 1000, now);
+        stepCombatBot(bot, activePlayers, TICK_MS / 1000, now);
       }
       broadcast(room, { type: 'state', players: publicPlayers(room) });
     }
