@@ -6,6 +6,7 @@ const { spawn } = require('node:child_process');
 const net = require('node:net');
 const WebSocket = require('ws');
 const path = require('node:path');
+const { isPlayerPositionBlocked, movementBlocked } = require('../server/map-collision');
 
 const root = path.resolve(__dirname, '..');
 
@@ -218,4 +219,13 @@ test('explosive ammo builds are accepted and replicated for non-launcher weapons
   } finally {
     await stopServer(server, clients);
   }
+});
+
+
+test('Orbital map collision keeps the station enclosed and its main lanes open', () => {
+  assert.equal(isPlayerPositionBlocked('orbital', 49, 1.7, 0), true, 'outer hull blocks leaving the station');
+  assert.equal(isPlayerPositionBlocked('orbital', -31, 1.7, -25), true, 'cargo containers block movement');
+  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 0), true, 'reactor core blocks the center');
+  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 42), false, 'south deployment lane remains open');
+  assert.equal(movementBlocked('orbital', { x: 8, y: 1.7, z: 0 }, { x: 12, y: 1.7, z: 0 }), false);
 });
