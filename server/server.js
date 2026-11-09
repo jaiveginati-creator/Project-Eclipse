@@ -233,7 +233,7 @@ function chooseBotTarget(bot, all, now) {
   bot.combat = bot.combat || { targetId: null, nextTargetScan: 0, reactionUntil: 0, nextFire: 0 };
   const current = all.find(p => p.id === bot.combat.targetId && isEnemy(bot, p));
   if (current && now < bot.combat.nextTargetScan) return current;
-  bot.combat.nextTargetScan = now + 180;
+  bot.combat.nextTargetScan = now + 320 + Math.random() * 180;
   let best = null, bestScore = Infinity;
   const origin = { x: bot.x, y: bot.y - .25, z: bot.z };
   for (const candidate of all) {
@@ -247,8 +247,8 @@ function chooseBotTarget(bot, all, now) {
   }
   if (best?.id !== bot.combat.targetId) {
     bot.combat.targetId = best?.id || null;
-    bot.combat.reactionUntil = now + 145;
-    bot.combat.nextFire = Math.max(bot.combat.nextFire || 0, now + 145);
+    bot.combat.reactionUntil = now + 450 + Math.random() * 350;
+    bot.combat.nextFire = Math.max(bot.combat.nextFire || 0, now + 450 + Math.random() * 350);
   }
   return best;
 }
@@ -400,8 +400,8 @@ function stepCombatBot(bot, all, deltaSeconds, now) {
   if (now - (bot.lastShot[weapon] || 0) < stats.cooldown) { useBotSupport(bot, all, now); return; }
   bot.lastShot[weapon] = now;
   bot.combat.nextFire = now + stats.cooldown + Math.random() * 28;
-  // Very high accuracy, but a small distance-scaled error keeps shots from being perfect hitscan.
-  const spread = .004 + Math.min(.006, distance * .000075);
+  // Deliberately imperfect arcade aim: bots react slowly and shots become less reliable with distance.
+  const spread = .018 + Math.min(.075, distance * .0011);
   const aim = { x: dx/length + (Math.random()-.5)*spread, y: dy/length + (Math.random()-.5)*spread*.55, z: dz/length + (Math.random()-.5)*spread };
   const aimLength = Math.hypot(aim.x,aim.y,aim.z) || 1;
   const shot = { weapon, dx: aim.x/aimLength, dy: aim.y/aimLength, dz: aim.z/aimLength, ox: origin.x, oy: origin.y, oz: origin.z };
