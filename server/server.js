@@ -457,7 +457,9 @@ function resolvePulseHit(shooter, shot) {
   for (const hit of affected) {
     const target = hit.target;
     const falloff = splashRadius ? Math.max(.25,1-hit.distance/splashRadius*.75) : 1;
-    const damage = Math.max(1,Math.round(weapon.damage*falloff));
+    // Bots use a deliberately gentler arcade damage profile so no single hit can one-tap a full-health player.
+    const rawDamage = Math.round(weapon.damage * falloff);
+    const damage = shooter.isBot ? Math.max(1, Math.min(18, Math.round(rawDamage * 0.35))) : Math.max(1, rawDamage);
     const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius||.48) && best.rayY >= best.highY-.22;
     target.damageContributors = target.damageContributors || {};
     target.damageContributors[shooter.id] = Date.now();
