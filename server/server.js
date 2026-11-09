@@ -635,14 +635,21 @@ wss.on('connection', ws => {
       const candidate = { x: nextX, y: nextY, z: nextZ };
       const speedLimit = c.speedBoostUntil > now ? 14.5 : 10.5;
       const withinSpeed = distance <= speedLimit * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
-      const accepted = withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
-      if (accepted) { c.x = nextX; c.y = nextY; c.z = nextZ; }
+      const blocked = withinSpeed && movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
+      const accepted = withinSpeed && !blocked;
+      if (accepted) {
+        c.x = nextX; c.y = nextY; c.z = nextZ;
+        c.lastMove = now;
+      } else if (blocked) {
+        // A collision is a real stop; a timing outlier is not. Preserve elapsed
+        // time after speed-check jitter so the next normal packet can catch up.
+        c.lastMove = now;
+      }
       c.yaw = finite(message.yaw, c.yaw);
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
       c.moving = Boolean(message.moving) && accepted;
       c.crouching = Boolean(message.crouching);
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
-      c.lastMove = now;
       return;
     }
 
