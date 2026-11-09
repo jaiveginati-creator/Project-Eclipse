@@ -1,4 +1,10 @@
-# PROJECT: ECLIPSE — Prototype 0.33.0
+# PROJECT: ECLIPSE — Prototype 0.34.0
+
+## Prototype 0.34.0 — STARFALL
+- Replaced ORBITAL with STARFALL, an original space-station arena built around three distinct route families and several cross-links.
+- Added a central transfer hub, west research gallery, east observatory/service gallery, north eclipse-viewing deck and south docking bay.
+- Added new collision volumes, spawn points, bot navigation and a dedicated collision regression test.
+
 
 ## Prototype 0.33.0 — ORBITAL
 - Added ORBITAL, an abandoned orbital station map set during the eclipse.
