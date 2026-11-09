@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const APP_VERSION = require('../package.json').version;
 const { isPlayerPositionBlocked, movementBlocked, hasLineOfSight } = require('./map-collision');
+const { chooseRecoveryWaypoint } = require('./bot-navigation');
 
 const PORT = Number(process.env.PORT || 3001);
 // Keep progression-changing developer commands disabled on public servers by default.
@@ -261,7 +262,8 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
       jumpUntil: 0, nextCrouch: now + 4200 + (index % 4) * 800,
       crouchUntil: 0, phase: index * 1.73,
       speed: 7.3 + (index % 4) * .28,
-      strafeDirection: index % 2 ? 1 : -1, nextStrafe: now + 500
+      strafeDirection: index % 2 ? 1 : -1, nextStrafe: now + 500,
+      lastProgressX: bot.x, lastProgressZ: bot.z, stuckSince: now, lastRecoveryAt: 0
     };
   }
   const nav = bot.nav, route = nav.route;
@@ -283,6 +285,11 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
       nav.waypoint = crowdAt(route[alternate]) < crowdAt(route[forward]) ? alternate : forward;
     }
     nav.nextRouteChoice = now + 1600 + Math.abs(Math.sin(nav.phase)) * 850;
+    // The route choice may have changed the waypoint; refresh the steering vector.
+    waypoint = route[nav.waypoint];
+    routeX = waypoint[0] - bot.x;
+    routeZ = waypoint[1] - bot.z;
+    routeDistance = Math.hypot(routeX, routeZ);
   }
   let moveX = routeX / Math.max(routeDistance, .001), moveZ = routeZ / Math.max(routeDistance, .001);
   if (combatTarget) {
@@ -313,14 +320,43 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
   const magnitude = Math.hypot(moveX, moveZ) || 1; moveX /= magnitude; moveZ /= magnitude;
   const speed = nav.speed * deltaSeconds;
   const directions = [[moveX,moveZ]];
-  for (const angle of [.72,-.72,1.42,-1.42,2.25,-2.25,Math.PI]) {
-    directions.push([moveX*Math.cos(angle)-moveZ*Math.sin(angle),moveX*Math.sin(angle)+moveZ*Math.cos(angle)]);
+  // Roaming bots sample a finer set of steering angles around cover edges.
+  // Keep the existing target-following steering unchanged.
+  if (!combatTarget) {
+    for (let step = 1; step <= 7; step++) {
+      const angle = step * Math.PI / 8;
+      for (const sign of [-1, 1]) {
+        const a = angle * sign;
+        directions.push([moveX*Math.cos(a)-moveZ*Math.sin(a),moveX*Math.sin(a)+moveZ*Math.cos(a)]);
+      }
+    }
+  } else {
+    for (const angle of [.72,-.72,1.42,-1.42,2.25,-2.25,Math.PI]) {
+      directions.push([moveX*Math.cos(angle)-moveZ*Math.sin(angle),moveX*Math.sin(angle)+moveZ*Math.cos(angle)]);
+    }
   }
   if (routeDistance > .01) directions.push([routeX/routeDistance,routeZ/routeDistance]);
   let moved = false;
   for (const [vx,vz] of directions) {
     const next = { x: clamp(bot.x + vx*speed, - (bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), y: bot.y, z: clamp(bot.z + vz*speed, -(bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5) };
     if (!movementBlocked(bot.map, { x: bot.x, y: bot.y, z: bot.z }, next)) { bot.x = next.x; bot.z = next.z; moved = true; break; }
+  }
+  // Roaming-only recovery: if a bot cannot make progress, select a different
+  // reachable waypoint. This branch is deliberately disabled while a target exists.
+  if (!combatTarget) {
+    const progress = Math.hypot(bot.x - nav.lastProgressX, bot.z - nav.lastProgressZ);
+    if (progress > .35) {
+      nav.lastProgressX = bot.x;
+      nav.lastProgressZ = bot.z;
+      nav.stuckSince = now;
+    } else if (now - nav.stuckSince > 1600 && now - nav.lastRecoveryAt > 1800) {
+      nav.waypoint = chooseRecoveryWaypoint({
+        map: bot.map, bot, route, currentWaypoint: nav.waypoint,
+        nearbyPlayers, movementBlocked
+      });
+      nav.stuckSince = now;
+      nav.lastRecoveryAt = now;
+    }
   }
   bot.moving = moved && (Math.abs(moveX) + Math.abs(moveZ) > .05);
   bot.yaw = combatTarget ? Math.atan2(combatTarget.x - bot.x, combatTarget.z - bot.z) : Math.atan2(moveX, moveZ);
