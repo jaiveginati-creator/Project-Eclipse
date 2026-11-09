@@ -647,8 +647,8 @@ wss.on('connection', ws => {
     }
 
     if (message.type === 'operatorAbility') {
-      const match=matches.get(c.room);if(!match?.active||!c.alive)return;
-      const now=Date.now();if(now<c.operatorAbilityReadyAt)return send(ws,{type:'operatorAbilityResult',ok:false,message:'ABILITY RECHARGING'});
+      const match=matches.get(c.room);if(!match?.active||!c.alive)return send(ws,{type:'operatorAbilityResult',ok:false,message:'ABILITY UNAVAILABLE'});
+      const now=Date.now();if(now<c.operatorAbilityReadyAt)return send(ws,{type:'operatorAbilityResult',ok:false,message:'ABILITY RECHARGING',cooldownMs:c.operatorAbilityReadyAt-now});
       const cooldownMs=30000;let ability='';
       if(c.operator==='vanguard'){ability='bulwark';c.supportShield=Math.min(60,(c.supportShield||0)+40);}
       else if(c.operator==='recon'){
