@@ -127,3 +127,29 @@ test('private lobby codes isolate rooms and allow matching guests to join togeth
     await stopServer(server, clients);
   }
 });
+
+test('explosive ammo builds are accepted and replicated for non-launcher weapons', { timeout: 15000 }, async () => {
+  const server = await startServer();
+  const clients = [];
+  try {
+    const a = await connectClient(server.port); clients.push(a);
+    const b = await connectClient(server.port); clients.push(b);
+    const welcomeA = waitForMessage(a, 'welcome');
+    a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'EXPLOSIVE-TEST', profileId: '00000000-0000-4000-8000-000000000031', primary: 'pulse', secondary: 'volt', builds: { volt: { ammoType: 'explosive' } } }));
+    await welcomeA;
+    const welcomeB = waitForMessage(b, 'welcome');
+    b.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'OBSERVER-TEST', profileId: '00000000-0000-4000-8000-000000000032' }));
+    await welcomeB;
+    const started = waitForMessage(a, 'matchStart');
+    const startedB = waitForMessage(b, 'matchStart');
+    a.send(JSON.stringify({ type: 'startMatch' }));
+    await Promise.all([started, startedB]);
+    const replicatedShot = waitForMessage(b, 'shot');
+    a.send(JSON.stringify({ type: 'shot', weapon: 'volt', dx: 1, dy: 0, dz: 0, ox: 0, oy: 1.6, oz: 0 }));
+    const shot = await replicatedShot;
+    assert.equal(shot.weapon, 'volt');
+    assert.equal(shot.ammoType, 'explosive');
+  } finally {
+    await stopServer(server, clients);
+  }
+});
