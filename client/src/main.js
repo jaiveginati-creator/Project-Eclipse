@@ -548,7 +548,7 @@ function buildOrbital(){
   [-36,4,10,3,0,0x536b76],[-25,8,8,3,0,0x6d5c49]
  ]){
   const m=box(x,h/2,z,w,h,2.8,new THREE.MeshStandardMaterial({color,metalness:.52,roughness:.52}),true);m.rotation.y=rot;
-  for(let k=-Math.floor(w/2)+1;k<Math.floor(w/2);k++){const rib=detailBox(x+k,z===-25?1.5:1.5,z,.07,h+.05,2.9,steel);rib.rotation.y=rot;}
+  for(let k=-Math.floor(w/2)+1;k<Math.floor(w/2);k++){const rib=detailBox(x+k*1.5,1.5,z,.07,h+.05,2.9,steel);rib.rotation.y=rot;}
  }
  for(const x of [-43,-18]){box(x,5,-19,.5,10,.5,steel);box((x-18)/2,9,-19,25,.55,.65,steel);detailBox((x-18)/2,9.35,-19,24,.12,.72,amber);}
  // Observation gallery at the north end: wide eclipse-facing windows and a control rail.
