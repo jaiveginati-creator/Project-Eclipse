@@ -141,27 +141,25 @@ function addShield(list, x, z, rotation = 0) {
 
 
 
- // BAZAAR — original sunlit old-town district.
- {
-  const list = MAP_OBSTACLES.bazaar = [];
-  addBox(list,48.5,2.5,0,.8,5,98);addBox(list,-48.5,2.5,0,.8,5,98);addBox(list,0,2.5,48.5,98,5,.8);addBox(list,0,2.5,-48.5,98,5,.8);
-  const room=(x,z,w,d,h,door='south')=>{const t=.62,g=4.2;
-   if(door==='south'){addBox(list,x-(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t);addBox(list,x+(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t);}else addBox(list,x,h/2,z+d/2,w,h,t);
-   if(door==='north'){addBox(list,x-(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t);addBox(list,x+(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t);}else addBox(list,x,h/2,z-d/2,w,h,t);
-   if(door==='east'){addBox(list,x+w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2);addBox(list,x+w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2);}else addBox(list,x+w/2,h/2,z,t,h,d);
-   if(door==='west'){addBox(list,x-w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2);addBox(list,x-w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2);}else addBox(list,x-w/2,h/2,z,t,h,d);
-  };
-  room(-29,-29,16,14,7,'south');room(29,-29,16,17,7,'south');room(-38,1,12,17,6.5,'east');room(38,1,12,17,6.5,'west');room(-29,30,18,13,6.8,'north');room(29,30,18,13,6.8,'north');
-  for(const [x,z,w,d] of [[-17,-30,5,1],[-17,28,5,1],[17,-28,5,1],[17,29,5,1],[-39,-13,1,6],[39,15,1,6]])addBox(list,x,1.65,z,w,3.3,d);
-  addBox(list,0,.35,0,6.6,.7,6.6);
-  for(const [x,z,r] of [[-8,-7,0],[8,7,0],[-7,8,Math.PI/2],[7,-8,Math.PI/2]])addBox(list,x,.58,z,3.8,1.16,1.25,r);
-  for(const [x,z] of [[-5,-14],[5,14],[15,-4],[-15,5]])addBox(list,x,1.35,z,3.35,2.7,.82);
-  for(const [x,z] of [[-22,-10],[-21,12],[22,-13],[21,13],[-10,25],[10,-25]])addBox(list,x,.45,z,1.16,.9,1.16);
-  for(const [x,z] of [[-12,-3],[12,3],[-5,23],[5,-23],[-42,-17],[42,18]])addBox(list,x,.62,z,1.35,1.24,1.35);
-  addBox(list,39,.35,-40,13,.7,8);for(let i=0;i<6;i++)addBox(list,31+i*1.1,.18+i*.18,-35,2.1,.36+i*.36,3.2);
-  for(const [x,z] of [[-43,-34],[-43,34],[43,-34],[43,34],[-12,41],[13,-41]])addBox(list,x,1.6,z,.56,3.2,.56);
- }
-
+ // BAZAAR — connected original desert-city competitive floorplan.
+// Every doorway is a real gap; covered passages use walls on all sides.
+{
+ const list=MAP_OBSTACLES.bazaar=[];
+ const wallX=(z,x1,x2,door=null,width=4.6)=>{const t=.72,h=5.6,y=h/2;if(door===null){addBox(list,(x1+x2)/2,y,z,x2-x1,h,t);return;}const a=door-width/2,b=door+width/2;if(a>x1)addBox(list,(x1+a)/2,y,z,a-x1,h,t);if(x2>b)addBox(list,(b+x2)/2,y,z,x2-b,h,t);addBox(list,door,5.28,z,width,.64,t);};
+ const wallZ=(x,z1,z2,door=null,width=4.6)=>{const t=.72,h=5.6,y=h/2;if(door===null){addBox(list,x,y,(z1+z2)/2,t,h,z2-z1);return;}const a=door-width/2,b=door+width/2;if(a>z1)addBox(list,x,y,(z1+a)/2,t,h,a-z1);if(z2>b)addBox(list,x,y,(b+z2)/2,t,h,z2-b);addBox(list,x,5.28,door,t,.64,width);};
+ const room=(x,z,w,d,doors={})=>{const x1=x-w/2,x2=x+w/2,z1=z-d/2,z2=z+d/2;wallX(z1,x1,x2,doors.n??null,doors.nw||4.6);wallX(z2,x1,x2,doors.s??null,doors.sw||4.6);wallZ(x1,z1,z2,doors.w??null,doors.ww||4.6);wallZ(x2,z1,z2,doors.e??null,doors.ew||4.6);};
+ const tunnel=(x,z,w,d,doors={})=>room(x,z,w,d,doors);
+ addBox(list,49,2.7,0,.8,5.4,98);addBox(list,-49,2.7,0,.8,5.4,98);addBox(list,0,2.7,49,98,5.4,.8);addBox(list,0,2.7,-49,98,5.4,.8);
+ room(-34,-39,22,15,{s:-34,e:-39});room(31,-31,22,19,{w:-31,e:-31,s:31,n:31});room(-30,30,21,19,{w:25,e:27,n:-30,s:-32});room(39,41,17,12,{w:39,n:39});room(31,-45,18,8,{s:31});
+ tunnel(45,-20,7,24,{n:45,s:45,w:-31});tunnel(-14.75,-39,17,6,{w:-39,e:-39});tunnel(8,-40,29,6,{w:-40,e:-40});tunnel(18,-28,7,24,{n:18,s:18});tunnel(26.5,-18,17,6,{w:-18,n:31});tunnel(42,-4,7,12,{n:42,s:42});tunnel(-19,15,24,6,{w:15,e:15});tunnel(-34.5,15,7,6,{w:15,e:15});room(-43,13,10,13,{e:13,s:-43,n:-43});tunnel(-42,25,6,12,{n:-42,s:-42});tunnel(-34,39,11,6,{w:39,e:39,s:-32});tunnel(1,42,59,6,{n:-32,w:42,e:42});tunnel(-15,27,12,6,{w:27,e:27});tunnel(31,9,6,19,{n:9,s:9});room(42,8,10,12,{w:8,n:42,s:42});
+ // Mid cover, fountain rim and objective crates.
+ for(const [x,z,r] of [[-7,-5,0],[7,5,0],[-6,7,Math.PI/2],[6,-7,Math.PI/2],[-3,-12,0],[3,12,0]])addBox(list,x,.62,z,3.6,1.24,1.05,r);
+ for(const [cx,cz] of [[31,-31],[-30,30]])for(const [dx,dz] of [[-5,-4],[5,-4],[-5,4],[5,4]])addBox(list,cx+dx,.55,cz+dz,2.1,1.1,1.5);
+ for(const [x,z] of [[-12,-3],[12,3],[-5,22],[5,-22],[-25,-4],[24,5],[-44,0],[44,0]])addBox(list,x,.55,z,1.5,1.1,1.45);
+ // Catwalk supports and the stair run.
+ addBox(list,-9,2.5,-12,15,.35,3.2);for(const side of [-1,1])addBox(list,-9+side*7.3,3.15,-12,.16,1.25,3.2);
+ for(let i=0;i<7;i++)addBox(list,-16+i*.72,.18+i*.28,-9,1.05,.36+i*.56,3.0);
+}
 function overlaps(aMin,aMax,bMin,bMax) {
   return aMin < bMax && aMax > bMin;
 }

@@ -224,7 +224,7 @@ test('explosive ammo builds are accepted and replicated for non-launcher weapons
 
 test('Bazaar map collision preserves perimeter and open market routes', () => {
   assert.equal(isPlayerPositionBlocked('bazaar', 48.5, 1.7, 0), true);
-  assert.equal(isPlayerPositionBlocked('bazaar', -35, 1.7, -22), true);
+  assert.equal(isPlayerPositionBlocked('bazaar', 25, 1.7, -40.5), true);
   assert.equal(isPlayerPositionBlocked('bazaar', -29, 1.7, -21.5), false);
   assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 5), false);
   assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 38), false);

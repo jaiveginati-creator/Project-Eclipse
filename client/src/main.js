@@ -518,30 +518,69 @@ function buildSublevel(){
 
 
 function buildBazaar(){
- clearMap();scene.background.set(0x9cc4d4);scene.fog.color.set(0xd8c4a0);scene.fog.density=.003;
- hemi.color.set(0xffedcf);hemi.groundColor.set(0x80694c);hemi.intensity=2;moonLight.color.set(0xffe0a6);moonLight.intensity=2.6;moonLight.position.set(-34,62,-28);fill.color.set(0xc4d8e1);fill.intensity=.55;
- const sand=new THREE.MeshStandardMaterial({color:0xc4a477,roughness:.98}),stone=new THREE.MeshStandardMaterial({color:0xcbb58e,roughness:.94}),pale=new THREE.MeshStandardMaterial({color:0xe0cfaa,roughness:.92}),wood=new THREE.MeshStandardMaterial({color:0x49382a,roughness:.9}),clay=new THREE.MeshStandardMaterial({color:0x9b6040,roughness:.9}),brass=new THREE.MeshStandardMaterial({color:0x98713e,metalness:.25,roughness:.62}),cloth=[0xb65f43,0x477b79,0xd0a34f,0x8c5e83].map(color=>new THREE.MeshStandardMaterial({color,roughness:.95,side:THREE.DoubleSide}));
- box(0,-.28,0,100,.56,100,sand,false);for(const side of [-1,1]){box(side*48.5,2.5,0,.8,5,98,stone);box(0,2.5,side*48.5,98,5,.8,stone);}
- function room(x,z,w,d,h,door='south',tone=stone){box(x,.08,z,w,.16,d,sand,false);box(x,h+.08,z,w+.35,.18,d+.35,tone,false);const t=.62,g=4.2;
-  if(door==='south'){box(x-(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t,tone);box(x+(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t,tone);}else box(x,h/2,z+d/2,w,h,t,tone);
-  if(door==='north'){box(x-(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t,tone);box(x+(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t,tone);}else box(x,h/2,z-d/2,w,h,t,tone);
-  if(door==='east'){box(x+w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2,tone);box(x+w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2,tone);}else box(x+w/2,h/2,z,t,h,d,tone);
-  if(door==='west'){box(x-w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2,tone);box(x-w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2,tone);}else box(x-w/2,h/2,z,t,h,d,tone);
-  detailBox(x,h+.2,z-d/2,w+.4,.2,.3,pale);detailBox(x,h+.2,z+d/2,w+.4,.2,.3,pale);}
- room(-29,-29,16,14,7,'south',pale);room(29,-29,16,17,7,'south',stone);room(-38,1,12,17,6.5,'east',pale);room(38,1,12,17,6.5,'west',stone);room(-29,30,18,13,6.8,'north',stone);room(29,30,18,13,6.8,'north',pale);
- for(const [x,z,w,d] of [[-17,-30,5,1],[-17,28,5,1],[17,-28,5,1],[17,29,5,1],[-39,-13,1,6],[39,15,1,6]])box(x,1.65,z,w,3.3,d,wood);
- addVisualMesh(new THREE.CylinderGeometry(3,3.3,.7,32),stone,0,.35,0,true);addVisualMesh(new THREE.CylinderGeometry(2.3,2.3,.12,32),new THREE.MeshStandardMaterial({color:0x729b9a}),0,.76,0);
- for(const [x,z,r] of [[-8,-7,0],[8,7,0],[-7,8,Math.PI/2],[7,-8,Math.PI/2]]){const p=box(x,.58,z,3.8,1.16,1.25,stone);p.rotation.y=r;}
- function stall(x,z,i,r=0){for(const sx of [-1,1])for(const sz of [-1,1]){const p=box(x+sx*1.7,1.35,z+sz*1.25,.12,2.7,.12,wood);p.rotation.y=r;}const c=detailBox(x,2.72,z,3.9,.18,3,cloth[i]);c.rotation.y=r;const q=box(x,.58,z,3.35,1.16,.82,wood);q.rotation.y=r;}
- stall(-5,-14,0);stall(5,14,1);stall(15,-4,2,Math.PI/2);stall(-15,5,3,Math.PI/2);
- for(const [x,z] of [[-22,-10],[-21,12],[22,-13],[21,13],[-10,25],[10,-25]])addVisualMesh(new THREE.CylinderGeometry(.42,.58,.9,12),clay,x,.45,z,true);
- for(const [x,z] of [[-12,-3],[12,3],[-5,23],[5,-23],[-42,-17],[42,18]])box(x,.62,z,1.35,1.24,1.35,wood);
- for(const [x,z] of [[-15,-20],[15,20],[-43,0],[43,0],[0,-43],[0,43]]){box(x,2.5,z,.16,5,.16,wood);detailBox(x+.48,4.8,z,.95,.12,.12,brass);const l=new THREE.PointLight(0xffc879,.7,10);l.position.set(x+.48,4.5,z);scene.add(l);mapObjects.push(l);}
- for(const [x,z] of [[-43,-34],[-43,34],[43,-34],[43,34],[-12,41],[13,-41]]){addVisualMesh(new THREE.CylinderGeometry(.18,.28,3.2,8),wood,x,1.6,z,true);addVisualMesh(new THREE.ConeGeometry(1.5,3.3,7),new THREE.MeshStandardMaterial({color:0x54704c}),x,4.3,z);}
- box(39,.35,-40,13,.7,8,wood);for(let i=0;i<6;i++)box(31+i*1.1,.18+i*.18,-35,2.1,.36+i*.36,3.2,stone);
- player.pos.set(-42,1.7,-42);player.yaw=Math.PI/4;updateCamera();
+ clearMap();scene.background.set(0x9fc5d5);scene.fog.color.set(0xd9c6a5);scene.fog.density=.0025;
+ hemi.color.set(0xffedcf);hemi.groundColor.set(0x80694c);hemi.intensity=1.9;moonLight.color.set(0xffe4bd);moonLight.intensity=2.45;moonLight.position.set(-34,62,-28);fill.color.set(0xc4d8e1);fill.intensity=.58;
+ const sand=new THREE.MeshStandardMaterial({color:0xc6aa7e,roughness:.98}),stone=new THREE.MeshStandardMaterial({color:0xcbb995,roughness:.94}),pale=new THREE.MeshStandardMaterial({color:0xe3d3b1,roughness:.92}),darkStone=new THREE.MeshStandardMaterial({color:0x88775f,roughness:.96}),wood=new THREE.MeshStandardMaterial({color:0x49382a,roughness:.9}),clay=new THREE.MeshStandardMaterial({color:0x9b6040,roughness:.9}),brass=new THREE.MeshStandardMaterial({color:0x98713e,metalness:.25,roughness:.62}),roof=new THREE.MeshStandardMaterial({color:0x9b896c,roughness:.95});
+ const cloth=[0xb65f43,0x477b79,0xd0a34f,0x8c5e83].map(color=>new THREE.MeshStandardMaterial({color,roughness:.95,side:THREE.DoubleSide}));
+ box(0,-.28,0,100,.56,100,sand,false);
+ for(const side of [-1,1]){box(side*49,2.7,0,.8,5.4,98,stone);box(0,2.7,side*49,98,5.4,.8,stone);}
+ // Wall helpers keep doorways genuinely open. Roofs are used only on enclosed passages.
+ const wallX=(z,x1,x2,door=null,width=4.6,mat=stone)=>{const t=.72,h=5.6,y=h/2;if(door===null){box((x1+x2)/2,y,z,x2-x1,h,t,mat);return;}const a=door-width/2,b=door+width/2;if(a>x1)box((x1+a)/2,y,z,a-x1,h,t,mat);if(x2>b)box((b+x2)/2,y,z,x2-b,h,t,mat);box(door,5.28,z,width,.64,t,pale);};
+ const wallZ=(x,z1,z2,door=null,width=4.6,mat=stone)=>{const t=.72,h=5.6,y=h/2;if(door===null){box(x,y,(z1+z2)/2,t,h,z2-z1,mat);return;}const a=door-width/2,b=door+width/2;if(a>z1)box(x,y,(z1+a)/2,t,h,a-z1,mat);if(z2>b)box(x,y,(b+z2)/2,t,h,z2-b,mat);box(x,5.28,door,t,.64,width,pale);};
+ const room=(x,z,w,d,doors={},opts={})=>{const x1=x-w/2,x2=x+w/2,z1=z-d/2,z2=z+d/2,h=opts.height||5.6,tone=opts.tone||stone;
+  wallX(z1,x1,x2,doors.n??null,doors.nw||4.6,tone);wallX(z2,x1,x2,doors.s??null,doors.sw||4.6,tone);
+  wallZ(x1,z1,z2,doors.w??null,doors.ww||4.6,tone);wallZ(x2,z1,z2,doors.e??null,doors.ew||4.6,tone);
+  if(opts.roof)box(x,h+.1,z,w+.5,.35,d+.5,roof,false);
+  if(opts.trim!==false){detailBox(x,h+.22,z1,w+.5,.18,.34,pale);detailBox(x,h+.22,z2,w+.5,.18,.34,pale);}
+  return {x1,x2,z1,z2};
+ };
+ const tunnel=(x,z,w,d,doors={},tone=darkStone)=>room(x,z,w,d,doors,{roof:true,tone,height:4.25});
+ // Spawn compounds and the two objective courtyards.
+ room(-34,-39,22,15,{s:-34,e:-39},{tone:pale});
+ room(31,-31,22,19,{w:-31,e:-31,s:31,n:31},{tone:stone});
+ room(-30,30,21,19,{w:25,e:27,n:-30,s:-32},{tone:pale});
+ room(39,41,17,12,{w:39,n:39},{tone:stone});
+ // Palace / A-ramp approach and the raised CT-side passage.
+ room(31,-45,18,8,{s:31},{tone:pale});
+ tunnel(45,-20,7,24,{n:45,s:45,w:-31},darkStone);
+ tunnel(-14.75,-39,17,6,{w:-39,e:-39},darkStone);
+ tunnel(8,-40,29,6,{w:-40,e:-40},darkStone);
+ // Mid connector and the covered underpass are real corridors, not decorative blocks.
+ tunnel(18,-28,7,24,{n:18,s:18},darkStone);
+ tunnel(26.5,-18,17,6,{w:-18,n:31},darkStone);
+ tunnel(42,-4,7,12,{n:42,s:42},darkStone);
+ tunnel(-19,15,24,6,{w:15,e:15},darkStone);
+ tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
+ room(-43,13,10,13,{e:13,s:-43,n:-43},{tone:stone});
+ tunnel(-42,25,6,12,{n:-42,s:-42},darkStone);
+ tunnel(-34,39,11,6,{w:39,e:39,s:-32},darkStone);
+ tunnel(1,42,59,6,{n:-32,w:42,e:42},darkStone);
+ // Short passages and side alleys complete the route network.
+ tunnel(-15,27,12,6,{w:27,e:27},darkStone);
+ tunnel(31,9,6,19,{n:9,s:9},darkStone);
+ room(42,8,10,12,{w:8,n:42,s:42},{tone:pale});
+ // Distinctive open mid with low cover, stone planters and a central fountain.
+ addVisualMesh(new THREE.CylinderGeometry(2.7,3.05,.72,32),stone,0,.36,0,true);
+ addVisualMesh(new THREE.CylinderGeometry(2.05,2.05,.16,32),new THREE.MeshStandardMaterial({color:0x71999a,roughness:.25,metalness:.15}),0,.8,0);
+ addVisualMesh(new THREE.CylinderGeometry(.22,.3,.9,12),brass,0,1.18,0,true);
+ for(const [x,z,r] of [[-7,-5,0],[7,5,0],[-6,7,Math.PI/2],[6,-7,Math.PI/2],[-3,-12,0],[3,12,0]]){const p=box(x,.62,z,3.6,1.24,1.05,stone);p.rotation.y=r;}
+ for(const [x,z] of [[-12,-3],[12,3],[-5,22],[5,-22],[-25,-4],[24,5],[-44,0],[44,0]]){box(x,.55,z,1.5,1.1,1.45,wood);detailBox(x,1.12,z,1.25,.08,1.2,brass);}
+ // Objective dressing: site markings, crates, sandbags and boundary pillars.
+ for(const [cx,cz] of [[31,-31],[-30,30]]){for(const [dx,dz] of [[-5,-4],[5,-4],[-5,4],[5,4]]){box(cx+dx,.55,cz+dz,2.1,1.1,1.5,wood);detailBox(cx+dx,1.13,cz+dz,1.85,.08,1.25,brass);}const ring=addVisualMesh(new THREE.TorusGeometry(3.6,.09,8,48),brass,cx,.08,cz);ring.rotation.x=Math.PI/2;}
+ // Market awnings and a few stalls are confined to the market courtyard, leaving lanes clear.
+ for(const [x,z,i] of [[-45,10,0],[-40,16,1],[-47,18,2]]){for(const sx of [-1,1]){box(x+sx*1.45,1.25,z,.12,2.5,.12,wood);box(x+sx*1.45,2.55,z,.12,.12,.12,brass);}box(x,2.48,z,3.1,.16,2.2,cloth[i],false);box(x,.48,z,2.7,.96,.72,wood);}
+ // Exterior rooflines, parapets, balconies, lamps and stair access add readable vertical landmarks.
+ for(const [x,z,w,d] of [[-34,-39,22,15],[31,-31,22,19],[-30,30,21,19],[39,41,17,12],[31,-45,18,8],[-43,13,10,13]]){box(x,6.0,z,w+.7,.35,d+.7,roof,false);for(const sx of [-1,1])for(const sz of [-1,1])box(x+sx*(w/2-.5),3,z+sz*(d/2-.5),.5,6,.5,darkStone);}
+ // A raised catwalk with visible steps, landing and rails; collision is mirrored server-side.
+ box(-9,2.5,-12,15,.35,3.2,wood);box(-9,3.25,-12,15,.16,3.2,brass);
+ for(const side of [-1,1])box(-9+side*7.3,3.15,-12,.16,1.25,3.2,stone);
+ for(let i=0;i<7;i++)box(-16+i*.72,.18+i*.28,-9,1.05,.36+i*.56,3.0,stone);
+ // Market and spawn lighting.
+ for(const [x,z] of [[-34,-43],[31,-48],[-43,13],[-30,35],[40,44],[0,0],[18,-8],[-19,15]]){box(x,4.2,z,.16,4.2,.16,wood);detailBox(x+.38,4.6,z,.8,.12,.12,brass);const l=new THREE.PointLight(0xffc879,.65,12);l.position.set(x+.38,4.15,z);scene.add(l);mapObjects.push(l);}
+ for(const [x,z] of [[-47,-47],[-47,47],[47,-47],[47,47],[-12,46],[12,-46]]){addVisualMesh(new THREE.CylinderGeometry(.2,.3,3.1,8),wood,x,1.55,z,true);addVisualMesh(new THREE.ConeGeometry(1.35,3.0,7),new THREE.MeshStandardMaterial({color:0x54704c}),x,4.1,z);}
+ // Training starts in open mid, facing the A connector.
+ player.pos.set(0,1.7,5);player.yaw=0;updateCamera();
 }
-
 function buildSelectedMap(){
  if(selectedMap==='district')buildDistrict();
  else if(selectedMap==='industrial')buildIndustrial();
@@ -822,11 +861,18 @@ function drawMinimap(){
  // Map perimeter: movement is blocked just inside this line.
  ctx.strokeStyle='rgba(230,168,91,.9)';ctx.lineWidth=2;const mapEdge=selectedMap==='sublevel'?23.8:47.8;ctx.strokeRect(px(-mapEdge),py(-mapEdge),mapEdge*2*scale,mapEdge*2*scale);
  if(selectedMap==='bazaar'){
-  const block=(x,z,w,d,color='#a88c66')=>{ctx.fillStyle=color;ctx.strokeStyle='#e2cda5';ctx.lineWidth=1.5;ctx.fillRect(px(x-w/2),py(z-d/2),w*scale,d*scale);ctx.strokeRect(px(x-w/2),py(z-d/2),w*scale,d*scale);};
-  ctx.fillStyle='#bda47e';ctx.fillRect(px(-47),py(-47),94*scale,94*scale);ctx.fillStyle='#d1bb91';ctx.fillRect(px(-9),py(-47),18*scale,94*scale);ctx.fillRect(px(-47),py(-8),94*scale,16*scale);
-  block(-29,-29,16,14);block(29,-29,16,17);block(-38,1,12,17);block(38,1,12,17);block(-29,30,18,13);block(29,30,18,13);
-  block(-17,-30,5,1,'#89765d');block(-17,28,5,1,'#89765d');block(17,-28,5,1,'#89765d');block(17,29,5,1,'#89765d');block(-39,-13,1,6,'#89765d');block(39,15,1,6,'#89765d');
-  for(const [x,z] of [[-5,-14],[5,14],[15,-4],[-15,5]])block(x,z,3.9,3,'#a56c4a');ctx.fillStyle='#739b9b';ctx.beginPath();ctx.arc(px(0),py(0),3*scale,0,Math.PI*2);ctx.fill();block(39,-40,13,8,'#89765d');
+  ctx.fillStyle='#bda47e';ctx.fillRect(px(-48),py(-48),96*scale,96*scale);
+  const footprint=(x,z,w,d,fill='#aa987b')=>{ctx.fillStyle=fill;ctx.strokeStyle='#554b3e';ctx.lineWidth=1.4;ctx.fillRect(px(x-w/2),py(z-d/2),w*scale,d*scale);ctx.strokeRect(px(x-w/2),py(z-d/2),w*scale,d*scale);};
+  const passage=(x1,z1,x2,z2,width=5.5)=>{ctx.strokeStyle='#7d6b52';ctx.lineWidth=width*scale;ctx.lineCap='square';ctx.beginPath();ctx.moveTo(px(x1),py(z1));ctx.lineTo(px(x2),py(z2));ctx.stroke();};
+  // Open objective courtyards and enclosed surrounding buildings.
+  footprint(-34,-39,22,15,'#c8b58f');footprint(31,-31,22,19,'#c2ae88');footprint(-30,30,21,19,'#c8b58f');footprint(39,41,17,12,'#c2ae88');footprint(31,-45,18,8,'#d1bd99');footprint(-43,13,10,13,'#c2ae88');footprint(42,8,10,12,'#c8b58f');
+  // Covered passages, underpass, connector, market access and outer alleys.
+  passage(-23,-39,-6.5,-39,6);passage(-6.5,-40,22.5,-40,6);passage(18,-40,18,-16,6);passage(18,-18,35,-18,6);passage(41.5,-20,48.5,-20,6);passage(42,-10,42,2,5);passage(-31,15,-7,15,5.5);passage(-38,15,-31,15,5);passage(-43,19,-43,31,5);passage(-39.5,39,-28.5,39,5);passage(-28.5,42,30.5,42,6);passage(-30,39,-30,42,5);passage(-21,27,-9,27,5);passage(31,-.5,31,18,5);passage(37,8,42,8,5);
+  footprint(-9,-12,15,3.2,'#8d795b');
+  // Fountain and site markers.
+  ctx.fillStyle='#71999a';ctx.beginPath();ctx.arc(px(0),py(0),2.7*scale,0,Math.PI*2);ctx.fill();
+  for(const [x,z,label] of [[31,-31,'A'],[-30,30,'B']]){ctx.strokeStyle='#e8c27e';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(px(x),py(z),3.8*scale,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#f7e6c5';ctx.font='bold 10px Inter,Arial';ctx.fillText(label,px(x)-3,py(z)+3);}
+  ctx.fillStyle='#efe0c4';ctx.font='bold 8px Inter,Arial';ctx.fillText('MID',px(0)-9,py(-5));ctx.fillText('MARKET',px(-43)-13,py(5));ctx.fillText('PALACE',px(31)-15,py(-46));
  }else{
   ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(px(-7.5),py(-mapEdge));ctx.lineTo(px(-7.5),py(mapEdge));ctx.stroke();ctx.beginPath();ctx.moveTo(px(-mapEdge),py(-7));ctx.lineTo(px(mapEdge),py(-7));ctx.stroke();
  }
