@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { isPlayerPositionBlocked } = require('../server/map-collision');
 
 test('Bazaar spawn locations are clear', () => {
- const spawns = [[-34,-39],[39,41],[31,-31],[-43,7],[-30,30],[0,5],[0,-5],[18,-8],[-19,15],[-42,25],[31,-45],[45,-18]];
+ const spawns = [[-34,-39],[39,41],[31,-31],[-43,13],[-30,30],[0,5],[0,-5],[18,-8],[-19,15],[-42,25],[31,-45],[45,-18]];
  for (const [x,z] of spawns) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),false,'spawn blocked at '+x+','+z);
 });
 
@@ -14,7 +14,7 @@ test('Bazaar keeps its covered routes traversable', () => {
 });
 
 test('Bazaar corridor walls and building walls block movement', () => {
- const points = [[-34,-46.5],[31,-40.5],[42,-35],[-40.5,30],[18,-24.5],[-19,12],[-42,22]];
+ const points = [[-34,-46.5],[25,-40.5],[42,-35],[-40.5,30],[14.5,-28],[-19,12],[-42,19]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),true,'wall failed to block at '+x+','+z);
 });
 
