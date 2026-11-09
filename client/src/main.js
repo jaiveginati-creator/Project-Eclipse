@@ -736,7 +736,7 @@ function handleNetwork(m){
  if(m.type==='supportReady'){supportReady=true;const button=$('[data-operator-ability]');if(button)button.disabled=false;toast('OPERATOR ABILITY READY');}
  if(m.type==='supportStatus'){supportReady=false;const button=$('[data-operator-ability]');if(button)button.disabled=true;}
  if(m.type==='supportUsed'){players=m.players||players;const p=players.find(x=>x.id===m.id),info=OPERATOR_ABILITIES[m.ability]||OPERATOR_ABILITIES.vanguard;if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),info.color);if(m.id===myId){supportReady=false;const button=$('[data-operator-ability]');if(button)button.disabled=true;}toast(info.name+' ACTIVATED');}
- if(m.type==='hitConfirm'{
+ if(m.type==='hitConfirm'){
   const hitTarget=players.find(p=>p.id===m.targetId);if(hitTarget)spawnImpact(new THREE.Vector3(hitTarget.x,hitTarget.y||1,hitTarget.z),(ALL_WEAPONS.find(w=>w.id===m.weapon)||ALL_WEAPONS[0]).color);
   showHit(Boolean(m.headshot));showDamageNumber(m.damage,Boolean(m.headshot));feed(`${m.headshot?'HEADSHOT · ':''}HIT CONFIRMED · ${m.damage} DAMAGE`);
   if(m.eliminated){feed(`ELIMINATION · ${m.targetName||'OPERATOR'}`);toast('TARGET ELIMINATED');}
