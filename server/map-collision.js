@@ -3,7 +3,7 @@
 // Conservative server-side collision volumes for major gameplay geometry.
 // The client still predicts movement, but the server rejects swept paths
 // through these blockers and validates shots against the same static volumes.
-const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [] };
+const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [], orbital: [] };
 
 function addBox(list, x, y, z, sx, sy, sz, rotation = 0) {
   const c = Math.cos(rotation), s = Math.sin(rotation);
@@ -138,6 +138,23 @@ function addShield(list, x, z, rotation = 0) {
 
   for (const [x,z] of [[-5,-20],[5,-20],[-5,20],[5,20],[-20,-5],[20,5]]) addBox(list,x,.48,z,1.65,.96,1.05);
 }
+
+
+ // ORBITAL — station hull, freight stacks, service bulkheads and low cover.
+ {
+  const list = MAP_OBSTACLES.orbital = [];
+  addBox(list,49,3,0,.8,6,100);addBox(list,-49,3,0,.8,6,100);
+  addBox(list,0,3,49,100,6,.8);addBox(list,0,3,-49,100,6,.8);
+  for(const [x,z,w,h,rot] of [
+   [-31,-25,12,3,0],[-31,-17,9,3,0],[-31,-9,12,3,0],
+   [-20,-29,8,3,Math.PI/2],[-20,-11,8,3,Math.PI/2],[-36,4,10,3,0],[-25,8,8,3,0]
+  ])addBox(list,x,h/2,z,w,h,2.8,rot);
+  // Openings alternate along the maintenance spine; the gaps remain walkable.
+  for(const z of [-29,-17,-5,7,19,31])addBox(list,28,2.3,z,.55,4.6,9);
+  for(const z of [-29,-17,-5,7,19,31])addBox(list,40,2.3,z+4,.55,4.6,9);
+  for(const [x,z,rotation] of [[-8,-20,.2],[9,-19,-.25],[-8,18,-.2],[9,19,.25],[0,10,Math.PI/2]])addBox(list,x,.8,z,4.2,1.6,1.25,rotation);
+  for(const [x,z] of [[-10,29],[0,32],[10,29],[-10,40],[10,40]])addBox(list,x,2.9,z,3.4,5.8,3.4);
+ }
 
 function overlaps(aMin,aMax,bMin,bMax) {
   return aMin < bMax && aMax > bMin;
