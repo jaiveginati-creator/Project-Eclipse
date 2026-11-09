@@ -16,7 +16,7 @@
     <div class="vignette"></div>
     <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" aria-label="Enter fullscreen" title="Enter fullscreen"><span class="fullscreen-icon" aria-hidden="true"></span><span class="fullscreen-label">FULLSCREEN</span></button>
     <div id="menu" class="screen active">
-      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.31.0</div></div>
+      <div class="menu-top"><div class="brand"><span class="brand-mark">E</span><span>PROJECT <b>ECLIPSE</b></span></div><div class="build-tag">PRE-ALPHA <i></i> BUILD 0.32.0</div></div>
       <div class="menu-content">
         <div class="eyebrow"><span></span> MULTIPLAYER TACTICAL EXPERIENCE</div>
         <h1>WHEN THE<br><em>LIGHT</em> FADES.</h1>
@@ -30,11 +30,11 @@
           </div>
           <div class="map-row"><div><span class="panel-label">DEPLOYMENT ZONE</span><strong id="map-name">DISTRICT</strong></div><div class="map-switch"><button class="map-choice active" data-map="district">01 / DISTRICT</button><button class="map-choice" data-map="industrial">02 / INDUSTRIAL</button><button class="map-choice" data-map="sublevel">03 / SUBLEVEL</button></div></div>
           <div class="connect-row"><label for="server-url">SERVER</label><input id="server-url" value="" placeholder="Auto-detect server or paste WSS URL" spellcheck="false"><span class="server-status"><i id="server-dot"></i><span id="server-label">OFFLINE / LOCAL</span></span></div><div class="private-room-row"><label><input id="private-room" type="checkbox"> CREATE PRIVATE LOBBY</label><input id="room-code" maxlength="6" placeholder="ROOM CODE TO JOIN" autocomplete="off" spellcheck="false"></div><div class="bot-settings"><label for="bot-count">LOBBY BOTS <small>OPTIONAL · PUBLIC & PRIVATE</small></label><select id="bot-count"><option value="0">0 · OFF</option><option value="1">1 BOT</option><option value="2">2 BOTS</option><option value="3">3 BOTS</option><option value="4">4 BOTS</option><option value="5">5 BOTS</option><option value="6">6 BOTS</option><option value="7">7 BOTS</option><option value="8">8 BOTS</option><option value="9">9 BOTS</option><option value="10">10 BOTS</option><option value="11">11 BOTS</option></select></div>
-          <div class="operator-settings"><div class="operator-heading"><span class="panel-label">SELECT OPERATOR</span><small>CHOOSE YOUR ARMOUR CONFIGURATION</small></div><div class="operator-options">
-            <button class="operator-choice selected" data-operator="vanguard"><i class="operator-silhouette vanguard"><b></b><em></em></i><strong>VANGUARD</strong><small>STANDARD ARMOUR</small></button>
-            <button class="operator-choice" data-operator="recon"><i class="operator-silhouette recon"><b></b><em></em></i><strong>RECON</strong><small>LIGHT PROFILE</small></button>
-            <button class="operator-choice" data-operator="assault"><i class="operator-silhouette assault"><b></b><em></em></i><strong>ASSAULT</strong><small>HEAVY PLATES</small></button>
-            <button class="operator-choice" data-operator="phantom"><i class="operator-silhouette phantom"><b></b><em></em></i><strong>PHANTOM</strong><small>STEALTH KIT</small></button>
+          <div class="operator-settings"><div class="operator-heading"><span class="panel-label">SELECT OPERATOR</span><small>CHOOSE YOUR ARMOUR + TACTICAL ABILITY</small></div><div class="operator-options">
+            <button class="operator-choice selected" data-operator="vanguard"><i class="operator-silhouette vanguard"><b></b><em></em></i><strong>VANGUARD</strong><small>BULWARK · TEMP SHIELD</small></button>
+            <button class="operator-choice" data-operator="recon"><i class="operator-silhouette recon"><b></b><em></em></i><strong>RECON</strong><small>SENSOR SWEEP · REVEAL</small></button>
+            <button class="operator-choice" data-operator="assault"><i class="operator-silhouette assault"><b></b><em></em></i><strong>ASSAULT</strong><small>OVERDRIVE · SPEED</small></button>
+            <button class="operator-choice" data-operator="phantom"><i class="operator-silhouette phantom"><b></b><em></em></i><strong>PHANTOM</strong><small>PHASE VEIL · CLOAK</small></button>
           </div></div>
           <div class="crosshair-settings"><div><span class="panel-label">CROSSHAIR</span><small>PERSONALIZE YOUR AIM</small></div><div class="crosshair-options">
             <button class="crosshair-choice selected" data-crosshair="standard" aria-label="Regular crosshair"><i class="crosshair-preview" data-style="standard"></i><span>REGULAR</span></button>
@@ -83,8 +83,8 @@
       <div class="hud-top"><div class="match-chip"><span class="live-dot"></span><span id="hud-mode">FREE FOR ALL</span><i></i><span id="hud-map">DISTRICT</span></div><div class="timer" id="timer">08:00</div><div class="score-chip" id="scoreboard-mini">YOU <b>0</b> <i>—</i> TOP <b>0</b></div></div>
       <div class="minimap" aria-label="Tactical minimap"><div class="minimap-heading">TACTICAL RADAR <span>LIVE</span></div><canvas id="minimap-canvas" width="200" height="200"></canvas><div class="minimap-legend"><span><i class="you"></i> YOU</span><span><i class="enemy"></i> ENEMY</span><span><i class="ally"></i> ALLY</span></div></div><div id="game-crosshair" class="crosshair" data-style="standard"><span></span><i></i></div>
       <div id="scope-overlay" class="scope-overlay" aria-hidden="true"></div><div id="hit-marker" class="hit-marker">×</div>
-      <div class="hud-bottom"><div class="player-status"><div class="status-icon">E</div><div><small>OPERATOR</small><strong id="player-name">ECLIPSE-01</strong></div><div class="health-track"><div id="health-fill"></div></div><b id="health-value">100</b></div><div class="objective-hint" id="objective-hint">ELIMINATIONS WIN THE OPERATION</div><div class="support-abilities"><button data-support="rally" disabled>RECOVERY PULSE · 300 PTS</button><button data-support="shield" disabled>TEAM SHIELD · 300 PTS</button></div><div class="weapon-status"><div class="weapon-label"><small>ACTIVE WEAPON</small><strong><span id="weapon-name">PULSE CARBINE</span></strong><small id="weapon-class">MK.01 · BALANCED</small></div><div class="ammo"><b id="ammo">12</b><i>/</i><span id="reserve">48</span></div></div></div>
-      <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1 PRIMARY / 2 SIDEARM <i>·</i> Q EQUIPMENT <i>·</i> RMB AIM <i>·</i> LMB FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> CTRL CROUCH <i>·</i> ESC MENU</div>
+      <div class="hud-bottom"><div class="player-status"><div class="status-icon">E</div><div><small>OPERATOR</small><strong id="player-name">ECLIPSE-01</strong></div><div class="health-track"><div id="health-fill"></div></div><b id="health-value">100</b></div><div class="objective-hint" id="objective-hint">ELIMINATIONS WIN THE OPERATION</div><div class="support-abilities"><button id="operator-ability" class="operator-ability-button" type="button">F · BULWARK</button><button data-support="rally" disabled>RECOVERY PULSE · 300 PTS</button><button data-support="shield" disabled>TEAM SHIELD · 300 PTS</button></div><div class="weapon-status"><div class="weapon-label"><small>ACTIVE WEAPON</small><strong><span id="weapon-name">PULSE CARBINE</span></strong><small id="weapon-class">MK.01 · BALANCED</small></div><div class="ammo"><b id="ammo">12</b><i>/</i><span id="reserve">48</span></div></div></div>
+      <div class="controls-hint">WASD MOVE <i>·</i> SPACE JUMP <i>·</i> 1 PRIMARY / 2 SIDEARM <i>·</i> F OPERATOR ABILITY <i>·</i> Q EQUIPMENT <i>·</i> RMB AIM <i>·</i> LMB FIRE <i>·</i> R RELOAD <i>·</i> SHIFT SPRINT <i>·</i> CTRL CROUCH <i>·</i> ESC MENU</div>
       <div id="mobile-controls" class="mobile-controls" aria-label="Touch controls">
         <div class="mobile-stick-wrap"><div id="mobile-stick" class="mobile-stick"><div class="mobile-stick-ring"></div><div id="mobile-stick-knob" class="mobile-stick-knob"></div></div><span>MOVE</span></div>
         <div class="mobile-action-cluster">
@@ -95,7 +95,7 @@
           <button class="mobile-action" data-mobile-action="sprint" aria-label="Sprint">RUN</button>
           <button class="mobile-action" data-mobile-action="reload" aria-label="Reload">RELOAD</button>
           <button class="mobile-action" data-mobile-action="switch" aria-label="Switch weapon">SWAP</button>
-          <button class="mobile-action" data-mobile-action="equipment" aria-label="Use equipment">GEAR</button>
+          <button class="mobile-action" data-mobile-action="equipment" aria-label="Use equipment">GEAR</button><button class="mobile-action" data-mobile-action="ability" aria-label="Use operator ability">ABILITY</button>
         </div>
         <button class="mobile-pause" data-mobile-action="pause" aria-label="Pause">Ⅱ</button>
         <div class="mobile-look-hint">DRAG RIGHT SIDE TO LOOK</div>

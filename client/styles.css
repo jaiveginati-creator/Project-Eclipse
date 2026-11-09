@@ -303,3 +303,7 @@
 
 /* v0.26.0 optional arcade lobby bots */
 .bot-settings{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding:11px 0}.bot-settings label{font-size:8px;letter-spacing:1.4px;color:#b9c4ce;font-weight:700}.bot-settings label small{display:block;margin-top:4px;font-size:6px;letter-spacing:.8px;color:#788894;font-weight:400}.bot-settings select{min-width:112px;padding:8px 10px;border:1px solid rgba(137,166,184,.25);background:#111d28;color:#e6edf2;font:600 10px Inter,sans-serif}.player-row .bot-name{color:#82cbd5}.player-row small{white-space:nowrap}@media(max-width:700px){.bot-settings{gap:8px}.bot-settings select{min-width:100px}}
+
+/* v0.32.0 class abilities */
+.operator-ability-button{border-color:rgba(230,168,91,.65)!important;color:#ffd08a!important;background:rgba(35,25,13,.94)!important;font-weight:800!important}.operator-ability-button:not(:disabled){box-shadow:0 0 14px rgba(230,168,91,.16)}.operator-ability-button:disabled{opacity:.58}
+@media(max-width:700px){.support-abilities{left:50%;bottom:205px;max-width:96vw;flex-wrap:wrap;justify-content:center}.support-abilities button{padding:7px 6px;font-size:8px}.support-abilities .operator-ability-button{order:-1;width:100%}[data-mobile-action="ability"]{right:90px;bottom:8px;border-color:#dba65f;color:#ffd08a}}

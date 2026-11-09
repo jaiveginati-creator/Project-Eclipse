@@ -1,4 +1,12 @@
-# PROJECT: ECLIPSE — Prototype 0.31.0
+# PROJECT: ECLIPSE — Prototype 0.32.0
+
+## Prototype 0.32.0 — Operator abilities
+- Vanguard: Bulwark grants 40 temporary shield points.
+- Recon: Sensor Sweep reveals nearby enemy positions on the tactical radar for five seconds.
+- Assault: Overdrive increases movement speed for 4.5 seconds.
+- Phantom: Phase Veil cloaks the operator from enemy models and radar for four seconds.
+- Abilities have a 30-second cooldown and are validated by the multiplayer server. Assault's movement boost also has a higher server movement allowance only while active.
+- Added keyboard (F), HUD and mobile controls, ability cooldown feedback, and class-specific descriptions in the deployment menu.
 
 ## Prototype 0.31.0 — Explosive ammo compatibility
 - Added Explosive ammo as a selectable gunsmith ammo type for all weapons, including the Volt Pistol.

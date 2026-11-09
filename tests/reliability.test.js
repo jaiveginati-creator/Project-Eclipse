@@ -128,6 +128,37 @@ test('private lobby codes isolate rooms and allow matching guests to join togeth
   }
 });
 
+test('operator abilities are server-authoritative and have a cooldown', { timeout: 15000 }, async () => {
+  const server = await startServer();
+  const clients = [];
+  try {
+    const a = await connectClient(server.port); clients.push(a);
+    const b = await connectClient(server.port); clients.push(b);
+    const welcomeA = waitForMessage(a, 'welcome');
+    a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'VANGUARD-TEST', profileId: '00000000-0000-4000-8000-000000000041', operator: 'vanguard' }));
+    await welcomeA;
+    const welcomeB = waitForMessage(b, 'welcome');
+    b.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'OBSERVER-ABILITY', profileId: '00000000-0000-4000-8000-000000000042' }));
+    await welcomeB;
+    const startedA = waitForMessage(a, 'matchStart');
+    const startedB = waitForMessage(b, 'matchStart');
+    a.send(JSON.stringify({ type: 'startMatch' }));
+    await Promise.all([startedA, startedB]);
+    const activated = waitForMessage(a, 'operatorAbilityResult');
+    a.send(JSON.stringify({ type: 'operatorAbility' }));
+    const result = await activated;
+    assert.equal(result.ok, true);
+    assert.equal(result.ability, 'bulwark');
+    assert.equal(result.cooldownMs, 30000);
+    const blocked = waitForMessage(a, 'operatorAbilityResult');
+    a.send(JSON.stringify({ type: 'operatorAbility' }));
+    const denied = await blocked;
+    assert.equal(denied.ok, false);
+    assert.equal(denied.message, 'ABILITY RECHARGING');
+  } finally {
+    await stopServer(server, clients);
+  }
+});
 test('explosive ammo builds are accepted and replicated for non-launcher weapons', { timeout: 15000 }, async () => {
   const server = await startServer();
   const clients = [];
