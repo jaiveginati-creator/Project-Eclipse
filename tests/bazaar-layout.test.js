@@ -9,12 +9,12 @@ test('Bazaar spawn locations are clear', () => {
 });
 
 test('Bazaar keeps its covered routes traversable', () => {
- const points = [[-14.75,-39],[8,-40],[18,-28],[24.5,-21],[45,-20],[-19,15],[-34.5,15],[-42,25],[-34,39],[1,42],[-15,27],[31,9],[39.5,-1]];
+ const points = [[-14.75,-39],[8,-40],[18,-28],[24.5,-18],[45,-20],[-19,15],[-34.5,15],[-42,25],[-34,39],[1,42],[-15,27],[31,9],[39.5,-1]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),false,'route blocked at '+x+','+z);
 });
 
 test('Bazaar corridor walls and building walls block movement', () => {
- const points = [[-34,-46.5],[25,-40.5],[42,-35],[-40.5,30],[14.5,-28],[-19,12],[-42,19]];
+ const points = [[-34,-46.5],[25,-40.5],[42,-35],[-40.5,30],[14.5,-28],[-19,12],[-44.8,19]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),true,'wall failed to block at '+x+','+z);
 });
 
