@@ -517,77 +517,40 @@ function buildSublevel(){
 }
 
 
-function buildStarfall(){
- clearMap();scene.background.set(0x071321);scene.fog.color.set(0x102638);scene.fog.density=.0052;
- hemi.color.set(0xa6d9ed);hemi.groundColor.set(0x101b29);hemi.intensity=1.65;
- moonLight.color.set(0xb8e5ff);moonLight.intensity=2.25;moonLight.position.set(-28,48,-34);
- fill.color.set(0x64a9c8);fill.intensity=.95;
- const floor=new THREE.MeshStandardMaterial({color:0x263b4a,roughness:.76,metalness:.35});
- const wall=new THREE.MeshStandardMaterial({color:0x182c3b,roughness:.48,metalness:.72});
- const trim=new THREE.MeshStandardMaterial({color:0x526d7d,roughness:.4,metalness:.62});
- const glass=new THREE.MeshPhysicalMaterial({color:0x73c6e8,metalness:.22,roughness:.16,transparent:true,opacity:.38,side:THREE.DoubleSide});
- const blue=new THREE.MeshStandardMaterial({color:0x50d9ed,emissive:0x117d9a,emissiveIntensity:1.15,metalness:.35,roughness:.28});
- const gold=new THREE.MeshStandardMaterial({color:0xd7a45d,emissive:0x74451d,emissiveIntensity:.6,metalness:.3,roughness:.4});
- const white=new THREE.MeshStandardMaterial({color:0x9bb8c6,emissive:0x263e4a,emissiveIntensity:.3,metalness:.25,roughness:.5});
- box(0,-.28,0,100,.56,100,floor,false);
- // Outer station shell and illuminated perimeter ribs.
- for(const side of [-1,1]){
-  box(side*48.5,3,0,.9,6,99,wall);box(0,3,side*48.5,99,6,.9,wall);
-  detailBox(side*47.95,5.65,0,.12,.14,96,blue);detailBox(0,5.65,side*47.95,96,.14,.12,blue);
- }
- for(let p=-40;p<=40;p+=10){box(p,3,-47.9,.28,6,.28,trim);box(p,3,47.9,.28,6,.28,trim);}
- // Central transfer hub — a circular power core with four open approaches.
- const hub=addVisualMesh(new THREE.CylinderGeometry(9.5,10.5,.22,48),trim,0,.12,0);
- const ring=addVisualMesh(new THREE.TorusGeometry(8.7,.18,8,64),blue,0,.28,0);ring.rotation.x=Math.PI/2;
- box(0,2.8,0,4.8,5.6,4.8,wall);
- for(const y of [1.25,2.8,4.35]){const r=addVisualMesh(new THREE.TorusGeometry(3.7,.13,8,40),blue,0,y,0);r.rotation.x=Math.PI/2;}
- mapLight(0,5.2,0,0x5bdff2,2.2,25);
- // Three distinct traversable lanes: a straight transit avenue and two curved side galleries.
- // Transit avenue cover islands.
- for(const [x,z,w,d] of [[-7,-27,4,2],[7,-16,4,2],[-7,16,4,2],[7,27,4,2]]){
-  box(x,.9,z,w,1.8,d,trim);detailBox(x,1.85,z,w-.3,.1,d-.2,gold);
- }
- // West gallery: staggered research pods and a curved line of light.
- for(const [x,z,w,d,h] of [[-31,-29,12,9,5],[-35,-12,8,10,4],[-31,10,12,8,5],[-36,31,9,10,5]]){
-  box(x,h/2,z,w,h,d,wall);detailBox(x,h+.05,z,w-.8,.14,d-.8,blue);
-  box(x,1.2,z+(z<0?d/2:-d/2),w*.55,2.4,.35,trim);
- }
- for(const z of [-39,-24,-8,9,25,40]){box(-23,2.2,z,.45,4.4,5.5,wall);mapLight(-21.8,4.2,z,0x58d8ec,.8,11);}
- // East gallery: solar observatory, power conduits and equipment alcoves.
- for(const [x,z,w,d,h] of [[31,-31,13,10,6],[36,-9,8,12,4.5],[31,16,12,9,5],[36,36,8,8,5]]){
-  box(x,h/2,z,w,h,d,wall);detailBox(x,h+.05,z,w-.8,.14,d-.8,gold);
-  box(x,1.15,z+(z<0?d/2:-d/2),w*.52,2.3,.35,trim);
- }
- for(const z of [-38,-22,-5,13,30,42]){box(23,2.2,z,.45,4.4,5.5,wall);mapLight(21.8,4.2,z,0x58d8ec,.8,11);}
- // North observation deck with panoramic eclipse glass.
- box(0,.12,-40,24,.24,12,trim);
- box(-12,4,-40,.5,8,12,wall);box(12,4,-40,.5,8,12,wall);box(0,4,-46,24,8,.45,wall);
- detailBox(0,4,-45.72,22.8,7.4,.12,glass);
- for(const x of [-8,-4,0,4,8])detailBox(x,4,-45.55,.1,7.1,.16,blue);
- for(const x of [-8,0,8])mapLight(x,6.4,-39,0x91e5ff,1.2,18);
- // South docking gallery: open loading floor, pods and bright docking markers.
- for(const [x,z,color] of [[-13,34,0x536e7d],[-13,42,0x7a6249],[13,34,0x496a78],[13,42,0x6d5c4b]]){
-  box(x,1.5,z,7,3,3,new THREE.MeshStandardMaterial({color,metalness:.45,roughness:.58}));
-  detailBox(x,3.05,z,6.5,.1,2.6,gold);
- }
- for(const x of [-20,20]){box(x,3,39,.5,6,18,wall);detailBox(x,5.8,39,.12,.12,17,blue);}
- // Cross-links between the side galleries and central hub; low barriers create short cover decisions.
- for(const [x,z,rot] of [[-15,-5,.15],[15,5,-.15],[-15,24,-.2],[15,-24,.2],[-5,37,Math.PI/2],[5,-37,Math.PI/2]]){
-  const cover=box(x,.78,z,4.8,1.56,1.35,trim);cover.rotation.y=rot;
-  detailBox(x,.84,z,4.25,.1,1.38,gold).rotation.y=rot;
- }
- for(const [x,z] of [[-43,-43],[43,-43],[-43,43],[43,43],[0,-47],[0,47]])mapLight(x,4,z,0x63dff0,1.25,18);
- player.pos.set(0,1.7,43);player.yaw=Math.PI;updateCamera();
+function buildBazaar(){
+ clearMap();scene.background.set(0x9cc4d4);scene.fog.color.set(0xd8c4a0);scene.fog.density=.003;
+ hemi.color.set(0xffedcf);hemi.groundColor.set(0x80694c);hemi.intensity=2;moonLight.color.set(0xffe0a6);moonLight.intensity=2.6;moonLight.position.set(-34,62,-28);fill.color.set(0xc4d8e1);fill.intensity=.55;
+ const sand=new THREE.MeshStandardMaterial({color:0xc4a477,roughness:.98}),stone=new THREE.MeshStandardMaterial({color:0xcbb58e,roughness:.94}),pale=new THREE.MeshStandardMaterial({color:0xe0cfaa,roughness:.92}),wood=new THREE.MeshStandardMaterial({color:0x49382a,roughness:.9}),clay=new THREE.MeshStandardMaterial({color:0x9b6040,roughness:.9}),brass=new THREE.MeshStandardMaterial({color:0x98713e,metalness:.25,roughness:.62}),cloth=[0xb65f43,0x477b79,0xd0a34f,0x8c5e83].map(color=>new THREE.MeshStandardMaterial({color,roughness:.95,side:THREE.DoubleSide}));
+ box(0,-.28,0,100,.56,100,sand,false);for(const side of [-1,1]){box(side*48.5,2.5,0,.8,5,98,stone);box(0,2.5,side*48.5,98,5,.8,stone);}
+ function room(x,z,w,d,h,door='south',tone=stone){box(x,.08,z,w,.16,d,sand,false);box(x,h+.08,z,w+.35,.18,d+.35,tone,false);const t=.62,g=4.2;
+  if(door==='south'){box(x-(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t,tone);box(x+(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t,tone);}else box(x,h/2,z+d/2,w,h,t,tone);
+  if(door==='north'){box(x-(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t,tone);box(x+(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t,tone);}else box(x,h/2,z-d/2,w,h,t,tone);
+  if(door==='east'){box(x+w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2,tone);box(x+w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2,tone);}else box(x+w/2,h/2,z,t,h,d,tone);
+  if(door==='west'){box(x-w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2,tone);box(x-w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2,tone);}else box(x-w/2,h/2,z,t,h,d,tone);
+  detailBox(x,h+.2,z-d/2,w+.4,.2,.3,pale);detailBox(x,h+.2,z+d/2,w+.4,.2,.3,pale);}
+ room(-29,-29,16,14,7,'south',pale);room(29,-29,16,17,7,'south',stone);room(-38,1,12,17,6.5,'east',pale);room(38,1,12,17,6.5,'west',stone);room(-29,30,18,13,6.8,'north',stone);room(29,30,18,13,6.8,'north',pale);
+ for(const [x,z,w,d] of [[-17,-30,5,1],[-17,28,5,1],[17,-28,5,1],[17,29,5,1],[-39,-13,1,6],[39,15,1,6]])box(x,1.65,z,w,3.3,d,wood);
+ addVisualMesh(new THREE.CylinderGeometry(3,3.3,.7,32),stone,0,.35,0,true);addVisualMesh(new THREE.CylinderGeometry(2.3,2.3,.12,32),new THREE.MeshStandardMaterial({color:0x729b9a}),0,.76,0);
+ for(const [x,z,r] of [[-8,-7,0],[8,7,0],[-7,8,Math.PI/2],[7,-8,Math.PI/2]]){const p=box(x,.58,z,3.8,1.16,1.25,stone);p.rotation.y=r;}
+ function stall(x,z,i,r=0){for(const sx of [-1,1])for(const sz of [-1,1]){const p=box(x+sx*1.7,1.35,z+sz*1.25,.12,2.7,.12,wood);p.rotation.y=r;}const c=detailBox(x,2.72,z,3.9,.18,3,cloth[i]);c.rotation.y=r;const q=box(x,.58,z,3.35,1.16,.82,wood);q.rotation.y=r;}
+ stall(-5,-14,0);stall(5,14,1);stall(15,-4,2,Math.PI/2);stall(-15,5,3,Math.PI/2);
+ for(const [x,z] of [[-22,-10],[-21,12],[22,-13],[21,13],[-10,25],[10,-25]])addVisualMesh(new THREE.CylinderGeometry(.42,.58,.9,12),clay,x,.45,z,true);
+ for(const [x,z] of [[-12,-3],[12,3],[-5,23],[5,-23],[-42,-17],[42,18]])box(x,.62,z,1.35,1.24,1.35,wood);
+ for(const [x,z] of [[-15,-20],[15,20],[-43,0],[43,0],[0,-43],[0,43]]){box(x,2.5,z,.16,5,.16,wood);detailBox(x+.48,4.8,z,.95,.12,.12,brass);const l=new THREE.PointLight(0xffc879,.7,10);l.position.set(x+.48,4.5,z);scene.add(l);mapObjects.push(l);}
+ for(const [x,z] of [[-43,-34],[-43,34],[43,-34],[43,34],[-12,41],[13,-41]]){addVisualMesh(new THREE.CylinderGeometry(.18,.28,3.2,8),wood,x,1.6,z,true);addVisualMesh(new THREE.ConeGeometry(1.5,3.3,7),new THREE.MeshStandardMaterial({color:0x54704c}),x,4.3,z);}
+ box(39,.35,-40,13,.7,8,wood);for(let i=0;i<6;i++)box(31+i*1.1,.18+i*.18,-35,2.1,.36+i*.36,3.2,stone);
+ player.pos.set(-42,1.7,-42);player.yaw=Math.PI/4;updateCamera();
 }
 
 function buildSelectedMap(){
  if(selectedMap==='district')buildDistrict();
  else if(selectedMap==='industrial')buildIndustrial();
- else if(selectedMap==='starfall')buildStarfall();
+ else if(selectedMap==='bazaar')buildBazaar();
  else buildSublevel();
 }
 
 function createEclipse(){
+  if(selectedMap==='bazaar')return;
  const dustCount=420,dustPositions=new Float32Array(dustCount*3);for(let i=0;i<dustCount;i++){dustPositions[i*3]=(Math.random()-.5)*100;dustPositions[i*3+1]=.2+Math.random()*5;dustPositions[i*3+2]=(Math.random()-.5)*100;}const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPositions,3));dustField=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xb5c2c8,size:.045,transparent:true,opacity:.32,depthWrite:false}));scene.add(dustField);mapObjects.push(dustField);
  const sun=new THREE.Mesh(new THREE.SphereGeometry(5,32,32),new THREE.MeshBasicMaterial({color:0x080b11}));sun.position.set(-35,42,-78);scene.add(sun);mapObjects.push(sun);
  const halo=new THREE.Mesh(new THREE.TorusGeometry(5.8,.16,10,96),new THREE.MeshBasicMaterial({color:0xe0a66b,transparent:true,opacity:.9}));halo.position.copy(sun.position);halo.lookAt(0,0,0);scene.add(halo);mapObjects.push(halo);
@@ -656,7 +619,7 @@ function startAmbientAudio(){
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  if(!audioContext){audioContext=new AudioCtx();const master=audioContext.createGain();master.gain.value=.18;master.connect(audioContext.destination);
   const low=audioContext.createOscillator(),high=audioContext.createOscillator(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();low.type='sine';low.frequency.value=48;high.type='triangle';high.frequency.value=73;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.12;low.connect(filter);high.connect(filter);filter.connect(gain);gain.connect(master);low.start();high.start();ambientNodes={low,high,filter,gain,master};
- }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='starfall'?48:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='starfall'?72:79,audioContext.currentTime,1);}
+ }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='bazaar'?66:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='bazaar'?88:79,audioContext.currentTime,1);}
 }
 function playSfx(kind='pulse',color=0xffc16e){
  if(!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();const now=audioContext.currentTime;
@@ -858,10 +821,15 @@ function drawMinimap(){
  for(let v=selectedMap==='sublevel'?-20:-40;v<=(selectedMap==='sublevel'?20:40);v+=selectedMap==='sublevel'?10:20){ctx.beginPath();ctx.moveTo(px(v),pad);ctx.lineTo(px(v),size-pad);ctx.stroke();ctx.beginPath();ctx.moveTo(pad,py(v));ctx.lineTo(size-pad,py(v));ctx.stroke();}
  // Map perimeter: movement is blocked just inside this line.
  ctx.strokeStyle='rgba(230,168,91,.9)';ctx.lineWidth=2;const mapEdge=selectedMap==='sublevel'?23.8:47.8;ctx.strokeRect(px(-mapEdge),py(-mapEdge),mapEdge*2*scale,mapEdge*2*scale);
- // A few orientation/road references keep the radar readable without clutter.
- ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;
- ctx.beginPath();ctx.moveTo(px(-7.5),py(-mapEdge));ctx.lineTo(px(-7.5),py(mapEdge));ctx.stroke();
- ctx.beginPath();ctx.moveTo(px(-mapEdge),py(-7));ctx.lineTo(px(mapEdge),py(-7));ctx.stroke();
+ if(selectedMap==='bazaar'){
+  const block=(x,z,w,d,color='#a88c66')=>{ctx.fillStyle=color;ctx.strokeStyle='#e2cda5';ctx.lineWidth=1.5;ctx.fillRect(px(x-w/2),py(z-d/2),w*scale,d*scale);ctx.strokeRect(px(x-w/2),py(z-d/2),w*scale,d*scale);};
+  ctx.fillStyle='#bda47e';ctx.fillRect(px(-47),py(-47),94*scale,94*scale);ctx.fillStyle='#d1bb91';ctx.fillRect(px(-9),py(-47),18*scale,94*scale);ctx.fillRect(px(-47),py(-8),94*scale,16*scale);
+  block(-29,-29,16,14);block(29,-29,16,17);block(-38,1,12,17);block(38,1,12,17);block(-29,30,18,13);block(29,30,18,13);
+  block(-17,-30,5,1,'#89765d');block(-17,28,5,1,'#89765d');block(17,-28,5,1,'#89765d');block(17,29,5,1,'#89765d');block(-39,-13,1,6,'#89765d');block(39,15,1,6,'#89765d');
+  for(const [x,z] of [[-5,-14],[5,14],[15,-4],[-15,5]])block(x,z,3.9,3,'#a56c4a');ctx.fillStyle='#739b9b';ctx.beginPath();ctx.arc(px(0),py(0),3*scale,0,Math.PI*2);ctx.fill();block(39,-40,13,8,'#89765d');
+ }else{
+  ctx.strokeStyle='rgba(160,177,190,.18)';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(px(-7.5),py(-mapEdge));ctx.lineTo(px(-7.5),py(mapEdge));ctx.stroke();ctx.beginPath();ctx.moveTo(px(-mapEdge),py(-7));ctx.lineTo(px(mapEdge),py(-7));ctx.stroke();
+ }
  if(selectedMap==='sublevel'){
   ctx.strokeStyle='rgba(160,190,204,.34)';ctx.lineWidth=3.2;
   const gaps=[-16,0,16],halfGap=2.35,edge=24.35;

@@ -184,8 +184,8 @@ function spawnForSlot(slot, map = 'district') {
   const compactSpawns = [[-17,-17],[17,-17],[-17,17],[17,17],[-17,0],[17,0],[0,-17],[0,17]];
   const industrialSpawns = [[-12,0],[12,0],[0,-15],[0,15],[-12,16],[12,-16],[-12,-16],[12,16],[-20,0],[20,0],[0,-22],[0,22]];
   const districtSpawns = [[-5,0],[5,0],[0,-8],[0,8],[-8,-8],[8,8],[-8,8],[8,-8],[-12,0],[12,0],[0,-14],[0,14]];
-  const starfallSpawns = [[0,43],[0,-43],[-42,0],[42,0],[-38,34],[38,-34],[-38,-34],[38,34],[-12,43],[12,-43],[-42,15],[42,-15]];
-  const points = map === 'sublevel' ? compactSpawns : map === 'industrial' ? industrialSpawns : map === 'starfall' ? starfallSpawns : districtSpawns;
+  const bazaarSpawns = [[-42,-42],[42,-42],[-42,42],[42,42],[-42,0],[42,0],[0,-42],[0,42],[-15,-42],[15,42],[-15,42],[15,-42]];
+  const points = map === 'sublevel' ? compactSpawns : map === 'industrial' ? industrialSpawns : map === 'bazaar' ? bazaarSpawns : districtSpawns;
   for (let offset = 0; offset < points.length; offset++) {
     const point = points[(Math.max(0, slot) + offset) % points.length];
     if (!isPlayerPositionBlocked(map, point[0], 1.7, point[1])) return { x: point[0], y: 1.7, z: point[1] };
@@ -212,7 +212,7 @@ const BOT_ROUTES = {
   district: [[-42,0],[-22,0],[0,0],[22,0],[42,0],[0,0],[0,42],[0,22],[0,-22],[0,-42],[0,0]],
   industrial: [[-43,0],[-22,0],[0,0],[22,0],[43,0],[0,0],[0,43],[0,22],[0,-22],[0,-43],[0,0]],
   sublevel: [[-16,-16],[-16,0],[-16,16],[0,16],[16,16],[16,0],[16,-16],[0,-16]],
-  starfall: [[0,42],[0,24],[0,8],[0,0],[-18,-8],[-34,-22],[-34,4],[-34,28],[18,8],[34,22],[34,-4],[34,-28],[0,-24]]
+  bazaar: [[-42,-42],[-25,-18],[-12,-8],[0,0],[13,-12],[28,-20],[42,0],[28,22],[12,36],[0,18],[-18,25],[-40,20],[-42,0]]
 };
 function combatants(room) { return [...members(room), ...botsIn(room)]; }
 function isEnemy(shooter, target) {
@@ -549,7 +549,7 @@ wss.on('connection', ws => {
     if (message.type === 'join') {
       if (c.room) return send(ws, { type: 'error', message: 'You are already in a lobby' });
       const mode = VALID_MODES.has(message.mode) ? message.mode : 'ffa';
-      const map = ['district','industrial','sublevel','starfall'].includes(message.map) ? message.map : 'district';
+      const map = ['district','industrial','sublevel','bazaar'].includes(message.map) ? message.map : 'district';
       const roomCode=String(message.roomCode||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
       const room = roomKey(mode, map, roomCode);
       if (matches.get(room)?.active) return send(ws, { type: 'error', message: 'This match has already started' });

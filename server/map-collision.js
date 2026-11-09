@@ -3,7 +3,7 @@
 // Conservative server-side collision volumes for major gameplay geometry.
 // The client still predicts movement, but the server rejects swept paths
 // through these blockers and validates shots against the same static volumes.
-const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [], starfall: [] };
+const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [], bazaar: [] };
 
 function addBox(list, x, y, z, sx, sy, sz, rotation = 0) {
   const c = Math.cos(rotation), s = Math.sin(rotation);
@@ -141,24 +141,26 @@ function addShield(list, x, z, rotation = 0) {
 
 
 
- // STARFALL — original orbital research complex with three distinct route families.
+ // BAZAAR — original sunlit old-town district.
  {
-  const list = MAP_OBSTACLES.starfall = [];
-  addBox(list,48.5,3,0,.9,6,99);addBox(list,-48.5,3,0,.9,6,99);
-  addBox(list,0,3,48.5,99,6,.9);addBox(list,0,3,-48.5,99,6,.9);
-  addBox(list,0,2.8,0,4.8,5.6,4.8);
-  for(const [x,z,w,d,h] of [[-31,-29,12,9,5],[-35,-12,8,10,4],[-31,10,12,8,5],[-36,31,9,10,5],[31,-31,13,10,6],[36,-9,8,12,4.5],[31,16,12,9,5],[36,36,8,8,5]]){
-    addBox(list,x,h/2,z,w,h,d);
-  }
-  for(const z of [-39,-24,-8,9,25,40])addBox(list,-23,2.2,z,.45,4.4,5.5);
-  for(const z of [-38,-22,-5,13,30,42])addBox(list,23,2.2,z,.45,4.4,5.5);
-  for(const x of [-12,12])addBox(list,x,4,-40,.5,8,12);
-  addBox(list,0,4,-46,24,8,.45);
-  for(const [x,z] of [[-13,34],[-13,42],[13,34],[13,42]])addBox(list,x,1.5,z,7,3,3);
-  for(const x of [-20,20])addBox(list,x,3,39,.5,6,18);
-  for(const [x,z,rotation] of [[-15,-5,.15],[15,5,-.15],[-15,24,-.2],[15,-24,.2],[-5,37,Math.PI/2],[5,-37,Math.PI/2]])addBox(list,x,.78,z,4.8,1.56,1.35,rotation);
+  const list = MAP_OBSTACLES.bazaar = [];
+  addBox(list,48.5,2.5,0,.8,5,98);addBox(list,-48.5,2.5,0,.8,5,98);addBox(list,0,2.5,48.5,98,5,.8);addBox(list,0,2.5,-48.5,98,5,.8);
+  const room=(x,z,w,d,h,door='south')=>{const t=.62,g=4.2;
+   if(door==='south'){addBox(list,x-(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t);addBox(list,x+(w/2-(w-g)/4),h/2,z+d/2,(w-g)/2,h,t);}else addBox(list,x,h/2,z+d/2,w,h,t);
+   if(door==='north'){addBox(list,x-(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t);addBox(list,x+(w/2-(w-g)/4),h/2,z-d/2,(w-g)/2,h,t);}else addBox(list,x,h/2,z-d/2,w,h,t);
+   if(door==='east'){addBox(list,x+w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2);addBox(list,x+w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2);}else addBox(list,x+w/2,h/2,z,t,h,d);
+   if(door==='west'){addBox(list,x-w/2,h/2,z-(d/2-(d-g)/4),t,h,(d-g)/2);addBox(list,x-w/2,h/2,z+(d/2-(d-g)/4),t,h,(d-g)/2);}else addBox(list,x-w/2,h/2,z,t,h,d);
+  };
+  room(-29,-29,16,14,7,'south');room(29,-29,16,17,7,'south');room(-38,1,12,17,6.5,'east');room(38,1,12,17,6.5,'west');room(-29,30,18,13,6.8,'north');room(29,30,18,13,6.8,'north');
+  for(const [x,z,w,d] of [[-17,-30,5,1],[-17,28,5,1],[17,-28,5,1],[17,29,5,1],[-39,-13,1,6],[39,15,1,6]])addBox(list,x,1.65,z,w,3.3,d);
+  addBox(list,0,.35,0,6.6,.7,6.6);
+  for(const [x,z,r] of [[-8,-7,0],[8,7,0],[-7,8,Math.PI/2],[7,-8,Math.PI/2]])addBox(list,x,.58,z,3.8,1.16,1.25,r);
+  for(const [x,z] of [[-5,-14],[5,14],[15,-4],[-15,5]])addBox(list,x,1.35,z,3.35,2.7,.82);
+  for(const [x,z] of [[-22,-10],[-21,12],[22,-13],[21,13],[-10,25],[10,-25]])addBox(list,x,.45,z,1.16,.9,1.16);
+  for(const [x,z] of [[-12,-3],[12,3],[-5,23],[5,-23],[-42,-17],[42,18]])addBox(list,x,.62,z,1.35,1.24,1.35);
+  addBox(list,39,.35,-40,13,.7,8);for(let i=0;i<6;i++)addBox(list,31+i*1.1,.18+i*.18,-35,2.1,.36+i*.36,3.2);
+  for(const [x,z] of [[-43,-34],[-43,34],[43,-34],[43,34],[-12,41],[13,-41]])addBox(list,x,1.6,z,.56,3.2,.56);
  }
-
 
 function overlaps(aMin,aMax,bMin,bMax) {
   return aMin < bMax && aMax > bMin;
