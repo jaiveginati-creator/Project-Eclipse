@@ -550,6 +550,7 @@ function buildSelectedMap(){
 }
 
 function createEclipse(){
+  if(selectedMap==='bazaar')return;
  const dustCount=420,dustPositions=new Float32Array(dustCount*3);for(let i=0;i<dustCount;i++){dustPositions[i*3]=(Math.random()-.5)*100;dustPositions[i*3+1]=.2+Math.random()*5;dustPositions[i*3+2]=(Math.random()-.5)*100;}const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPositions,3));dustField=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xb5c2c8,size:.045,transparent:true,opacity:.32,depthWrite:false}));scene.add(dustField);mapObjects.push(dustField);
  const sun=new THREE.Mesh(new THREE.SphereGeometry(5,32,32),new THREE.MeshBasicMaterial({color:0x080b11}));sun.position.set(-35,42,-78);scene.add(sun);mapObjects.push(sun);
  const halo=new THREE.Mesh(new THREE.TorusGeometry(5.8,.16,10,96),new THREE.MeshBasicMaterial({color:0xe0a66b,transparent:true,opacity:.9}));halo.position.copy(sun.position);halo.lookAt(0,0,0);scene.add(halo);mapObjects.push(halo);
@@ -618,7 +619,7 @@ function startAmbientAudio(){
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  if(!audioContext){audioContext=new AudioCtx();const master=audioContext.createGain();master.gain.value=.18;master.connect(audioContext.destination);
   const low=audioContext.createOscillator(),high=audioContext.createOscillator(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();low.type='sine';low.frequency.value=48;high.type='triangle';high.frequency.value=73;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.12;low.connect(filter);high.connect(filter);filter.connect(gain);gain.connect(master);low.start();high.start();ambientNodes={low,high,filter,gain,master};
- }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='starfall'?48:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='starfall'?72:79,audioContext.currentTime,1);}
+ }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='bazaar'?66:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='bazaar'?88:79,audioContext.currentTime,1);}
 }
 function playSfx(kind='pulse',color=0xffc16e){
  if(!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();const now=audioContext.currentTime;
