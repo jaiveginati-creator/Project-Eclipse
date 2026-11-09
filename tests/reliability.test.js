@@ -153,3 +153,14 @@ test('explosive ammo builds are accepted and replicated for non-launcher weapons
     await stopServer(server, clients);
   }
 });
+
+
+test('operator abilities cannot be triggered without earned support charge', { timeout: 12000 }, async () => {
+  const server = await startServer(); const clients = [];
+  try { const a = await connectClient(server.port); clients.push(a); const welcome = waitForMessage(a, 'welcome');
+    a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'ABILITY-GUARD-TEST', profileId: '00000000-0000-4000-8000-000000000041', operator: 'vanguard' })); await welcome;
+    const started = waitForMessage(a, 'matchStart'); a.send(JSON.stringify({ type: 'startMatch' })); await started;
+    const unexpectedAbility = waitForMessage(a, 'supportUsed', 700); a.send(JSON.stringify({ type: 'supportAbility', ability: 'assault' }));
+    await assert.rejects(unexpectedAbility, /Timed out waiting for supportUsed/);
+  } finally { await stopServer(server, clients); }
+});
