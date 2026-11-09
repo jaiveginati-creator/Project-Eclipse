@@ -222,10 +222,11 @@ test('explosive ammo builds are accepted and replicated for non-launcher weapons
 });
 
 
-test('Orbital map collision keeps the station enclosed and its main lanes open', () => {
-  assert.equal(isPlayerPositionBlocked('orbital', 49, 1.7, 0), true, 'outer hull blocks leaving the station');
-  assert.equal(isPlayerPositionBlocked('orbital', -31, 1.7, -25), true, 'cargo containers block movement');
-  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 0), true, 'reactor core blocks the center');
-  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 42), false, 'south deployment lane remains open');
-  assert.equal(movementBlocked('orbital', { x: 8, y: 1.7, z: 0 }, { x: 12, y: 1.7, z: 0 }), false);
+test('Starfall map collision keeps the station enclosed and its three route families open', () => {
+  assert.equal(isPlayerPositionBlocked('starfall', 49, 1.7, 0), true, 'outer hull blocks leaving the station');
+  assert.equal(isPlayerPositionBlocked('starfall', -31, 1.7, -29), true, 'west research pod blocks movement');
+  assert.equal(isPlayerPositionBlocked('starfall', 0, 1.7, 0), true, 'central power core blocks the center');
+  assert.equal(isPlayerPositionBlocked('starfall', 0, 1.7, 43), false, 'south deployment approach remains open');
+  assert.equal(isPlayerPositionBlocked('starfall', 0, 1.7, -43), false, 'north observation approach remains open');
+  assert.equal(movementBlocked('starfall', { x: 8, y: 1.7, z: 0 }, { x: 12, y: 1.7, z: 0 }), false, 'central cross-link remains traversable');
 });
