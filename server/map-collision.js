@@ -150,8 +150,8 @@ function addShield(list, x, z, rotation = 0) {
  const room=(x,z,w,d,doors={})=>{const x1=x-w/2,x2=x+w/2,z1=z-d/2,z2=z+d/2;wallX(z1,x1,x2,doors.n??null,doors.nw||4.6);wallX(z2,x1,x2,doors.s??null,doors.sw||4.6);wallZ(x1,z1,z2,doors.w??null,doors.ww||4.6);wallZ(x2,z1,z2,doors.e??null,doors.ew||4.6);};
  const tunnel=(x,z,w,d,doors={})=>room(x,z,w,d,doors);
  addBox(list,49,2.7,0,.8,5.4,98);addBox(list,-49,2.7,0,.8,5.4,98);addBox(list,0,2.7,49,98,5.4,.8);addBox(list,0,2.7,-49,98,5.4,.8);
- room(-34,-39,22,15,{s:-34,e:-39});room(31,-31,22,19,{w:-31,e:-31,s:31,n:31});room(-30,30,21,19,{w:39,e:27,n:-30,s:-30});room(39,41,17,12,{w:39,n:39});room(31,-45,18,8,{s:31});
- tunnel(45,-20,7,24,{n:45,s:45});tunnel(-14.75,-39,17,6,{w:-39,e:-39});tunnel(8,-40,29,6,{w:-40,e:-40});tunnel(18,-10,7,24,{n:18,s:18});tunnel(24.5,-21,13,6,{w:-21,e:-21});tunnel(39.5,-1,5,18,{n:39.5,s:39.5});tunnel(-19,15,24,6,{w:15,e:15});tunnel(-34.5,15,7,6,{w:15,e:15});room(-43,13,10,13,{e:13,s:-43,n:-43});tunnel(-42,25,6,12,{n:-42,s:-42});tunnel(-34,39,11,6,{w:39,e:39});tunnel(1,42,59,6,{w:42,e:42});tunnel(-15,27,12,6,{w:27,e:27});tunnel(31,9,6,19,{n:9,s:9});room(42,8,10,12,{w:8,s:42});
+ room(-34,-39,22,15,{s:-34,e:-39});room(31,-31,22,19,{w:-31,e:-31,s:31,n:31});room(-30,30,21,19,{w:25,e:27,n:-30,s:-30});room(39,41,17,12,{w:39,n:39});room(31,-45,18,8,{s:31});
+ tunnel(45,-20,7,24,{n:45,s:45});tunnel(-14.75,-39,17,6,{w:-39,e:-39});tunnel(8,-40,29,6,{w:-40,e:-40});tunnel(18,-28,7,24,{n:18,s:18});tunnel(24.5,-21,13,6,{w:-21,e:-21});tunnel(39.5,-1,5,18,{n:39.5,s:39.5});tunnel(-19,15,24,6,{w:15,e:15});tunnel(-34.5,15,7,6,{w:15,e:15});room(-43,13,10,13,{e:13,s:-43,n:-43});tunnel(-42,25,6,12,{n:-42,s:-42});tunnel(-34,39,11,6,{w:39,e:39});tunnel(1,42,59,6,{w:42,e:42});tunnel(-15,27,12,6,{w:27,e:27});tunnel(31,9,6,19,{n:9,s:9});room(42,8,10,12,{w:8,s:42});
  // Mid cover, fountain rim and objective crates.
  for(const [x,z,r] of [[-7,-5,0],[7,5,0],[-6,7,Math.PI/2],[6,-7,Math.PI/2],[-3,-12,0],[3,12,0]])addBox(list,x,.62,z,3.6,1.24,1.05,r);
  for(const [cx,cz] of [[31,-31],[-30,30]])for(const [dx,dz] of [[-5,-4],[5,-4],[-5,4],[5,4]])addBox(list,cx+dx,.55,cz+dz,2.1,1.1,1.5);
