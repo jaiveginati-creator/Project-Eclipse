@@ -254,6 +254,7 @@ test('combat bot can damage a human and can be eliminated by a human player', { 
     assert.ok(bot, 'one lobby bot should be created');
     assert.ok(bot.primary && bot.secondary, 'bot should receive a usable primary and secondary weapon');
     assert.equal(bot.alive, true);
+    assert.equal(bot.moving, false, 'bots should wait in the lobby instead of running in place');
 
     const started = waitForMessage(human, message => message.type === 'matchStart');
     human.send(JSON.stringify({ type: 'startMatch' }));
