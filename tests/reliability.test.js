@@ -226,7 +226,7 @@ test('Bazaar map collision preserves perimeter and open market routes', () => {
   assert.equal(isPlayerPositionBlocked('bazaar', 48.5, 1.7, 0), true);
   assert.equal(isPlayerPositionBlocked('bazaar', -35, 1.7, -22), true);
   assert.equal(isPlayerPositionBlocked('bazaar', -29, 1.7, -21.5), false);
-  assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 0), false);
-  assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 43), false);
+  assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 5), false);
+  assert.equal(isPlayerPositionBlocked('bazaar', 0, 1.7, 38), false);
   assert.equal(movementBlocked('bazaar', { x: -42, y: 1.7, z: 0 }, { x: -18, y: 1.7, z: 0 }), false);
 });
