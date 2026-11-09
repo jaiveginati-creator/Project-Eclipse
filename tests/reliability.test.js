@@ -225,7 +225,7 @@ test('explosive ammo builds are accepted and replicated for non-launcher weapons
 test('Orbital map collision keeps the station enclosed and its main lanes open', () => {
   assert.equal(isPlayerPositionBlocked('orbital', 49, 1.7, 0), true, 'outer hull blocks leaving the station');
   assert.equal(isPlayerPositionBlocked('orbital', -31, 1.7, -25), true, 'cargo containers block movement');
-  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 0), false, 'central atrium remains open');
+  assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 0), true, 'reactor core blocks the center');
   assert.equal(isPlayerPositionBlocked('orbital', 0, 1.7, 42), false, 'south deployment lane remains open');
-  assert.equal(movementBlocked('orbital', { x: 0, y: 1.7, z: 0 }, { x: 8, y: 1.7, z: 0 }), false);
+  assert.equal(movementBlocked('orbital', { x: 8, y: 1.7, z: 0 }, { x: 12, y: 1.7, z: 0 }), false);
 });
