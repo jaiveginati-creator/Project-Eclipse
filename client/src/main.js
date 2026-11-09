@@ -130,6 +130,7 @@ const SECONDARY_WEAPONS=ALL_WEAPONS.filter(w=>['volt','magnum'].includes(w.id));
 let weapons=[ALL_WEAPONS[0],ALL_WEAPONS[1]];
 let selectedPrimary='pulse',selectedSecondary='volt',selectedEquipment='shield';
 const OPERATOR_PRESETS={vanguard:{armor:0x536b4c,light:0x82936b,visor:0xe7ad43,visorGlow:0x5a2b08,shoulder:1,style:'balanced'},recon:{armor:0x3d4a52,light:0x82949b,visor:0x65d9ee,visorGlow:0x145a68,shoulder:.82,style:'light'},assault:{armor:0x76664d,light:0xb29a70,visor:0xffbd65,visorGlow:0x704019,shoulder:1.22,style:'heavy'},phantom:{armor:0x343946,light:0x687080,visor:0xb99aff,visorGlow:0x49317a,shoulder:.94,style:'stealth'}};
+const OPERATOR_ABILITIES={vanguard:{name:'AEGIS BARRIER',description:'Deploys a protective shield for you and nearby squadmates',color:0x79c9ff},recon:{name:'OVERCLOCK',description:'Boosts weapon cycling speed for 7 seconds',color:0x65d9ee},assault:{name:'BREACH SURGE',description:'Increases weapon damage for 6 seconds',color:0xffbd65},phantom:{name:'VEIL MATRIX',description:'Reduces incoming damage for 7 seconds',color:0xb99aff}};
 let selectedOperator='vanguard';
 let weaponIndex=0; let weaponAmmo=weapons.map(w=>({ammo:w.mag,reserve:w.stock})); let viewWeapon=null, weaponRecoil=0, moveBob=0, verticalVelocity=0, reloadTimer=null, autoReloadTimer=null, mouseHeld=false, isAiming=false;
 let weaponAnimation={kind:'idle',start:0,duration:0}; let slideUntil=0,slideDirection=new THREE.Vector3(),mantleState=null,sprintBlend=0,lastGroundedAt=0,slideTriggered=false; let equipmentReadyAt=0,dustField=null; const impactParticles=[]; let audioContext=null,ambientNodes=null;
@@ -732,10 +733,10 @@ function handleNetwork(m){
  }
  if(m.type==='equipmentResult'){if(m.equipment==='shield'){health=Number.isFinite(m.health)?m.health:health;updateHealthHud();}toast('EQUIPMENT READY');}
  if(m.type==='equipment'){if(m.id===myId){if(m.equipment==='ammo'){weaponAmmo[weaponIndex].reserve+=40;syncAmmo();}toast(m.equipment==='recon'?'RECON PULSE DEPLOYED':'AMMO PACK DEPLOYED');}else{const p=players.find(x=>x.id===m.id);if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),m.equipment==='recon'?0x68d9ff:0x8bd7ff);}}
- if(m.type==='supportReady'){supportReady=true;document.querySelectorAll('[data-support]').forEach(b=>b.disabled=false);toast('SUPPORT ABILITY READY · 300 POINTS');}
- if(m.type==='supportStatus'){supportReady=false;document.querySelectorAll('[data-support]').forEach(b=>b.disabled=true);}
- if(m.type==='supportUsed'){players=m.players||players;const p=players.find(x=>x.id===m.id);if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),m.ability==='shield'?0x79c9ff:0x8affc1);toast(m.ability==='shield'?'TEAM SHIELD PULSE':'TEAM RECOVERY PULSE');}
- if(m.type==='hitConfirm'){
+ if(m.type==='supportReady'){supportReady=true;const button=$('[data-operator-ability]');if(button)button.disabled=false;toast('OPERATOR ABILITY READY');}
+ if(m.type==='supportStatus'){supportReady=false;const button=$('[data-operator-ability]');if(button)button.disabled=true;}
+ if(m.type==='supportUsed'){players=m.players||players;const p=players.find(x=>x.id===m.id),info=OPERATOR_ABILITIES[m.ability]||OPERATOR_ABILITIES.vanguard;if(p)spawnImpact(new THREE.Vector3(p.x,p.y||1,p.z),info.color);if(m.id===myId){supportReady=false;const button=$('[data-operator-ability]');if(button)button.disabled=true;}toast(info.name+' ACTIVATED');}
+ if(m.type==='hitConfirm'{
   const hitTarget=players.find(p=>p.id===m.targetId);if(hitTarget)spawnImpact(new THREE.Vector3(hitTarget.x,hitTarget.y||1,hitTarget.z),(ALL_WEAPONS.find(w=>w.id===m.weapon)||ALL_WEAPONS[0]).color);
   showHit(Boolean(m.headshot));showDamageNumber(m.damage,Boolean(m.headshot));feed(`${m.headshot?'HEADSHOT · ':''}HIT CONFIRMED · ${m.damage} DAMAGE`);
   if(m.eliminated){feed(`ELIMINATION · ${m.targetName||'OPERATOR'}`);toast('TARGET ELIMINATED');}
@@ -809,7 +810,8 @@ function drawMinimap(){
 }
 
 const CROSSHAIR_STYLES=['standard','red','dot','green','amber'];
-function setOperator(operator,save=true){const requested=OPERATOR_PRESETS[operator]?operator:'vanguard';selectedOperator=(OPERATOR_UNLOCK_LEVEL[requested]||99)<=(playerProfile.level||1)?requested:'vanguard';document.querySelectorAll('[data-operator]').forEach(b=>b.classList.toggle('selected',b.dataset.operator===selectedOperator));if(save){try{localStorage.setItem('eclipse-operator',selectedOperator);}catch{}}}
+function updateOperatorAbilityUI(){const info=OPERATOR_ABILITIES[selectedOperator]||OPERATOR_ABILITIES.vanguard,button=$('[data-operator-ability]'),description=$('operator-ability-description');if(button)button.textContent=info.name+' · 300 PTS';if(description)description.textContent=info.description;document.querySelectorAll('[data-operator]').forEach(b=>b.classList.toggle('selected',b.dataset.operator===selectedOperator));}
+function setOperator(operator,save=true){const requested=OPERATOR_PRESETS[operator]?operator:'vanguard';selectedOperator=(OPERATOR_UNLOCK_LEVEL[requested]||99)<=(playerProfile.level||1)?requested:'vanguard';updateOperatorAbilityUI();if(save){try{localStorage.setItem('eclipse-operator',selectedOperator);}catch{}}}
 function setCrosshair(style,save=true){
  const chosen=CROSSHAIR_STYLES.includes(style)?style:'standard';
  const sight=$('game-crosshair');if(sight)sight.dataset.style=chosen;
@@ -897,7 +899,7 @@ $('mode-grid');setOperator((()=>{try{return localStorage.getItem('eclipse-operat
 document.querySelectorAll('.map-choice').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.map-choice').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMap=b.dataset.map;$('map-name').textContent=selectedMap.toUpperCase();}));
 $('deploy').addEventListener('click',async()=>{const ok=await connectServer();if(!ok){toast('SERVER UNAVAILABLE — START SERVER OR USE SOLO TRAINING');return;}$('lobby-title').textContent=selectedMode==='ffa'?'FREE FOR ALL':selectedMode.toUpperCase();$('lobby-subtitle').textContent=isLocalHost?'Connected to local operation server':'Connected to online operation server';$('lobby-map').textContent=selectedMap.toUpperCase();$('lobby-mode').textContent=selectedMode.toUpperCase();$('menu').classList.remove('active');$('lobby').classList.add('active');renderPlayers();});
 $('training').addEventListener('click',()=>{buildSelectedMap();createEclipse();createTrainingTargets();beginMatch(true);toast('TRAINING RANGE — TARGETS RESET AUTOMATICALLY');});
-document.querySelectorAll('[data-support]').forEach(button=>button.addEventListener('click',()=>{if(!supportReady){toast('EARN 300 SUPPORT POINTS FIRST');return;}send('supportAbility',{ability:button.dataset.support});}));
+const operatorAbilityButton=$('[data-operator-ability]');if(operatorAbilityButton)operatorAbilityButton.addEventListener('click',()=>{if(!supportReady){toast('EARN 300 POINTS TO CHARGE YOUR ABILITY');return;}send('supportAbility');});
 $('start-match').addEventListener('click',()=>{if(!socket||socket.readyState!==WebSocket.OPEN){toast('NOT CONNECTED TO SERVER');return;}if(players.length<2){toast('AT LEAST 2 PLAYERS REQUIRED');return;}send('startMatch');toast('REQUESTING MATCH START');});
 $('back-menu').addEventListener('click',backToMenu);$('resume').addEventListener('click',resumeGame);$('leave-match').addEventListener('click',backToMenu);$('return-menu').addEventListener('click',backToMenu);
 canvas.addEventListener('click',()=>{if(!isTouchDevice&&running&&!paused&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===canvas;if(!pointerLocked){isAiming=false;mouseHeld=false;}});document.addEventListener('mousemove',e=>{if(!pointerLocked||!running||paused)return;const sensitivity=isAiming&&weapons[weaponIndex]?.id==='sniper'?.00085:isAiming?.00135:.0021;player.yaw-=e.movementX*sensitivity;player.pitch-=e.movementY*sensitivity;player.pitch=THREE.MathUtils.clamp(player.pitch,-1.35,1.35);updateCamera();});canvas.addEventListener('contextmenu',e=>e.preventDefault());
