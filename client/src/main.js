@@ -549,7 +549,7 @@ function buildBazaar(){
  tunnel(-19,15,24,6,{w:15,e:15},darkStone);\n tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
  room(-43,13,10,13,{e:13,s:-43,n:-43},{tone:stone});
  tunnel(-42,25,6,12,{n:-42,s:-42},darkStone);
- tunnel(-34,39,11,6,{w:39,e:39},darkStone);\n tunnel(1,42,59,6,{w:42,e:42},darkStone);
+ tunnel(-34,39,11,6,{w:39,e:39},darkStone);\n tunnel(1,42,59,6,{n:-30,w:42,e:42},darkStone);
  // Short passages and side alleys complete the route network.
  tunnel(-15,27,12,6,{w:27,e:27},darkStone);
  tunnel(31,9,6,19,{n:9,s:9},darkStone);
@@ -862,7 +862,7 @@ function drawMinimap(){
   // Open objective courtyards and enclosed surrounding buildings.
   footprint(-34,-39,22,15,'#c8b58f');footprint(31,-31,22,19,'#c2ae88');footprint(-30,30,21,19,'#c8b58f');footprint(39,41,17,12,'#c2ae88');footprint(31,-45,18,8,'#d1bd99');footprint(-43,13,10,13,'#c2ae88');footprint(42,8,10,12,'#c8b58f');
   // Covered passages, underpass, connector, market access and outer alleys.
-  passage(-23,-39,-6.5,-39,6);passage(-6.5,-40,22.5,-40,6);passage(18,-40,18,-16,6);passage(18,-21,31,-21,6);passage(41.5,-20,48.5,-20,6);passage(42,-8,42,8,5);passage(-31,15,-7,15,5.5);passage(-38,15,-31,15,5);passage(-43,19,-43,31,5);passage(-39.5,39,-28.5,39,5);passage(-28.5,42,30.5,42,6);passage(-21,27,-9,27,5);passage(31,-.5,31,18,5);passage(37,8,42,8,5);
+  passage(-23,-39,-6.5,-39,6);passage(-6.5,-40,22.5,-40,6);passage(18,-40,18,-16,6);passage(18,-21,31,-21,6);passage(41.5,-20,48.5,-20,6);passage(42,-8,42,8,5);passage(-31,15,-7,15,5.5);passage(-38,15,-31,15,5);passage(-43,19,-43,31,5);passage(-39.5,39,-28.5,39,5);passage(-28.5,42,30.5,42,6);passage(-30,39,-30,42,5);passage(-21,27,-9,27,5);passage(31,-.5,31,18,5);passage(37,8,42,8,5);
   footprint(-9,-12,15,3.2,'#8d795b');
   // Fountain and site markers.
   ctx.fillStyle='#71999a';ctx.beginPath();ctx.arc(px(0),py(0),2.7*scale,0,Math.PI*2);ctx.fill();
