@@ -149,6 +149,10 @@ function addShield(list, x, z, rotation = 0) {
    [-31,-25,12,3,0],[-31,-17,9,3,0],[-31,-9,12,3,0],
    [-20,-29,8,3,Math.PI/2],[-20,-11,8,3,Math.PI/2],[-36,4,10,3,0],[-25,8,8,3,0]
   ])addBox(list,x,h/2,z,w,h,2.8,rot);
+  // Central reactor core and observation-gallery shell.
+  addBox(list,0,2.5,0,5.5,5,5.5);
+  for(const x of [-15,15])addBox(list,x,4.2,-39,.45,8,12);
+  addBox(list,0,4.2,-45,30,8,.45);
   // Openings alternate along the maintenance spine; the gaps remain walkable.
   for(const z of [-29,-17,-5,7,19,31])addBox(list,28,2.3,z,.55,4.6,9);
   for(const z of [-29,-17,-5,7,19,31])addBox(list,40,2.3,z+4,.55,4.6,9);
