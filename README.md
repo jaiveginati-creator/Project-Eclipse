@@ -85,7 +85,7 @@ If your host asks for a start command manually, use `npm run start:production`. 
 - **Duos:** two-player squads.
 - **Trios:** three-player squads.
 
-The current target is stable small matches (2–4 connected players). Larger lobby limits are present in the prototype but are not a claim of tested scale.
+The current target is stable small matches (2–4 connected human players). Optional server-authoritative combat bots can fill a lobby; larger lobby limits are present but are not a claim of tested scale.
 
 ## Controls
 - WASD: move
