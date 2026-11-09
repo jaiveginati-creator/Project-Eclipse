@@ -545,7 +545,7 @@ function buildBazaar(){
  tunnel(45,-20,7,24,{n:45,s:45,w:-31},darkStone);
  tunnel(-14.75,-39,17,6,{w:-39,e:-39},darkStone);\n tunnel(8,-40,29,6,{w:-40,e:-40},darkStone);
  // Mid connector and the covered underpass are real corridors, not decorative blocks.
- tunnel(18,-28,7,24,{n:18,s:18},darkStone);\n tunnel(24.5,-18,13,6,{w:-18,e:-21},darkStone);\n tunnel(42,-4,7,12,{n:42,s:42},darkStone);
+ tunnel(18,-28,7,24,{n:18,s:18},darkStone);\n tunnel(26.5,-18,17,6,{w:-18,n:31},darkStone);\n tunnel(42,-4,7,12,{n:42,s:42},darkStone);
  tunnel(-19,15,24,6,{w:15,e:15},darkStone);\n tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
  room(-43,13,10,13,{e:13,s:-43,n:-43},{tone:stone});
  tunnel(-42,25,6,12,{n:-42,s:-42},darkStone);
@@ -862,7 +862,7 @@ function drawMinimap(){
   // Open objective courtyards and enclosed surrounding buildings.
   footprint(-34,-39,22,15,'#c8b58f');footprint(31,-31,22,19,'#c2ae88');footprint(-30,30,21,19,'#c8b58f');footprint(39,41,17,12,'#c2ae88');footprint(31,-45,18,8,'#d1bd99');footprint(-43,13,10,13,'#c2ae88');footprint(42,8,10,12,'#c8b58f');
   // Covered passages, underpass, connector, market access and outer alleys.
-  passage(-23,-39,-6.5,-39,6);passage(-6.5,-40,22.5,-40,6);passage(18,-40,18,-16,6);passage(18,-18,31,-18,6);passage(41.5,-20,48.5,-20,6);passage(42,-10,42,2,5);passage(-31,15,-7,15,5.5);passage(-38,15,-31,15,5);passage(-43,19,-43,31,5);passage(-39.5,39,-28.5,39,5);passage(-28.5,42,30.5,42,6);passage(-30,39,-30,42,5);passage(-21,27,-9,27,5);passage(31,-.5,31,18,5);passage(37,8,42,8,5);
+  passage(-23,-39,-6.5,-39,6);passage(-6.5,-40,22.5,-40,6);passage(18,-40,18,-16,6);passage(18,-18,35,-18,6);passage(41.5,-20,48.5,-20,6);passage(42,-10,42,2,5);passage(-31,15,-7,15,5.5);passage(-38,15,-31,15,5);passage(-43,19,-43,31,5);passage(-39.5,39,-28.5,39,5);passage(-28.5,42,30.5,42,6);passage(-30,39,-30,42,5);passage(-21,27,-9,27,5);passage(31,-.5,31,18,5);passage(37,8,42,8,5);
   footprint(-9,-12,15,3.2,'#8d795b');
   // Fountain and site markers.
   ctx.fillStyle='#71999a';ctx.beginPath();ctx.arc(px(0),py(0),2.7*scale,0,Math.PI*2);ctx.fill();
