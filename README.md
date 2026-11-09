@@ -1,4 +1,9 @@
-# PROJECT: ECLIPSE — Prototype 0.30.0
+# PROJECT: ECLIPSE — Prototype 0.31.0
+
+## Prototype 0.31.0 — Explosive ammo compatibility
+- Added Explosive ammo as a selectable gunsmith ammo type for all weapons, including the Volt Pistol.
+- Explosive ammo trades 15% direct damage for a small server-authoritative splash radius, allowing rapid-fire weapons to deal controlled area damage.
+- Kept the RPG-7X and Shard Needler's built-in explosive behavior while allowing the same ammo type to be equipped on other weapons.
 
 ## Prototype 0.19.0 — Operator progression and gunsmith
 - Added persistent operator profiles identified by a browser-generated profile ID.
