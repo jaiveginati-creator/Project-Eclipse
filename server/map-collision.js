@@ -3,7 +3,7 @@
 // Conservative server-side collision volumes for major gameplay geometry.
 // The client still predicts movement, but the server rejects swept paths
 // through these blockers and validates shots against the same static volumes.
-const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [], orbital: [] };
+const MAP_OBSTACLES = { district: [], industrial: [], sublevel: [], starfall: [] };
 
 function addBox(list, x, y, z, sx, sy, sz, rotation = 0) {
   const c = Math.cos(rotation), s = Math.sin(rotation);
@@ -140,25 +140,25 @@ function addShield(list, x, z, rotation = 0) {
 }
 
 
- // ORBITAL — station hull, freight stacks, service bulkheads and low cover.
+
+ // STARFALL — original orbital research complex with three distinct route families.
  {
-  const list = MAP_OBSTACLES.orbital = [];
-  addBox(list,49,3,0,.8,6,100);addBox(list,-49,3,0,.8,6,100);
-  addBox(list,0,3,49,100,6,.8);addBox(list,0,3,-49,100,6,.8);
-  for(const [x,z,w,h,rot] of [
-   [-31,-25,12,3,0],[-31,-17,9,3,0],[-31,-9,12,3,0],
-   [-20,-29,8,3,Math.PI/2],[-20,-11,8,3,Math.PI/2],[-36,4,10,3,0],[-25,8,8,3,0]
-  ])addBox(list,x,h/2,z,w,h,2.8,rot);
-  // Central reactor core and observation-gallery shell.
-  addBox(list,0,2.5,0,5.5,5,5.5);
-  for(const x of [-15,15])addBox(list,x,4.2,-39,.45,8,12);
-  addBox(list,0,4.2,-45,30,8,.45);
-  // Openings alternate along the maintenance spine; the gaps remain walkable.
-  for(const z of [-29,-17,-5,7,19,31])addBox(list,28,2.3,z,.55,4.6,9);
-  for(const z of [-29,-17,-5,7,19,31])addBox(list,40,2.3,z+4,.55,4.6,9);
-  for(const [x,z,rotation] of [[-8,-20,.2],[9,-19,-.25],[-8,18,-.2],[9,19,.25],[0,10,Math.PI/2]])addBox(list,x,.8,z,4.2,1.6,1.25,rotation);
-  for(const [x,z] of [[-10,29],[0,32],[10,29],[-10,40],[10,40]])addBox(list,x,2.9,z,3.4,5.8,3.4);
+  const list = MAP_OBSTACLES.starfall = [];
+  addBox(list,48.5,3,0,.9,6,99);addBox(list,-48.5,3,0,.9,6,99);
+  addBox(list,0,3,48.5,99,6,.9);addBox(list,0,3,-48.5,99,6,.9);
+  addBox(list,0,2.8,0,4.8,5.6,4.8);
+  for(const [x,z,w,d,h] of [[-31,-29,12,9,5],[-35,-12,8,10,4],[-31,10,12,8,5],[-36,31,9,10,5],[31,-31,13,10,6],[36,-9,8,12,4.5],[31,16,12,9,5],[36,36,8,8,5]]){
+    addBox(list,x,h/2,z,w,h,d);
+  }
+  for(const z of [-39,-24,-8,9,25,40])addBox(list,-23,2.2,z,.45,4.4,5.5);
+  for(const z of [-38,-22,-5,13,30,42])addBox(list,23,2.2,z,.45,4.4,5.5);
+  for(const x of [-12,12])addBox(list,x,4,-40,.5,8,12);
+  addBox(list,0,4,-46,24,8,.45);
+  for(const [x,z] of [[-13,34],[-13,42],[13,34],[13,42]])addBox(list,x,1.5,z,7,3,3);
+  for(const x of [-20,20])addBox(list,x,3,39,.5,6,18);
+  for(const [x,z,rotation] of [[-15,-5,.15],[15,5,-.15],[-15,24,-.2],[15,-24,.2],[-5,37,Math.PI/2],[5,-37,Math.PI/2]])addBox(list,x,.78,z,4.8,1.56,1.35,rotation);
  }
+
 
 function overlaps(aMin,aMax,bMin,bMax) {
   return aMin < bMax && aMax > bMin;
