@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const APP_VERSION = require('../package.json').version;
 const { isPlayerPositionBlocked, movementBlocked, hasLineOfSight } = require('./map-collision');
+const { chooseRecoveryWaypoint } = require('./bot-navigation');
 
 const PORT = Number(process.env.PORT || 3001);
 // Keep progression-changing developer commands disabled on public servers by default.
@@ -261,7 +262,8 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
       jumpUntil: 0, nextCrouch: now + 4200 + (index % 4) * 800,
       crouchUntil: 0, phase: index * 1.73,
       speed: 7.3 + (index % 4) * .28,
-      strafeDirection: index % 2 ? 1 : -1, nextStrafe: now + 500
+      strafeDirection: index % 2 ? 1 : -1, nextStrafe: now + 500,
+      lastProgressX: bot.x, lastProgressZ: bot.z, stuckSince: now, lastRecoveryAt: 0
     };
   }
   const nav = bot.nav, route = nav.route;
@@ -321,6 +323,23 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
   for (const [vx,vz] of directions) {
     const next = { x: clamp(bot.x + vx*speed, - (bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), y: bot.y, z: clamp(bot.z + vz*speed, -(bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5), bot.map === 'sublevel' ? 23.2 : MAP_BOUNDS-1.5) };
     if (!movementBlocked(bot.map, { x: bot.x, y: bot.y, z: bot.z }, next)) { bot.x = next.x; bot.z = next.z; moved = true; break; }
+  }
+  // Roaming-only recovery: if a bot cannot make progress, select a different
+  // reachable waypoint. This branch is deliberately disabled while a target exists.
+  if (!combatTarget) {
+    const progress = Math.hypot(bot.x - nav.lastProgressX, bot.z - nav.lastProgressZ);
+    if (progress > .35) {
+      nav.lastProgressX = bot.x;
+      nav.lastProgressZ = bot.z;
+      nav.stuckSince = now;
+    } else if (now - nav.stuckSince > 1600 && now - nav.lastRecoveryAt > 1800) {
+      nav.waypoint = chooseRecoveryWaypoint({
+        map: bot.map, bot, route, currentWaypoint: nav.waypoint,
+        nearbyPlayers, movementBlocked
+      });
+      nav.stuckSince = now;
+      nav.lastRecoveryAt = now;
+    }
   }
   bot.moving = moved && (Math.abs(moveX) + Math.abs(moveZ) > .05);
   bot.yaw = combatTarget ? Math.atan2(combatTarget.x - bot.x, combatTarget.z - bot.z) : Math.atan2(moveX, moveZ);
