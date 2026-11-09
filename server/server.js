@@ -45,7 +45,7 @@ function saveProfiles(){try{const temp=PROFILE_FILE+'.tmp';fs.writeFileSync(temp
 function unlockedWeapon(profile,id){return(WEAPON_LEVELS[id]||99)<=profile.level;}
 function sanitizeBuild(profile,raw={}){const xp=Number(profile.weaponXP?.[raw.weaponId])||0,result={...DEFAULT_BUILD,name:String(raw.name||'FIELD STANDARD').replace(/[<>]/g,'').slice(0,22)};for(const slot of Object.keys(ATTACHMENT_LEVELS)){const choice=raw[slot];if(Object.prototype.hasOwnProperty.call(ATTACHMENT_LEVELS[slot],choice)&&xp>=ATTACHMENT_LEVELS[slot][choice])result[slot]=choice;}const camoLevels={standard:1,arctic:4,ember:7,void:10};if(camoLevels[raw.camo]&&profile.level>=camoLevels[raw.camo])result.camo=raw.camo;return result;}
 function sanitizeBuilds(profile,raw={}){const result={};for(const id of Object.keys(WEAPONS))result[id]=sanitizeBuild(profile,{...(raw[id]||profile.builds?.[id]||{}),weaponId:id});return result;}
-function weaponStatsFor(player,id){const stats={...WEAPONS[id]},build=player.weaponBuilds?.[id]||{},ammoType=build.ammoType||'standard';if(build.barrel==='extended')stats.range*=1.18;if(build.barrel==='heavy'){stats.damage=Math.round(stats.damage*1.10);stats.cooldown=Math.round(stats.cooldown*1.12);}if(build.magazine==='quick')stats.cooldown=Math.round(stats.cooldown*.93);if(build.stock==='tactical')stats.cooldown=Math.round(stats.cooldown*.94);if(['rocket','needler'].includes(id)){stats.splashRadius=stats.radius;}if(ammoType==='explosive'){stats.damage=Math.round(stats.damage*.85);stats.splashRadius=Math.max(stats.splashRadius||0,2.8);}if(ammoType==='incendiary'){stats.damage=Math.round(stats.damage*1.12);stats.range*=.9;}if(ammoType==='shock'){stats.damage=Math.round(stats.damage*.92);stats.range*=1.1;}if(ammoType==='rapid'){stats.damage=Math.round(stats.damage*.72);stats.cooldown=Math.max(55,Math.round(stats.cooldown*.72));}if(ammoType==='heavy'){stats.damage=Math.round(stats.damage*1.3);stats.cooldown=Math.round(stats.cooldown*1.22);}return stats;}
+function weaponStatsFor(player,id){const stats={...WEAPONS[id]},build=player.weaponBuilds?.[id]||{},ammoType=build.ammoType||'standard';if(build.barrel==='extended')stats.range*=1.18;if(build.barrel==='heavy'){stats.damage=Math.round(stats.damage*1.10);stats.cooldown=Math.round(stats.cooldown*1.12);}if(build.magazine==='quick')stats.cooldown=Math.round(stats.cooldown*.93);if(build.stock==='tactical')stats.cooldown=Math.round(stats.cooldown*.94);if(['rocket','needler'].includes(id)){stats.splashRadius=stats.radius;}if(ammoType==='explosive'){stats.damage=Math.round(stats.damage*.85);stats.splashRadius=Math.max(stats.splashRadius||0,2.8);}if(ammoType==='incendiary'){stats.damage=Math.round(stats.damage*1.12);stats.range*=.9;}if(ammoType==='shock'){stats.damage=Math.round(stats.damage*.92);stats.range*=1.1;}if(ammoType==='rapid'){stats.damage=Math.round(stats.damage*.72);stats.cooldown=Math.max(55,Math.round(stats.cooldown*.72));}if(ammoType==='heavy'){stats.damage=Math.round(stats.damage*1.3);stats.cooldown=Math.round(stats.cooldown*1.22);}if(player.operator==='recon'&&player.abilityUntil>Date.now())stats.cooldown=Math.max(55,Math.round(stats.cooldown*.78));if(player.operator==='assault'&&player.abilityUntil>Date.now())stats.damage=Math.round(stats.damage*1.25);return stats;}
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ico': 'image/x-icon' };
@@ -473,7 +473,8 @@ function resolvePulseHit(shooter, shot) {
     const falloff = splashRadius ? Math.max(.25,1-hit.distance/splashRadius*.75) : 1;
     // Bots use a deliberately gentler arcade damage profile so no single hit can one-tap a full-health player.
     const rawDamage = Math.round(weapon.damage * falloff);
-    const damage = shooter.isBot ? Math.max(1, Math.min(18, Math.round(rawDamage * 0.35))) : Math.max(1, rawDamage);
+    const boostedDamage = target.operator==='phantom'&&target.abilityUntil>Date.now()?Math.round(rawDamage*.72):rawDamage;
+    const damage = shooter.isBot ? Math.max(1, Math.min(18, Math.round(boostedDamage * 0.35))) : Math.max(1, boostedDamage);
     const headshot = hit.direct && best.direct && best.distance <= (weapon.hitRadius||.48) && best.rayY >= best.highY-.22;
     target.damageContributors = target.damageContributors || {};
     target.damageContributors[shooter.id] = Date.now();
@@ -535,7 +536,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard', primary: 'pulse', secondary: 'volt', equipment: 'shield',
-    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0,
+    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, abilityUntil:0, lastSupportAt:0,
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null), lastEquipmentAt: 0
   };
 
@@ -657,12 +658,10 @@ wss.on('connection', ws => {
     if (message.type === 'supportAbility') {
       const match=matches.get(c.room);if(!match?.active||!c.alive)return;
       if(!c.supportReady||c.supportPoints<300||Date.now()-c.lastSupportAt<15000)return;
-      const ability=message.ability==='shield'?'shield':'rally';
-      c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=Date.now();
+      const ability=c.operator||'vanguard',now=Date.now();c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=now;
       const squad=combatants(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
-      if(ability==='shield'){for(const p of squad)p.supportShield=Math.min(60,(p.supportShield||0)+25);}
-      else{for(const p of squad)p.health=Math.min(MAX_HEALTH,p.health+25);}
-      broadcast(c.room,{type:'supportUsed',id:c.id,ability,team:c.team,players:publicPlayers(c.room)});
+      if(ability==='vanguard'){for(const p of squad)p.supportShield=Math.min(80,(p.supportShield||0)+35);}else c.abilityUntil=now+(ability==='assault'?6000:7000);
+      broadcast(c.room,{type:'supportUsed',id:c.id,ability,abilityUntil:c.abilityUntil||0,team:c.team,players:publicPlayers(c.room)});
       send(c.ws,{type:'supportStatus',points:c.supportPoints});
       return;
     }
@@ -697,7 +696,7 @@ wss.on('connection', ws => {
       if (c.mode !== 'ffa' && new Set(roomPlayers.map(p => p.team)).size < 2) {
         return send(ws, { type: 'error', message: 'At least two squads are required' });
       }
-      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.lastSupportAt=0;if(player.isBot){player.lastShot=Object.create(null);player.nav=null;player.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};} }
+      for (const player of roomPlayers) { player.score=0;player.health=MAX_HEALTH;player.lastDamageAt=0;player.alive=true;player.matchKills=0;player.matchDeaths=0;player.matchWeaponKills={};player.matchAssists=0;player.matchShots=0;player.matchHits=0;player.damageContributors={};player.supportPoints=0;player.supportShield=0;player.supportReady=false;player.abilityUntil=0;player.lastSupportAt=0;if(player.isBot){player.lastShot=Object.create(null);player.nav=null;player.combat={targetId:null,nextTargetScan:0,reactionUntil:0,nextFire:0};} }
       matches.set(c.room, { active: true, startedAt: Date.now(), duration: MATCH_SECONDS });
       broadcast(c.room, { type: 'matchStart', duration: MATCH_SECONDS, players: publicPlayers(c.room) });
       broadcast(c.room, { type: 'state', players: publicPlayers(c.room) });
