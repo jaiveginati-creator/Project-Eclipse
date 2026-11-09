@@ -543,13 +543,18 @@ function buildBazaar(){
  // Palace / A-ramp approach and the raised CT-side passage.
  room(31,-45,18,8,{s:31},{tone:pale});
  tunnel(45,-20,7,24,{n:45,s:45,w:-31},darkStone);
- tunnel(-14.75,-39,17,6,{w:-39,e:-39},darkStone);\n tunnel(8,-40,29,6,{w:-40,e:-40},darkStone);
+ tunnel(-14.75,-39,17,6,{w:-39,e:-39},darkStone);
+ tunnel(8,-40,29,6,{w:-40,e:-40},darkStone);
  // Mid connector and the covered underpass are real corridors, not decorative blocks.
- tunnel(18,-28,7,24,{n:18,s:18},darkStone);\n tunnel(26.5,-18,17,6,{w:-18,n:31},darkStone);\n tunnel(42,-4,7,12,{n:42,s:42},darkStone);
- tunnel(-19,15,24,6,{w:15,e:15},darkStone);\n tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
+ tunnel(18,-28,7,24,{n:18,s:18},darkStone);
+ tunnel(26.5,-18,17,6,{w:-18,n:31},darkStone);
+ tunnel(42,-4,7,12,{n:42,s:42},darkStone);
+ tunnel(-19,15,24,6,{w:15,e:15},darkStone);
+ tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
  room(-43,13,10,13,{e:13,s:-43,n:-43},{tone:stone});
  tunnel(-42,25,6,12,{n:-42,s:-42},darkStone);
- tunnel(-34,39,11,6,{w:39,e:39,s:-32},darkStone);\n tunnel(1,42,59,6,{n:-32,w:42,e:42},darkStone);
+ tunnel(-34,39,11,6,{w:39,e:39,s:-32},darkStone);
+ tunnel(1,42,59,6,{n:-32,w:42,e:42},darkStone);
  // Short passages and side alleys complete the route network.
  tunnel(-15,27,12,6,{w:27,e:27},darkStone);
  tunnel(31,9,6,19,{n:9,s:9},darkStone);
