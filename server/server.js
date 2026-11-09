@@ -285,6 +285,11 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
       nav.waypoint = crowdAt(route[alternate]) < crowdAt(route[forward]) ? alternate : forward;
     }
     nav.nextRouteChoice = now + 1600 + Math.abs(Math.sin(nav.phase)) * 850;
+    // The route choice may have changed the waypoint; refresh the steering vector.
+    waypoint = route[nav.waypoint];
+    routeX = waypoint[0] - bot.x;
+    routeZ = waypoint[1] - bot.z;
+    routeDistance = Math.hypot(routeX, routeZ);
   }
   let moveX = routeX / Math.max(routeDistance, .001), moveZ = routeZ / Math.max(routeDistance, .001);
   if (combatTarget) {
@@ -315,8 +320,20 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
   const magnitude = Math.hypot(moveX, moveZ) || 1; moveX /= magnitude; moveZ /= magnitude;
   const speed = nav.speed * deltaSeconds;
   const directions = [[moveX,moveZ]];
-  for (const angle of [.72,-.72,1.42,-1.42,2.25,-2.25,Math.PI]) {
-    directions.push([moveX*Math.cos(angle)-moveZ*Math.sin(angle),moveX*Math.sin(angle)+moveZ*Math.cos(angle)]);
+  // Roaming bots sample a finer set of steering angles around cover edges.
+  // Keep the existing target-following steering unchanged.
+  if (!combatTarget) {
+    for (let step = 1; step <= 7; step++) {
+      const angle = step * Math.PI / 8;
+      for (const sign of [-1, 1]) {
+        const a = angle * sign;
+        directions.push([moveX*Math.cos(a)-moveZ*Math.sin(a),moveX*Math.sin(a)+moveZ*Math.cos(a)]);
+      }
+    }
+  } else {
+    for (const angle of [.72,-.72,1.42,-1.42,2.25,-2.25,Math.PI]) {
+      directions.push([moveX*Math.cos(angle)-moveZ*Math.sin(angle),moveX*Math.sin(angle)+moveZ*Math.cos(angle)]);
+    }
   }
   if (routeDistance > .01) directions.push([routeX/routeDistance,routeZ/routeDistance]);
   let moved = false;
