@@ -193,10 +193,7 @@ function spawnForSlot(slot, map = 'district') {
 }
 
 
-// Server-authoritative arcade navigation. Bots patrol safe traversal lanes, adapt
-// their route when an area is crowded, and use the same replicated movement state
-// as remote operators. This intentionally contains no combat or attack behaviour.
-// Server-authoritative combat bots. Every bot uses the same weapon profiles,
+// Server-authoritative combat bots use the same weapon profiles,
 // hit resolver, team rules, health, respawn and match scoring as human operators.
 const BOT_LOADOUTS = [
   { primary: 'pulse', secondary: 'volt' },
@@ -340,7 +337,7 @@ function useBotSupport(bot, all, now) {
     const ability = squad.some(p => p.health < 72) ? 'rally' : 'shield';
     if (ability === 'shield') for (const p of squad) p.supportShield = Math.min(60, (p.supportShield || 0) + 25);
     else for (const p of squad) { p.health = Math.min(MAX_HEALTH, p.health + 25); p.lastDamageAt = now; }
-    bot.supportPoints -= 300; bot.lastSupportAt = now;
+    bot.supportPoints -= 300; bot.supportReady = false; bot.lastSupportAt = now;
     broadcast(bot.room, { type: 'supportUsed', id: bot.id, ability, team: bot.team, players: publicPlayers(bot.room) });
   }
   if (bot.equipment === 'shield' && bot.health < 58 && now - bot.lastEquipmentAt >= 25000) {
@@ -585,12 +582,11 @@ wss.on('connection', ws => {
       const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);
       const candidate = { x: nextX, y: nextY, z: nextZ };
       const withinSpeed = distance <= 10.5 * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
-      if (withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate)) {
-        c.x = nextX; c.y = nextY; c.z = nextZ;
-      }
+      const accepted = withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
+      if (accepted) { c.x = nextX; c.y = nextY; c.z = nextZ; }
       c.yaw = finite(message.yaw, c.yaw);
       c.pitch = clamp(finite(message.pitch, c.pitch), -1.4, 1.4);
-      c.moving = Boolean(message.moving);
+      c.moving = Boolean(message.moving) && accepted;
       c.crouching = Boolean(message.crouching);
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
@@ -611,7 +607,7 @@ wss.on('connection', ws => {
       if(!c.supportReady||c.supportPoints<300||Date.now()-c.lastSupportAt<15000)return;
       const ability=message.ability==='shield'?'shield':'rally';
       c.supportPoints-=300;c.supportReady=false;c.lastSupportAt=Date.now();
-      const squad=members(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
+      const squad=combatants(c.room).filter(p=>p.alive&&(c.mode==='ffa'?p.id===c.id:p.team===c.team));
       if(ability==='shield'){for(const p of squad)p.supportShield=Math.min(60,(p.supportShield||0)+25);}
       else{for(const p of squad)p.health=Math.min(MAX_HEALTH,p.health+25);}
       broadcast(c.room,{type:'supportUsed',id:c.id,ability,team:c.team,players:publicPlayers(c.room)});
