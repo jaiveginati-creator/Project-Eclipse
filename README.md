@@ -1,4 +1,4 @@
-# PROJECT: ECLIPSE — Prototype 0.19.0
+# PROJECT: ECLIPSE — Prototype 0.30.0
 
 ## Prototype 0.19.0 — Operator progression and gunsmith
 - Added persistent operator profiles identified by a browser-generated profile ID.
