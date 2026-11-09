@@ -59,7 +59,9 @@ const httpServer = http.createServer((req, res) => {
     return res.end(JSON.stringify({ ok: true, service: 'project-eclipse', version: APP_VERSION, players: clients.size, rooms: matches.size, uptimeSeconds: Math.floor(process.uptime()) }));
   }
   if (pathname.startsWith('/')) {
-    const requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
+    let requested;
+    try { requested = pathname === '/' ? '/index.html' : decodeURIComponent(pathname); }
+    catch { res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }); return res.end('Bad request'); }
     const file = path.resolve(DIST_DIR, `.${requested}`);
     if (!file.startsWith(DIST_DIR + path.sep) && file !== path.join(DIST_DIR, 'index.html')) {
       res.writeHead(403); return res.end('Forbidden');
