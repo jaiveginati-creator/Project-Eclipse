@@ -107,14 +107,14 @@ function publicPlayers(room) {
     id: c.id, name: c.name, mode: c.mode, map: c.map, team: c.team, isBot: false,
     x: c.x, y: c.y, z: c.z, yaw: c.yaw, pitch: c.pitch, score: c.score,
     health: c.health, alive: c.alive, moving: c.moving, crouching: c.crouching,
-    weapon: c.weapon, operator: c.operator, primary: c.primary, secondary: c.secondary,
+    weapon: c.weapon, operator: c.operator, cloaked: c.operator==='phantom'&&c.cloakedUntil>Date.now(), primary: c.primary, secondary: c.secondary,
     equipment: c.equipment, supportPoints: c.supportPoints || 0, supportShield: c.supportShield || 0
   }));
   const bots = botsIn(room).map(bot => ({
     id: bot.id, name: bot.name, mode: bot.mode, map: bot.map, team: bot.team, isBot: true,
     x: bot.x, y: bot.y, z: bot.z, yaw: bot.yaw, pitch: bot.pitch, score: bot.score,
     health: bot.health, alive: bot.alive, moving: bot.moving, crouching: bot.crouching,
-    weapon: bot.weapon, operator: bot.operator, primary: bot.primary, secondary: bot.secondary,
+    weapon: bot.weapon, operator: bot.operator, cloaked: false, primary: bot.primary, secondary: bot.secondary,
     equipment: bot.equipment, supportPoints: bot.supportPoints || 0, supportShield: bot.supportShield || 0
   }));
   return [...humans, ...bots];
@@ -514,7 +514,7 @@ function resolvePulseHit(shooter, shot) {
         const spawn = spawnForSlot(current.spawnSlot ?? Math.floor(Math.random()*12),current.map);
         current.x=spawn.x;current.y=spawn.y;current.z=spawn.z;
         current.health=MAX_HEALTH;current.lastDamageAt=0;current.alive=true;
-        current.supportShield=0;current.damageContributors={};
+        current.supportShield=0;current.speedBoostUntil=0;current.cloakedUntil=0;current.operatorAbilityReadyAt=0;current.damageContributors={};
         current.moving=false;current.crouching=false;
         if (current.isBot) {
           current.nav=null;
@@ -535,7 +535,7 @@ wss.on('connection', ws => {
     mode: 'ffa', map: 'district', room: null, team: null,
     x: 0, y: 1.7, z: 7, yaw: 0, pitch: 0, score: 0, health: MAX_HEALTH, alive: true,
     moving: false, crouching: false, weapon: 'pulse', operator: 'vanguard', primary: 'pulse', secondary: 'volt', equipment: 'shield',
-    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0,
+    profileId:null, profile:null, weaponBuilds:{}, matchKills:0, matchDeaths:0, matchWeaponKills:{}, matchAssists:0, matchShots:0, matchHits:0, damageContributors:{}, supportPoints:0, supportShield:0, supportReady:false, lastSupportAt:0, operatorAbilityReadyAt:0, speedBoostUntil:0, cloakedUntil:0,
     lastMove: Date.now(), lastDamageAt: 0, lastShot: Object.create(null), lastEquipmentAt: 0
   };
 
@@ -633,7 +633,8 @@ wss.on('connection', ws => {
       const distance = Math.hypot(nextX - c.x, nextZ - c.z);
       const nextY = clamp(finite(message.y, c.y), 1.0, 7.5);
       const candidate = { x: nextX, y: nextY, z: nextZ };
-      const withinSpeed = distance <= 10.5 * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
+      const speedLimit = c.speedBoostUntil > now ? 14.5 : 10.5;
+      const withinSpeed = distance <= speedLimit * elapsed + 0.35 && Math.abs(nextY - c.y) <= 14 * elapsed + 0.5;
       const accepted = withinSpeed && !movementBlocked(c.map, { x: c.x, y: c.y, z: c.z }, candidate);
       if (accepted) { c.x = nextX; c.y = nextY; c.z = nextZ; }
       c.yaw = finite(message.yaw, c.yaw);
@@ -643,6 +644,23 @@ wss.on('connection', ws => {
       c.weapon = [c.primary,c.secondary].includes(message.weapon) ? message.weapon : c.weapon;
       c.lastMove = now;
       return;
+    }
+
+    if (message.type === 'operatorAbility') {
+      const match=matches.get(c.room);if(!match?.active||!c.alive)return;
+      const now=Date.now();if(now<c.operatorAbilityReadyAt)return send(ws,{type:'operatorAbilityResult',ok:false,message:'ABILITY RECHARGING'});
+      const cooldownMs=30000;let ability='';
+      if(c.operator==='vanguard'){ability='bulwark';c.supportShield=Math.min(60,(c.supportShield||0)+40);}
+      else if(c.operator==='recon'){
+        ability='sensor';const contacts=combatants(c.room).filter(p=>isEnemy(c,p)&&Math.hypot(p.x-c.x,p.y-c.y,p.z-c.z)<=45).map(p=>({id:p.id,name:p.name,x:p.x,z:p.z}));
+        c.operatorAbilityReadyAt=now+cooldownMs;send(ws,{type:'operatorAbilityResult',ok:true,ability,cooldownMs,contacts});broadcast(c.room,{type:'operatorPulse',id:c.id,x:c.x,z:c.z,operator:c.operator});return;
+      }
+      else if(c.operator==='assault'){ability='overdrive';c.speedBoostUntil=now+4500;}
+      else if(c.operator==='phantom'){ability='phase';c.cloakedUntil=now+4000;}
+      else return send(ws,{type:'operatorAbilityResult',ok:false,message:'UNKNOWN OPERATOR'});
+      c.operatorAbilityReadyAt=now+cooldownMs;
+      send(ws,{type:'operatorAbilityResult',ok:true,ability,cooldownMs,durationMs:ability==='overdrive'?4500:ability==='phase'?4000:0});
+      broadcastPlayers(c.room);return;
     }
 
     if (message.type === 'equipment') {
