@@ -515,9 +515,84 @@ function buildSublevel(){
  // Training begins in the south pocket, looking toward the central hub.
  player.pos.set(0,1.7,17);player.yaw=0;updateCamera();
 }
+
+function buildOrbital(){
+ clearMap();scene.background.set(0x091827);scene.fog.color.set(0x10283a);scene.fog.density=.0065;
+ hemi.color.set(0x9ac6dc);hemi.groundColor.set(0x111c29);hemi.intensity=1.5;
+ moonLight.color.set(0xffd5a0);moonLight.intensity=2.15;moonLight.position.set(-34,52,-28);
+ fill.color.set(0x4d9fc2);fill.intensity=.82;
+ const deck=new THREE.MeshStandardMaterial({color:0x293b49,roughness:.72,metalness:.42});
+ const steel=new THREE.MeshStandardMaterial({color:0x172a38,roughness:.38,metalness:.78});
+ const panel=new THREE.MeshStandardMaterial({color:0x405866,roughness:.5,metalness:.58});
+ const glass=new THREE.MeshPhysicalMaterial({color:0x79b6d0,metalness:.35,roughness:.16,transparent:true,opacity:.42,side:THREE.DoubleSide});
+ const cyan=new THREE.MeshStandardMaterial({color:0x58d9e8,emissive:0x168a9d,emissiveIntensity:1.05,metalness:.45,roughness:.3});
+ const amber=new THREE.MeshStandardMaterial({color:0xdba45c,emissive:0x75451a,emissiveIntensity:.55,metalness:.35,roughness:.45});
+ box(0,-.28,0,104,.56,104,deck,false);
+ box(0,-.015,0,22,.08,100,steel,false);box(0,-.012,0,100,.08,22,steel,false);
+ // Sealed station perimeter, with bright structural ribs and emergency strips.
+ for(const s of [-1,1]){
+  box(s*49,3,0,.8,6,100,steel);box(0,3,s*49,100,6,.8,steel);
+  detailBox(s*48.45,5.8,0,.12,.12,96,cyan);detailBox(0,5.8,s*48.45,96,.12,.12,cyan);
+ }
+ for(let p=-40;p<=40;p+=10){for(const s of [-1,1]){box(s*47.9,3,p,.35,6,.35,panel);box(p,3,s*47.9,.35,6,.35,panel);}}
+ // Central atrium: a low circular command hub with a visible reactor spine.
+ const hub=addVisualMesh(new THREE.CylinderGeometry(13.5,14.5,.28,64),panel,0,.16,0);
+ const ring=addVisualMesh(new THREE.TorusGeometry(12.3,.22,10,96),cyan,0,.34,0);ring.rotation.x=Math.PI/2;
+ box(0,2.5,0,5.5,5,5.5,steel);
+ for(const y of [1.2,2.5,3.8]){const r=addVisualMesh(new THREE.TorusGeometry(4.2,.16,8,48),cyan,0,y,0);r.rotation.x=Math.PI/2;}
+ mapLight(0,4.2,0,0x54d8ed,2.5,28);
+ // Cargo bay — stacked freight, loading lanes and overhead gantry.
+ for(const [x,z,w,h,rot,color] of [
+  [-31,-25,12,3,0,0x526879],[-31,-17,9,3,0,0x78624b],[-31,-9,12,3,0,0x405b69],
+  [-20,-29,8,3,Math.PI/2,0x586b68],[-20,-11,8,3,Math.PI/2,0x6a5c4d],
+  [-36,4,10,3,0,0x536b76],[-25,8,8,3,0,0x6d5c49]
+ ]){
+  const m=box(x,h/2,z,w,h,2.8,new THREE.MeshStandardMaterial({color,metalness:.52,roughness:.52}),true);m.rotation.y=rot;
+  for(let k=-Math.floor(w/2)+1;k<Math.floor(w/2);k++){const rib=detailBox(x+k,z===-25?1.5:1.5,z,.07,h+.05,2.9,steel);rib.rotation.y=rot;}
+ }
+ for(const x of [-43,-18]){box(x,5,-19,.5,10,.5,steel);box((x-18)/2,9,-19,25,.55,.65,steel);detailBox((x-18)/2,9.35,-19,24,.12,.72,amber);}
+ // Observation gallery at the north end: wide eclipse-facing windows and a control rail.
+ box(0,.12,-39,30,.24,14,steel);
+ for(const x of [-15,15])box(x,4.2,-39,.55,8,.55,steel);
+ box(0,4.2,-45,30,8,.45,steel);
+ box(-15,4.2,-39,.45,8,12,steel);box(15,4.2,-39,.45,8,12,steel);
+ detailBox(0,4.15,-44.72,28,7.4,.12,glass);
+ for(const x of [-12,-6,0,6,12]){detailBox(x,4.2,-44.58,.12,7.2,.16,cyan);detailBox(x,7.95,-39,1.2,.12,11,amber);}
+ for(const x of [-10,0,10])mapLight(x,6.5,-38,0x8bdff2,1.2,22);
+ // Maintenance spine — offset bulkheads create a winding, readable corridor.
+ for(const z of [-29,-17,-5,7,19,31]){
+  box(28,2.3,z, .55,4.6,9,steel);
+  box(40,2.3,z+4, .55,4.6,9,steel);
+  detailBox(28.34,3.7,z,.08,.12,7,cyan);detailBox(39.66,3.7,z+4,.08,.12,7,amber);
+ }
+ for(const z of [-35,-23,-11,1,13,25,37]){box(34,4.8,z,12,.25,.3,steel);detailBox(34,4.95,z,10,.08,.12,cyan);}
+ // Engineering bay south of the atrium, with power cells and service cover.
+ for(const [x,z] of [[-10,29],[0,32],[10,29],[ -10,40],[10,40]]){
+  const tank=addVisualMesh(new THREE.CylinderGeometry(1.55,1.7,5.8,20),panel,x,2.9,z,true);
+  for(const y of [1,2.9,4.8]){const band=addVisualMesh(new THREE.TorusGeometry(1.62,.11,8,32),amber,x,y,z);band.rotation.x=Math.PI/2;}
+  mapLight(x,4.5,z,0x62d8e8,.8,13);
+ }
+ for(const [x,z] of [[-7,17],[7,17],[-7,43],[7,43]]){box(x,.65,z,3.2,1.3,2.4,steel);detailBox(x,1.35,z,2.8,.1,2.1,amber);}
+ // Two elevated service gantries create alternate routes over the central floor.
+ for(const x of [-15,15]){
+  makeWalkway(x,0,4.5,28,4.2,0);
+  makeRamp(x,20,4.5,10,4.2,0);
+  makeRamp(x,-20,4.5,10,4.2,Math.PI);
+  for(const z of [-12,0,12])mapLight(x,5.2,z,0x55d9eb,.8,12);
+ }
+ // Short cover islands keep the ground lanes from becoming one long sightline.
+ for(const [x,z,rot] of [[-8,-20,.2],[9,-19,-.25],[-8,18,-.2],[9,19,.25],[0,10,Math.PI/2]]){
+  const cover=box(x,.8,z,4.2,1.6,1.25,panel,true);cover.rotation.y=rot;
+  detailBox(x,.86,z,3.7,.1,1.28,amber).rotation.y=rot;
+ }
+ for(const [x,z] of [[-44,-42],[44,-42],[-44,42],[44,42],[0,-47],[0,47]])mapLight(x,4,z,0x62d8e8,1.3,20);
+ player.pos.set(0,1.7,42);player.yaw=Math.PI;updateCamera();
+}
+
 function buildSelectedMap(){
  if(selectedMap==='district')buildDistrict();
  else if(selectedMap==='industrial')buildIndustrial();
+ else if(selectedMap==='orbital')buildOrbital();
  else buildSublevel();
 }
 
@@ -590,7 +665,7 @@ function startAmbientAudio(){
  const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;
  if(!audioContext){audioContext=new AudioCtx();const master=audioContext.createGain();master.gain.value=.18;master.connect(audioContext.destination);
   const low=audioContext.createOscillator(),high=audioContext.createOscillator(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain();low.type='sine';low.frequency.value=48;high.type='triangle';high.frequency.value=73;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=.12;low.connect(filter);high.connect(filter);filter.connect(gain);gain.connect(master);low.start();high.start();ambientNodes={low,high,filter,gain,master};
- }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:79,audioContext.currentTime,1);}
+ }audioContext.resume();if(ambientNodes){ambientNodes.low.frequency.setTargetAtTime(selectedMap==='industrial'?42:selectedMap==='sublevel'?58:selectedMap==='orbital'?46:52,audioContext.currentTime,1);ambientNodes.high.frequency.setTargetAtTime(selectedMap==='industrial'?61:selectedMap==='orbital'?68:79,audioContext.currentTime,1);}
 }
 function playSfx(kind='pulse',color=0xffc16e){
  if(!audioContext)return;const osc=audioContext.createOscillator(),gain=audioContext.createGain();const now=audioContext.currentTime;
