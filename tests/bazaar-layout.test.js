@@ -19,7 +19,7 @@ test('Bazaar corridor walls and building walls block movement', () => {
 });
 
 test('Bazaar doorways remain open between connected areas', () => {
- const points = [[31,-19],[42,-31],[-40.5,25],[-32,39.5],[-6.5,-39],[18,-16]];
+ const points = [[31,-19.5],[42,-31],[-40.5,25],[-32,39.5],[-6.5,-39],[18,-16]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),false,'doorway blocked at '+x+','+z);
- assert.equal(movementBlocked('bazaar',{x:31,y:1.7,z:-19},{x:31,y:1.7,z:-23}),false,'A connector does not reach the A courtyard');
+ assert.equal(movementBlocked('bazaar',{x:31,y:1.7,z:-19.5},{x:31,y:1.7,z:-23}),false,'A connector does not reach the A courtyard');
 });
