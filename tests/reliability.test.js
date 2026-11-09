@@ -128,6 +128,41 @@ test('private lobby codes isolate rooms and allow matching guests to join togeth
   }
 });
 
+test('movement recovers after a transient speed-check timing outlier', { timeout: 15000 }, async () => {
+  const server = await startServer();
+  const clients = [];
+  try {
+    const a = await connectClient(server.port); clients.push(a);
+    const welcome = waitForMessage(a, 'welcome');
+    a.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'MOVEMENT-TEST', profileId: '00000000-0000-4000-8000-000000000051' }));
+    const joined = await welcome;
+    const observer = await connectClient(server.port); clients.push(observer);
+    const observerWelcome = waitForMessage(observer, 'welcome');
+    observer.send(JSON.stringify({ type: 'join', mode: 'ffa', map: 'district', name: 'MOVEMENT-OBSERVER', profileId: '00000000-0000-4000-8000-000000000052' }));
+    await observerWelcome;
+    const started = waitForMessage(a, 'matchStart');
+    const observerStarted = waitForMessage(observer, 'matchStart');
+    a.send(JSON.stringify({ type: 'startMatch' }));
+    const [match] = await Promise.all([started, observerStarted]);
+    const self = match.players.find(player => player.id === joined.id);
+    assert.ok(self);
+
+    // Establish a movement timestamp, then send a deliberately-too-fast
+    // packet. The following packet should be accepted after real time passes.
+    a.send(JSON.stringify({ type: 'move', x: self.x, y: self.y, z: self.z, yaw: 0, pitch: 0, moving: false }));
+    a.send(JSON.stringify({ type: 'move', x: self.x, y: self.y, z: self.z - 0.5, yaw: 0, pitch: 0, moving: true }));
+    await new Promise(resolve => setTimeout(resolve, 70));
+    const nextState = waitForMessage(a, 'state');
+    a.send(JSON.stringify({ type: 'move', x: self.x, y: self.y, z: self.z - 0.5, yaw: 0, pitch: 0, moving: true }));
+    const state = await nextState;
+    const updated = state.players.find(player => player.id === joined.id);
+    assert.ok(updated);
+    assert.ok(updated.z < self.z - 0.4, 'server should accept the movement after the timing outlier');
+  } finally {
+    await stopServer(server, clients);
+  }
+});
+
 test('operator abilities are server-authoritative and have a cooldown', { timeout: 15000 }, async () => {
   const server = await startServer();
   const clients = [];
