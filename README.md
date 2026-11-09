@@ -1,4 +1,12 @@
-# PROJECT: ECLIPSE — Prototype 0.32.0
+# PROJECT: ECLIPSE — Prototype 0.33.0
+
+## Prototype 0.33.0 — ORBITAL
+- Added ORBITAL, an abandoned orbital station map set during the eclipse.
+- New combat spaces include a central atrium, freight/cargo bay, winding maintenance spine, eclipse-facing observation gallery and engineering bay.
+- Added elevated service gantries with walkable ramps for vertical route choices.
+- Added station hull, cargo, bulkhead and cover collision volumes, spawn points, bot navigation route and map-selection support.
+- Added Orbital collision regression coverage.
+
 
 ## Prototype 0.32.0 — Operator abilities
 - Vanguard: Bulwark grants 40 temporary shield points.
