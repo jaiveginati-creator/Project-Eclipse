@@ -109,9 +109,16 @@ test('A* can route a Bazaar bot around real server collision to the A-site compo
   const goal = { x: 31, z: -31 };
   const gridOnlyPath = findPath({ map: 'bazaar', start, goal, isBlocked: blocked });
   const path = findPath({ map: 'bazaar', start, goal, isBlocked: blocked, canMove });
+  const blockedSegments = [];
+  for (let i = 1; i < gridOnlyPath.length; i++) {
+    if (!canMove(gridOnlyPath[i - 1], gridOnlyPath[i])) {
+      blockedSegments.push([gridOnlyPath[i - 1], gridOnlyPath[i]]);
+    }
+  }
   console.log('Bazaar navigation diagnostics', {
     gridOnlyLength: gridOnlyPath.length,
     edgeValidatedLength: path.length,
+    firstBlockedSegments: blockedSegments.slice(0, 8),
     gridOnlyPath
   });
   assert.ok(gridOnlyPath.length > 2, 'map occupancy grid has no route from mid to A site');
