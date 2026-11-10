@@ -546,6 +546,7 @@ function buildBazaar(){
   // Flat roof, rear wall and side returns; the street-facing wall is split around a real entrance.
   box(x,h+.05,z,w+.18,.22,d+.18,shadowStone,false);
   const fz=front==="south"?z+d/2:front==="north"?z-d/2:null,fx=front==="east"?x+w/2:x-w/2;
+  const facadePoint=(u,offset=0)=>front==="south"?[x+u,fz-offset]:front==="north"?[x+u,fz+offset]:front==="east"?[fx-offset,z+u]:[fx+offset,z+u];
   if(fz!==null){box(x,h/2,front==="south"?z-d/2:z+d/2,w,h,t,mat);box(x-w/2,h/2,z,t,h,d,mat);box(x+w/2,h/2,z,t,h,d,mat);}
   else{box(front==="east"?x-w/2:x+w/2,h/2,z,t,h,d,mat);box(x,h/2,z-d/2,w,h,t,mat);box(x,h/2,z+d/2,w,h,t,mat);}
   if(front==="south"||front==="north"){
@@ -564,10 +565,11 @@ function buildBazaar(){
   for(let level=1;level<=Math.min(3,Math.floor((h-1)/2.4));level++){
    const y=level*2.15;
    for(let n=-1;n<=1;n++){
-    const wx=x+n*w*.27;
-    const win=detailBox(wx,y,fz+(front==="south"?-.33:.33),1.05,1.15,.09,glass);
-    const sill=detailBox(wx,y-.66,fz+(front==="south"?-.37:.37),1.3,.12,.2,stone);
-    detailBox(wx,y+.65,fz+(front==="south"?-.37:.37),1.3,.12,.2,stone);
+    const [wx,wz]=facadePoint(n*(front==="south"||front==="north"?w:d)*.27,.33);
+    detailBox(wx,y,wz,front==="south"||front==="north"?1.05:.09,1.15,front==="south"||front==="north"?.09:1.05,glass);
+    const [sxw,szw]=facadePoint(n*(front==="south"||front==="north"?w:d)*.27,.37);
+    detailBox(sxw,y-.66,szw,front==="south"||front==="north"?1.3:.2,.12,front==="south"||front==="north"?.2:1.3,stone);
+    detailBox(sxw,y+.65,szw,front==="south"||front==="north"?1.3:.2,.12,front==="south"||front==="north"?.2:1.3,stone);
    }
   }
   // Street-level shop shutters and timber lintels flank the open doorway.
