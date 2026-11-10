@@ -518,67 +518,155 @@ function buildSublevel(){
 
 
 function buildBazaar(){
- clearMap();scene.background.set(0x9fc5d5);scene.fog.color.set(0xd9c6a5);scene.fog.density=.0025;
- hemi.color.set(0xffedcf);hemi.groundColor.set(0x80694c);hemi.intensity=1.9;moonLight.color.set(0xffe4bd);moonLight.intensity=2.45;moonLight.position.set(-34,62,-28);fill.color.set(0xc4d8e1);fill.intensity=.58;
- const sand=new THREE.MeshStandardMaterial({color:0xc6aa7e,roughness:.98}),stone=new THREE.MeshStandardMaterial({color:0xcbb995,roughness:.94}),pale=new THREE.MeshStandardMaterial({color:0xe3d3b1,roughness:.92}),darkStone=new THREE.MeshStandardMaterial({color:0x88775f,roughness:.96}),wood=new THREE.MeshStandardMaterial({color:0x49382a,roughness:.9}),clay=new THREE.MeshStandardMaterial({color:0x9b6040,roughness:.9}),brass=new THREE.MeshStandardMaterial({color:0x98713e,metalness:.25,roughness:.62}),roof=new THREE.MeshStandardMaterial({color:0x9b896c,roughness:.95});
- const cloth=[0xb65f43,0x477b79,0xd0a34f,0x8c5e83].map(color=>new THREE.MeshStandardMaterial({color,roughness:.95,side:THREE.DoubleSide}));
- box(0,-.28,0,100,.56,100,sand,false);
- for(const side of [-1,1]){box(side*49,2.7,0,.8,5.4,98,stone);box(0,2.7,side*49,98,5.4,.8,stone);}
- // Wall helpers keep doorways genuinely open. Roofs are used only on enclosed passages.
- const wallX=(z,x1,x2,door=null,width=4.6,mat=stone)=>{const t=.72,h=5.6,y=h/2;if(door===null){box((x1+x2)/2,y,z,x2-x1,h,t,mat);return;}const a=door-width/2,b=door+width/2;if(a>x1)box((x1+a)/2,y,z,a-x1,h,t,mat);if(x2>b)box((b+x2)/2,y,z,x2-b,h,t,mat);box(door,5.28,z,width,.64,t,pale);};
- const wallZ=(x,z1,z2,door=null,width=4.6,mat=stone)=>{const t=.72,h=5.6,y=h/2;if(door===null){box(x,y,(z1+z2)/2,t,h,z2-z1,mat);return;}const a=door-width/2,b=door+width/2;if(a>z1)box(x,y,(z1+a)/2,t,h,a-z1,mat);if(z2>b)box(x,y,(b+z2)/2,t,h,z2-b,mat);box(x,5.28,door,t,.64,width,pale);};
- const room=(x,z,w,d,doors={},opts={})=>{const x1=x-w/2,x2=x+w/2,z1=z-d/2,z2=z+d/2,h=opts.height||5.6,tone=opts.tone||stone;
-  wallX(z1,x1,x2,doors.n??null,doors.nw||4.6,tone);wallX(z2,x1,x2,doors.s??null,doors.sw||4.6,tone);
-  wallZ(x1,z1,z2,doors.w??null,doors.ww||4.6,tone);wallZ(x2,z1,z2,doors.e??null,doors.ew||4.6,tone);
-  if(opts.roof)box(x,h+.1,z,w+.5,.35,d+.5,roof,false);
-  if(opts.trim!==false){detailBox(x,h+.22,z1,w+.5,.18,.34,pale);detailBox(x,h+.22,z2,w+.5,.18,.34,pale);}
-  return {x1,x2,z1,z2};
+ clearMap();
+ scene.background.set(0x9bb9c5);scene.fog.color.set(0xc9b99d);scene.fog.density=.0021;
+ hemi.color.set(0xffe7c4);hemi.groundColor.set(0x66513c);hemi.intensity=1.72;
+ moonLight.color.set(0xffdfb5);moonLight.intensity=2.15;moonLight.position.set(-38,66,-30);
+ fill.color.set(0xb8d1dc);fill.intensity=.72;
+ const plaster=[0xc8b18c,0xd8c6a4,0xb99c78,0xe0cfad,0xa98d6d].map(color=>new THREE.MeshStandardMaterial({color,roughness:.94}));
+ const stone=new THREE.MeshStandardMaterial({color:0x9b8668,roughness:.96});
+ const sandstone=new THREE.MeshStandardMaterial({color:0xbca27c,roughness:.94});
+ const shadowStone=new THREE.MeshStandardMaterial({color:0x594b3b,roughness:.92});
+ const wood=new THREE.MeshStandardMaterial({color:0x493426,roughness:.91});
+ const iron=new THREE.MeshStandardMaterial({color:0x343b3c,metalness:.42,roughness:.62});
+ const brass=new THREE.MeshStandardMaterial({color:0xa98248,metalness:.34,roughness:.54});
+ const glass=new THREE.MeshStandardMaterial({color:0x304d53,metalness:.28,roughness:.25});
+ const fabric=[0x9c4937,0x347b79,0xd0a24e,0x76517c,0xb6a06f].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.98,side:THREE.DoubleSide}));
+ const street=new THREE.MeshStandardMaterial({color:0x786c5a,roughness:1});
+ const paving=new THREE.MeshStandardMaterial({color:0xb9a582,roughness:1});
+ box(0,-.3,0,100,.6,100,street,false);
+ // A continuous paved street network and broad open plaza replace the old tiled-room floorplan.
+ box(0,-.012,0,18,.08,100,street,false);box(0,-.01,0,100,.08,18,street,false);
+ for(const [x,z,w,d] of [[0,-26,100,8],[0,26,100,8],[-26,0,8,100],[26,0,8,100]])box(x,.025,z,w,.05,d,paving,false);
+ for(let p=-44;p<=44;p+=8){detailBox(-5,.04,p,1.1,.025,.12,brass);detailBox(5,.04,p,1.1,.025,.12,brass);detailBox(p,.04,-5,.12,.025,1.1,brass);detailBox(p,.04,5,.12,.025,1.1,brass);}
+ // Perimeter wall and city skyline: the map reads as a real district, not a set of isolated boxes.
+ box(0,2.5,-49,100,5,.8,stone);box(0,2.5,49,100,5,.8,stone);box(-49,2.5,0,.8,5,100,stone);box(49,2.5,0,.8,5,100,stone);
+ const building=(x,z,w,d,h,mat,front="south",seed=0)=>{
+  const t=.58,door=Math.min(3.2,w*.22),cx=x,cz=z;
+  // Flat roof, rear wall and side returns; the street-facing wall is split around a real entrance.
+  box(x,h+.05,z,w+.18,.22,d+.18,shadowStone,false);
+  box(x,h/2,z-d/2,w,h,t,mat);box(x-w/2,h/2,z,t,h,d,mat);box(x+w/2,h/2,z,t,h,d,mat);
+  const fz=front==="south"?z+d/2:z-d/2,fx=front==="east"?x+w/2:x-w/2;
+  if(front==="south"||front==="north"){
+   const gap=door,side=(w-gap)/2;
+   box(x-(gap/2+side/2),h/2,fz,side,h,t,mat);box(x+(gap/2+side/2),h/2,fz,side,h,t,mat);
+   box(x, h-.42,fz,gap,.84,t,mat);
+  }else{
+   const gap=door,side=(d-gap)/2;
+   box(fx,h/2,z-(gap/2+side/2),t,h,side,mat);box(fx,h/2,z+(gap/2+side/2),t,h,side,mat);
+   box(fx,h-.42,z,t,.84,gap,mat);
+  }
+  // Parapet, roof access hut and rooftop clutter create layered silhouettes.
+  box(x,h+.35,z,w+.5,.42,d+.5,sandstone,false);
+  box(x-w*.27,h+.95,z-d*.2,2.1,1.25,2.0,mat,false);
+  box(x+w*.25,h+.7,z+d*.18,1.35,.72,1.2,shadowStone,false);
+  for(let level=1;level<=Math.min(3,Math.floor((h-1)/2.4));level++){
+   const y=level*2.15;
+   for(let n=-1;n<=1;n++){
+    const wx=x+n*w*.27;
+    const win=detailBox(wx,y,fz+(front==="south"?-.33:.33),1.05,1.15,.09,glass);
+    const sill=detailBox(wx,y-.66,fz+(front==="south"?-.37:.37),1.3,.12,.2,stone);
+    detailBox(wx,y+.65,fz+(front==="south"?-.37:.37),1.3,.12,.2,stone);
+   }
+  }
+  // Street-level shop shutters and timber lintels flank the open doorway.
+  for(const side of [-1,1]){
+   const sx=x+side*(door/2+.85);
+   detailBox(sx,1.35,fz+(front==="south"?.36:-.36),1.25,1.65,.12,wood);
+   for(let k=0;k<5;k++)detailBox(sx-.5+k*.25,1.35,fz+(front==="south"?.44:-.44),.045,1.42,.035,brass);
+   detailBox(sx,2.25,fz+(front==="south"?.42:-.42),1.55,.18,.2,brass);
+  }
+  // Timber balconies, metal railings and a readable facade sign.
+  const balcony=detailBox(x,3.25,fz+(front==="south"?.9:-.9),w*.58,.16,.9,wood);
+  detailBox(x,3.7,fz+(front==="south"?1.3:-1.3),w*.58,.12,.12,iron);
+  for(let n=-2;n<=2;n++)detailBox(x+n*w*.105,3.48,fz+(front==="south"?1.3:-1.3),.07,.52,.07,iron);
+  detailBox(x,2.65,fz+(front==="south"?.48:-.48),w*.42,.42,.12,brass);
+  // Drainpipes and air-conditioning units break up the repeated building shapes.
+  for(const side of [-1,1]){
+   const px=x+side*(w/2-.42);detailBox(px,h*.48,fz+(front==="south"?.4:-.4),.12,h*.82,.12,iron);
+   detailBox(px,2.8,z-d*.22,.85,.62,.72,shadowStone);
+  }
  };
- const tunnel=(x,z,w,d,doors={},tone=darkStone)=>room(x,z,w,d,doors,{roof:true,tone,height:4.25});
- // Spawn compounds and the two objective courtyards.
- room(-34,-39,22,15,{s:-34,e:-39},{tone:pale});
- room(31,-31,22,19,{w:-31,e:-31,s:31,n:31},{tone:stone});
- room(-30,30,21,19,{w:25,e:27,n:-30,s:-32},{tone:pale});
- room(39,41,17,12,{w:39,n:39},{tone:stone});
- // Palace / A-ramp approach and the raised CT-side passage.
- room(31,-45,18,8,{s:31},{tone:pale});
- tunnel(45,-20,7,24,{n:45,s:45,w:-31},darkStone);
- tunnel(-14.75,-39,17,6,{w:-39,e:-39},darkStone);
- tunnel(8,-40,29,6,{w:-40,e:-40},darkStone);
- // Mid connector and the covered underpass are real corridors, not decorative blocks.
- tunnel(18,-28,7,24,{n:18,s:18},darkStone);
- tunnel(26.5,-18,17,6,{w:-18,n:31},darkStone);
- tunnel(42,-4,7,12,{n:42,s:42},darkStone);
- tunnel(-19,15,24,6,{w:15,e:15},darkStone);
- tunnel(-34.5,15,7,6,{w:15,e:15},darkStone);
- room(-43,13,10,13,{e:13,s:-43,n:-43},{tone:stone});
- tunnel(-42,25,6,12,{n:-42,s:-42},darkStone);
- tunnel(-34,39,11,6,{w:39,e:39,s:-32},darkStone);
- tunnel(1,42,59,6,{n:-32,w:42,e:42},darkStone);
- // Short passages and side alleys complete the route network.
- tunnel(-15,27,12,6,{w:27,e:27},darkStone);
- tunnel(31,9,6,19,{n:9,s:9},darkStone);
- room(42,8,10,12,{w:8,n:42,s:42},{tone:pale});
- // Distinctive open mid with low cover, stone planters and a central fountain.
- addVisualMesh(new THREE.CylinderGeometry(2.7,3.05,.72,32),stone,0,.36,0,true);
- addVisualMesh(new THREE.CylinderGeometry(2.05,2.05,.16,32),new THREE.MeshStandardMaterial({color:0x71999a,roughness:.25,metalness:.15}),0,.8,0);
- addVisualMesh(new THREE.CylinderGeometry(.22,.3,.9,12),brass,0,1.18,0,true);
- for(const [x,z,r] of [[-7,-5,0],[7,5,0],[-6,7,Math.PI/2],[6,-7,Math.PI/2],[-3,-12,0],[3,12,0]]){const p=box(x,.62,z,3.6,1.24,1.05,stone);p.rotation.y=r;}
- for(const [x,z] of [[-12,-3],[12,3],[-5,22],[5,-22],[-25,-4],[24,5],[-44,0],[44,0]]){box(x,.55,z,1.5,1.1,1.45,wood);detailBox(x,1.12,z,1.25,.08,1.2,brass);}
- // Objective dressing: site markings, crates, sandbags and boundary pillars.
- for(const [cx,cz] of [[31,-31],[-30,30]]){for(const [dx,dz] of [[-5,-4],[5,-4],[-5,4],[5,4]]){box(cx+dx,.55,cz+dz,2.1,1.1,1.5,wood);detailBox(cx+dx,1.13,cz+dz,1.85,.08,1.25,brass);}const ring=addVisualMesh(new THREE.TorusGeometry(3.6,.09,8,48),brass,cx,.08,cz);ring.rotation.x=Math.PI/2;}
- // Market awnings and a few stalls are confined to the market courtyard, leaving lanes clear.
- for(const [x,z,i] of [[-45,10,0],[-40,16,1],[-47,18,2]]){for(const sx of [-1,1]){box(x+sx*1.45,1.25,z,.12,2.5,.12,wood);box(x+sx*1.45,2.55,z,.12,.12,.12,brass);}box(x,2.48,z,3.1,.16,2.2,cloth[i],false);box(x,.48,z,2.7,.96,.72,wood);}
- // Exterior rooflines, parapets, balconies, lamps and stair access add readable vertical landmarks.
- for(const [x,z,w,d] of [[-34,-39,22,15],[31,-31,22,19],[-30,30,21,19],[39,41,17,12],[31,-45,18,8],[-43,13,10,13]]){box(x,6.0,z,w+.7,.35,d+.7,roof,false);for(const sx of [-1,1])for(const sz of [-1,1])box(x+sx*(w/2-.5),3,z+sz*(d/2-.5),.5,6,.5,darkStone);}
- // A raised catwalk with visible steps, landing and rails; collision is mirrored server-side.
- box(-9,2.5,-12,15,.35,3.2,wood);box(-9,3.25,-12,15,.16,3.2,brass);
- for(const side of [-1,1])box(-9+side*7.3,3.15,-12,.16,1.25,3.2,stone);
- for(let i=0;i<7;i++)box(-16+i*.72,.18+i*.28,-9,1.05,.36+i*.56,3.0,stone);
- // Market and spawn lighting.
- for(const [x,z] of [[-34,-43],[31,-48],[-43,13],[-30,35],[40,44],[0,0],[18,-8],[-19,15]]){box(x,4.2,z,.16,4.2,.16,wood);detailBox(x+.38,4.6,z,.8,.12,.12,brass);const l=new THREE.PointLight(0xffc879,.65,12);l.position.set(x+.38,4.15,z);scene.add(l);mapObjects.push(l);}
- for(const [x,z] of [[-47,-47],[-47,47],[47,-47],[47,47],[-12,46],[12,-46]]){addVisualMesh(new THREE.CylinderGeometry(.2,.3,3.1,8),wood,x,1.55,z,true);addVisualMesh(new THREE.ConeGeometry(1.35,3.0,7),new THREE.MeshStandardMaterial({color:0x54704c}),x,4.1,z);}
- // Training starts in open mid, facing the A connector.
+ // Building clusters leave broad streets, courtyards and cross-connections visible from above.
+ const blocks=[
+  [-39,-37,17,20,11,0,"south"],[-17,-39,17,18,9,1,"south"],[12,-39,20,18,12,2,"south"],[39,-37,17,20,10,3,"south"],
+  [-40,37,18,19,10,1,"north"],[-15,39,19,17,12,4,"north"],[14,39,19,17,9,0,"north"],[40,37,17,19,12,2,"north"],
+  [-40,-12,17,18,8,3,"east"],[-39,13,18,19,12,0,"east"],[40,-12,17,18,11,4,"west"],[40,13,17,19,9,1,"west"]
+ ];
+ for(const [x,z,w,d,h,c,face] of blocks)building(x,z,w,d,h,plaster[c],face);
+ // Smaller attached shopfronts, irregular roof heights and archways make the blocks feel inhabited.
+ const arch=(x,y,z,r=1.7,rotation=0)=>{
+  const ring=addVisualMesh(new THREE.TorusGeometry(r,.22,10,32,Math.PI),stone,x,y,z);
+  ring.rotation.set(Math.PI/2,rotation,0);
+  for(const side of [-1,1])box(x+side*r,y/2,z,.34,y,.48,sandstone,false);
+ };
+ for(const [x,z,rot] of [[-27,-25,0],[27,-25,0],[-27,25,0],[27,25,0],[0,-27,Math.PI/2],[0,27,Math.PI/2]]){
+  const gate=box(x,2.8,z,7,5.6,1.1,shadowStone);gate.visible=false;
+  // Freestanding stone portal with a broad arched opening and thick piers.
+  box(x-3.3,2.8,z,.8,5.6,1.2,sandstone);box(x+3.3,2.8,z,.8,5.6,1.2,sandstone);
+  box(x,5.25,z,7,.7,1.2,sandstone);arch(x,3.15,z,.0,rot);
+ }
+ // Market square: irregular stalls, cloth awnings, baskets, rugs and a fountain.
+ const fountain=addVisualMesh(new THREE.CylinderGeometry(3.1,3.45,.72,40),stone,0,.36,0,true);
+ addVisualMesh(new THREE.CylinderGeometry(2.5,2.5,.16,40),new THREE.MeshStandardMaterial({color:0x668b87,roughness:.22,metalness:.12}),0,.8,0);
+ addVisualMesh(new THREE.CylinderGeometry(.24,.34,1.0,12),brass,0,1.25,0,true);
+ for(const [x,z,c,rot] of [[-8,-9,0,0],[8,-8,1,Math.PI/2],[-9,9,2,0],[9,9,3,Math.PI/2],[-17,1,4,0],[17,-1,0,Math.PI/2]]){
+  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);mapObjects.push(g);
+  const postMat=wood,clothMat=fabric[c];
+  for(const sx of [-1,1])for(const sz of [-1,1]){const p=new THREE.Mesh(new THREE.BoxGeometry(.13,2.65,.13),postMat);p.position.set(sx*1.8,1.32,sz*1.35);g.add(p);}
+  const canopy=new THREE.Mesh(new THREE.BoxGeometry(4.0,.16,3.1),clothMat);canopy.position.y=2.68;g.add(canopy);
+  const valance=new THREE.Mesh(new THREE.BoxGeometry(4.0,.42,.12),clothMat);valance.position.set(0,2.4,1.52);g.add(valance);
+  const counter=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.05,.82),wood);counter.position.set(0,.55,.72);g.add(counter);
+  for(let k=0;k<5;k++){const basket=new THREE.Mesh(new THREE.CylinderGeometry(.2,.25,.28,10),k%2?brass:clay);basket.position.set(-1.25+k*.62,1.22,.55);g.add(basket);}
+  const rug=detailBox(x,.035,z+2.2,3.8,.035,1.3,clothMat);
+ }
+ // Cloth shade sails span the plaza without forming solid ceilings.
+ for(const [x,z,c,angle] of [[-5,-18,0,.12],[5,18,2,-.12],[-18,-5,1,Math.PI/2],[18,5,3,Math.PI/2]]){
+  const sail=detailBox(x,5.3,z,12,.12,4,fabric[c]);sail.rotation.y=angle;
+  for(const side of [-1,1]){detailBox(x+side*5.7,2.65,z,.12,5.3,.12,wood);}
+ }
+ // Public square dressing and street furniture.
+ for(const [x,z] of [[-14,-14],[14,-14],[-14,14],[14,14]]){const planter=addVisualMesh(new THREE.CylinderGeometry(1.15,1.25,.65,12),stone,x,.32,z,true);makeTree(x,z,.75);}
+ for(const [x,z] of [[-22,0],[22,0],[0,-22],[0,22],[-32,0],[32,0]]){box(x,.5,z,2.4,1,1.1,wood);detailBox(x,1.02,z,2.2,.08,1.0,brass);}
+ // Rooftop details: water tanks, satellite dishes, laundry lines and stair towers.
+ for(const [x,z] of [[-43,-43],[-17,-42],[14,-42],[42,-43],[-43,42],[-16,43],[16,42],[43,42]]){
+  const tank=addVisualMesh(new THREE.CylinderGeometry(.85,.85,1.7,18),new THREE.MeshStandardMaterial({color:0x65777a,metalness:.35,roughness:.48}),x,11.1,z,true);
+  addVisualMesh(new THREE.TorusGeometry(.87,.08,8,24),brass,x,11.95,z);
+  for(const side of [-1,1])detailBox(x+side*.95,10.8,z,.12,1.4,.12,iron);
+ }
+ for(let i=0;i<9;i++){
+  const x=-39+i*9.7,z=i%2?-31:31;
+  detailBox(x,8.2,z,4.5,.08,.12,iron);
+  for(let k=0;k<5;k++)detailBox(x-1.8+k*.9,8.0,z,.06,.5,.06,wood);
+  for(let k=0;k<4;k++){const clothPiece=detailBox(x-1.35+k*.9,8.05,z,.72,.55,.035,fabric[(i+k)%fabric.length]);clothPiece.rotation.z=(k%2?-.12:.12);}
+ }
+ // Staircases, ladders and roof hatches are visible architectural details.
+ for(const [x,z] of [[-29,-31],[29,-31],[-29,31],[29,31]]){
+  for(let i=0;i<8;i++)box(x+i*.38,0.16+i*.32,z,1.1,.32,2.1,stone);
+  for(const side of [-1,1])detailBox(x+1.45,1.35,z,.12,2.7,.12,iron);
+ }
+ // Lamps, warm shop lighting and hanging signs create depth at street level.
+ for(const [x,z] of [[-43,-25],[-22,-27],[22,-27],[43,-24],[-43,25],[-22,27],[22,27],[43,24],[-12,0],[12,0],[0,-38],[0,38]]){
+  box(x,2.35,z,.14,4.7,.14,wood);const arm=detailBox(x+.65,4.45,z,1.3,.12,.12,iron);
+  detailBox(x+.65,4.22,z,.5,.16,.48,brass);
+  const lamp=new THREE.PointLight(0xffc77d,.72,13,2);lamp.position.set(x+.65,4.05,z);scene.add(lamp);mapObjects.push(lamp);
+ }
+ for(const [x,z,label] of [[-39,-20,"SPICE"],[39,-20,"TEXTILE"],[-39,20,"TEA"],[39,20,"BAZAAR"]]){
+  const sign=detailBox(x,3.1,z,3.2,.8,.16,wood);const plaque=detailBox(x,3.1,z-.1,2.7,.55,.06,brass);
+ }
+ // Barrels, sacks, pottery, crates and scattered paving variation.
+ for(let i=0;i<36;i++){
+  const x=((i*17)%82)-41,z=((i*29)%82)-41;
+  if(Math.abs(x)<20&&Math.abs(z)<20)continue;
+  if(i%3===0){addVisualMesh(new THREE.CylinderGeometry(.42,.48,.9,12),clay,x,.45,z,true);detailBox(x,.93,z,.82,.08,.82,brass);}
+  else if(i%3===1){box(x,.38,z,1.1,.76,.9,wood);detailBox(x,.78,z,1.0,.08,.82,brass);}
+  else{const sack=addVisualMesh(new THREE.SphereGeometry(.58,12,10),new THREE.MeshStandardMaterial({color:0x9b8968,roughness:1}),x,.43,z,true);sack.scale.set(1,.78,.85);}
+ }
+ // Sandstone boundary buttresses and distant rooftop silhouettes frame the playable district.
+ for(const side of [-1,1])for(let p=-42;p<=42;p+=14){
+  box(side*48,4,p,1.5,8,1.5,sandstone);box(p,4,side*48,1.5,8,1.5,sandstone);
+ }
+ // Training spawn remains in the plaza; multiplayer spawns are supplied by the server.
  player.pos.set(0,1.7,5);player.yaw=0;updateCamera();
 }
 function buildSelectedMap(){
