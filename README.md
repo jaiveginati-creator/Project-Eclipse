@@ -1,4 +1,16 @@
-# PROJECT: ECLIPSE — Prototype 0.34.0
+# PROJECT: ECLIPSE — Prototype 0.37.0
+
+## Prototype 0.37.0 — Combat bot pathfinding
+- Added server-side grid A* pathfinding for combat bots pursuing opponents behind map geometry.
+- Navigation uses the same map collision volumes and swept movement checks as authoritative player movement.
+- Bots periodically refresh paths as opponents move, and return to their existing tactical combat steering when line of sight is clear.
+- Existing waypoint roaming, target selection, weapon behavior and squad logic are preserved.
+- Ground-level route planning is covered by automated tests; elevated catwalk and ramp navigation remains a separate future milestone.
+
+## Prototype 0.36.0 — BAZAAR connected floorplan
+- Rebuilt BAZAAR as an original multi-route desert-city layout with connected courtyards, roofed passages, alleys and objective compounds.
+- Mirrored passage doorways and wall collision on the server, updated the minimap, spawns and bot routes, and added route regression tests.
+
 
 ## Prototype 0.34.0 — STARFALL
 - Replaced ORBITAL with STARFALL, an original space-station arena built around three distinct route families and several cross-links.

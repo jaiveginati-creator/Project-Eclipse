@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const APP_VERSION = require('../package.json').version;
 const { isPlayerPositionBlocked, movementBlocked, hasLineOfSight } = require('./map-collision');
-const { chooseRecoveryWaypoint } = require('./bot-navigation');
+const { chooseRecoveryWaypoint, findPath } = require('./bot-navigation');
 
 const PORT = Number(process.env.PORT || 3001);
 // Keep progression-changing developer commands disabled on public servers by default.
@@ -316,6 +316,46 @@ function stepArcadeBot(bot, nearbyPlayers, deltaSeconds, now, combatTarget = nul
       const radial = clamp((distance - ideal) / Math.max(ideal, 1), -.24, .24);
       moveX = -tz * nav.strafeDirection + tx * radial;
       moveZ = tx * nav.strafeDirection + tz * radial;
+    }
+  }
+  if (combatTarget) {
+    const targetOrigin = { x: bot.x, y: bot.y - .25, z: bot.z };
+    const targetPoint = { x: combatTarget.x, y: combatTarget.y - (combatTarget.crouching ? .55 : .7), z: combatTarget.z };
+    const targetVisible = hasLineOfSight(bot.map, targetOrigin, targetPoint);
+    if (!targetVisible && Math.abs(combatTarget.y - bot.y) < 2.4) {
+      const previousTarget = nav.combatPathTarget;
+      const targetMoved = !previousTarget ||
+        Math.hypot(previousTarget.x - combatTarget.x, previousTarget.z - combatTarget.z) > 2.5;
+      if (!Array.isArray(nav.combatPath) || targetMoved || now >= nav.nextCombatPathAt) {
+        nav.combatPath = findPath({
+          map: bot.map,
+          start: { x: bot.x, z: bot.z },
+          goal: { x: combatTarget.x, z: combatTarget.z },
+          isBlocked: (x, z) => isPlayerPositionBlocked(bot.map, x, 1.7, z),
+          canMove: (from, to) => !movementBlocked(
+            bot.map,
+            { x: from.x, y: 1.7, z: from.z },
+            { x: to.x, y: 1.7, z: to.z }
+          )
+        });
+        nav.combatPathIndex = nav.combatPath.length > 1 ? 1 : 0;
+        nav.combatPathTarget = { x: combatTarget.x, z: combatTarget.z };
+        nav.nextCombatPathAt = now + 850;
+      }
+      const path = nav.combatPath || [];
+      while (nav.combatPathIndex < path.length - 1 &&
+             Math.hypot(path[nav.combatPathIndex].x - bot.x, path[nav.combatPathIndex].z - bot.z) < 1.15) {
+        nav.combatPathIndex++;
+      }
+      const next = path[nav.combatPathIndex];
+      if (next) {
+        const dx = next.x - bot.x, dz = next.z - bot.z, distance = Math.hypot(dx, dz);
+        if (distance > .2) { moveX = dx / distance; moveZ = dz / distance; }
+      }
+    } else if (targetVisible) {
+      nav.combatPath = null;
+      nav.combatPathTarget = null;
+      nav.combatPathIndex = 0;
     }
   }
   let avoidX = 0, avoidZ = 0;
