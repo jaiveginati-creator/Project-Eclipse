@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { isPlayerPositionBlocked, movementBlocked } = require('../server/map-collision');
 
 test('Bazaar spawn locations are clear', () => {
@@ -22,4 +24,24 @@ test('Bazaar doorways remain open between connected areas', () => {
  const points = [[31,-19.5],[42,-31],[-40.5,25],[-32,39.5],[-6.5,-39],[18,-16.5]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),false,'doorway blocked at '+x+','+z);
  assert.equal(movementBlocked('bazaar',{x:31,y:1.7,z:-19.5},{x:31,y:1.7,z:-23}),false,'A connector does not reach the A courtyard');
+});
+
+
+test('Bazaar mid-to-A underpass is continuous through both doorway layers', () => {
+ const route = [
+  [{x:18,y:1.7,z:-14},{x:18,y:1.7,z:-18}],
+  [{x:18,y:1.7,z:-18},{x:22,y:1.7,z:-18}],
+  [{x:22,y:1.7,z:-18},{x:31,y:1.7,z:-18}],
+  [{x:31,y:1.7,z:-18},{x:31,y:1.7,z:-23}],
+  [{x:31,y:1.7,z:-23},{x:31,y:1.7,z:-31}]
+ ];
+ for (const [from,to] of route) {
+  assert.equal(movementBlocked('bazaar',from,to),false,'route segment blocked: '+JSON.stringify(from)+' -> '+JSON.stringify(to));
+ }
+});
+
+test('Bazaar visual passage and minimap match the server-side connector', () => {
+ const source = fs.readFileSync(path.join(__dirname,'../client/src/main.js'),'utf8');
+ assert.match(source,/tunnel\(18,-28,7,24,\{n:18,s:18,e:-18\}/);
+ assert.match(source,/passage\(45,-32,45,-8,6\)/);
 });

@@ -1,4 +1,10 @@
-# PROJECT: ECLIPSE — Prototype 0.34.0
+# PROJECT: ECLIPSE — Prototype 0.37.0
+
+## Prototype 0.37.0 — BAZAAR route continuity
+- Opened the east doorway of the covered mid-to-A underpass so it joins the horizontal A connector in both the visual map and server collision.
+- Corrected the east-side minimap passage to follow the actual north-south corridor instead of drawing a short crossbar.
+- Added swept-collision regression coverage across the connected route and a source check that keeps the minimap and visual doorway aligned.
+
 
 ## Prototype 0.34.0 — STARFALL
 - Replaced ORBITAL with STARFALL, an original space-station arena built around three distinct route families and several cross-links.
