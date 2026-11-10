@@ -627,7 +627,7 @@ function buildBazaar(){
  }
  // Public square dressing and street furniture.
  for(const [x,z] of [[-14,-14],[14,-14],[-14,14],[14,14]]){const planter=addVisualMesh(new THREE.CylinderGeometry(1.15,1.25,.65,12),stone,x,.32,z,true);makeTree(x,z,.75);}
- for(const [x,z] of [[-22,0],[22,0],[0,-22],[0,22],[-32,0],[32,0]]){box(x,.5,z,2.4,1,1.1,wood);detailBox(x,1.02,z,2.2,.08,1.0,brass);}
+ for(const [x,z] of [[-22,0],[22,0],[-32,0],[32,0]]){box(x,.5,z,2.4,1,1.1,wood);detailBox(x,1.02,z,2.2,.08,1.0,brass);}
  // Rooftop details: water tanks, satellite dishes, laundry lines and stair towers.
  for(const [x,z] of [[-43,-43],[-17,-42],[14,-42],[42,-43],[-43,42],[-16,43],[16,42],[43,42]]){
   const tank=addVisualMesh(new THREE.CylinderGeometry(.85,.85,1.7,18),new THREE.MeshStandardMaterial({color:0x65777a,metalness:.35,roughness:.48}),x,11.1,z,true);
