@@ -154,9 +154,15 @@ function addShield(list, x, z, rotation = 0) {
  ];
  for(const [x,z,w,d,h,_tone,front] of buildings){
   const t=.58,door=Math.min(3.2,w*.22),fz=front==="south"?z+d/2:front==="north"?z-d/2:null,fx=front==="east"?x+w/2:x-w/2;
-  addBox(list,x,h/2,z-d/2,w,h,t);addBox(list,x-w/2,h/2,z,t,h,d);addBox(list,x+w/2,h/2,z,t,h,d);
-  if(fz!==null){const side=(w-door)/2;addBox(list,x-(door/2+side/2),h/2,fz,side,h,t);addBox(list,x+(door/2+side/2),h/2,fz,side,h,t);addBox(list,x,h-.42,fz,door,.84,t);}
-  else{const side=(d-door)/2;addBox(list,fx,h/2,z-(door/2+side/2),t,h,side);addBox(list,fx,h/2,z+(door/2+side/2),t,h,side);addBox(list,fx,h-.42,z,t,.84,door);}
+  if(fz!==null){
+   addBox(list,x,h/2,front==="south"?z-d/2:z+d/2,w,h,t);
+   addBox(list,x-w/2,h/2,z,t,h,d);addBox(list,x+w/2,h/2,z,t,h,d);
+   const side=(w-door)/2;addBox(list,x-(door/2+side/2),h/2,fz,side,h,t);addBox(list,x+(door/2+side/2),h/2,fz,side,h,t);addBox(list,x,h-.42,fz,door,.84,t);
+  }else{
+   addBox(list,front==="east"?x-w/2:x+w/2,h/2,z,t,h,d);
+   addBox(list,x,h/2,z-d/2,w,h,t);addBox(list,x,h/2,z+d/2,w,h,t);
+   const side=(d-door)/2;addBox(list,fx,h/2,z-(door/2+side/2),t,h,side);addBox(list,fx,h/2,z+(door/2+side/2),t,h,side);addBox(list,fx,h-.42,z,t,.84,door);
+  }
  }
  // Market counters, fountain, planters and street furniture.
  addBox(list,0,.36,0,6.9,.72,6.9);
