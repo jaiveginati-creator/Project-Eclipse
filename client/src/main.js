@@ -601,10 +601,9 @@ function buildBazaar(){
   for(const side of [-1,1])box(x+side*r,y/2,z,.34,y,.48,sandstone,false);
  };
  for(const [x,z,rot] of [[-27,-25,0],[27,-25,0],[-27,25,0],[27,25,0],[0,-27,Math.PI/2],[0,27,Math.PI/2]]){
-  const gate=box(x,2.8,z,7,5.6,1.1,shadowStone);gate.visible=false;
   // Freestanding stone portal with a broad arched opening and thick piers.
   box(x-3.3,2.8,z,.8,5.6,1.2,sandstone);box(x+3.3,2.8,z,.8,5.6,1.2,sandstone);
-  box(x,5.25,z,7,.7,1.2,sandstone);arch(x,3.15,z,.0,rot);
+  box(x,5.25,z,7,.7,1.2,sandstone);arch(x,3.85,z,1.65,rot);
  }
  // Market square: irregular stalls, cloth awnings, baskets, rugs and a fountain.
  const fountain=addVisualMesh(new THREE.CylinderGeometry(3.1,3.45,.72,40),stone,0,.36,0,true);
