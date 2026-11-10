@@ -590,8 +590,8 @@ function buildBazaar(){
   facadeBox(0,2.65,.48,w*.42,.42,.12,brass);
   // Drainpipes and air-conditioning units break up the repeated building shapes.
   for(const side of [-1,1]){
-   const px=x+side*(w/2-.42);detailBox(px,h*.48,fz+(front==="south"?.4:-.4),.12,h*.82,.12,iron);
-   detailBox(px,2.8,z-d*.22,.85,.62,.72,shadowStone);
+   facadeBox(side*(w*.43),h*.48,.4,.12,h*.82,.12,iron);
+   detailBox(x+side*(w/2-.42),2.8,z-d*.22,.85,.62,.72,shadowStone);
   }
  };
  // Building clusters leave broad streets, courtyards and cross-connections visible from above.
