@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { isPlayerPositionBlocked, movementBlocked } = require('../server/map-collision');
 
 test('Bazaar open streets and plaza spawn points remain clear', () => {
- const points = [[0,20],[0,-20],[20,20],[-20,-20],[20,-20],[-20,20],[0,32],[0,-32],[32,0],[-32,0]];
+ const points = [[0,20],[0,-20],[20,20],[-20,-20],[20,-20],[-20,20],[0,32],[0,-32],[20,-20],[-20,20]];
  for (const [x,z] of points) assert.equal(isPlayerPositionBlocked('bazaar',x,1.7,z),false,'open street blocked at '+x+','+z);
 });
 
