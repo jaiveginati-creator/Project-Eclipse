@@ -115,12 +115,12 @@ test('A* can route a Bazaar bot around real server collision to the A-site compo
       blockedSegments.push([gridOnlyPath[i - 1], gridOnlyPath[i]]);
     }
   }
-  console.log('Bazaar navigation diagnostics', {
+  console.log('Bazaar navigation diagnostics', JSON.stringify({
     gridOnlyLength: gridOnlyPath.length,
     edgeValidatedLength: path.length,
     firstBlockedSegments: blockedSegments.slice(0, 8),
     gridOnlyPath
-  });
+  }));
   assert.ok(gridOnlyPath.length > 2, 'map occupancy grid has no route from mid to A site');
   assert.ok(path.length > 2, 'swept collision checks reject every route from mid to A site');
   for (let i = 1; i < path.length; i++) assert.equal(canMove(path[i - 1], path[i]), true);
