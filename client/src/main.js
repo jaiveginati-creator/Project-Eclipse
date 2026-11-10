@@ -527,6 +527,7 @@ function buildBazaar(){
  const stone=new THREE.MeshStandardMaterial({color:0x9b8668,roughness:.96});
  const sandstone=new THREE.MeshStandardMaterial({color:0xbca27c,roughness:.94});
  const shadowStone=new THREE.MeshStandardMaterial({color:0x594b3b,roughness:.92});
+ const clay=new THREE.MeshStandardMaterial({color:0x9b6040,roughness:.9});
  const wood=new THREE.MeshStandardMaterial({color:0x493426,roughness:.91});
  const iron=new THREE.MeshStandardMaterial({color:0x343b3c,metalness:.42,roughness:.62});
  const brass=new THREE.MeshStandardMaterial({color:0xa98248,metalness:.34,roughness:.54});
@@ -547,6 +548,10 @@ function buildBazaar(){
   box(x,h+.05,z,w+.18,.22,d+.18,shadowStone,false);
   const fz=front==="south"?z+d/2:front==="north"?z-d/2:null,fx=front==="east"?x+w/2:x-w/2;
   const facadePoint=(u,offset=0)=>front==="south"?[x+u,fz-offset]:front==="north"?[x+u,fz+offset]:front==="east"?[fx-offset,z+u]:[fx+offset,z+u];
+  const facadeBox=(u,y,offset,along,height,thick,material)=>{
+   const [px,pz]=facadePoint(u,offset),side=front==="east"||front==="west";
+   return detailBox(px,y,pz,side?thick:along,height,side?along:thick,material);
+  };
   if(fz!==null){box(x,h/2,front==="south"?z-d/2:z+d/2,w,h,t,mat);box(x-w/2,h/2,z,t,h,d,mat);box(x+w/2,h/2,z,t,h,d,mat);}
   else{box(front==="east"?x-w/2:x+w/2,h/2,z,t,h,d,mat);box(x,h/2,z-d/2,w,h,t,mat);box(x,h/2,z+d/2,w,h,t,mat);}
   if(front==="south"||front==="north"){
@@ -572,18 +577,17 @@ function buildBazaar(){
     detailBox(sxw,y+.65,szw,front==="south"||front==="north"?1.3:.2,.12,front==="south"||front==="north"?.2:1.3,stone);
    }
   }
-  // Street-level shop shutters and timber lintels flank the open doorway.
+  // Street-level shop shutters, lintels, balconies and signs follow the selected facade orientation.
   for(const side of [-1,1]){
-   const sx=x+side*(door/2+.85);
-   detailBox(sx,1.35,fz+(front==="south"?.36:-.36),1.25,1.65,.12,wood);
-   for(let k=0;k<5;k++)detailBox(sx-.5+k*.25,1.35,fz+(front==="south"?.44:-.44),.045,1.42,.035,brass);
-   detailBox(sx,2.25,fz+(front==="south"?.42:-.42),1.55,.18,.2,brass);
+   const u=side*(door/2+.85);
+   facadeBox(u,1.35,.36,1.25,1.65,.12,wood);
+   for(let k=0;k<5;k++)facadeBox(u-.5+k*.25,1.35,.44,.045,1.42,.035,brass);
+   facadeBox(u,2.25,.42,1.55,.18,.2,brass);
   }
-  // Timber balconies, metal railings and a readable facade sign.
-  const balcony=detailBox(x,3.25,fz+(front==="south"?.9:-.9),w*.58,.16,.9,wood);
-  detailBox(x,3.7,fz+(front==="south"?1.3:-1.3),w*.58,.12,.12,iron);
-  for(let n=-2;n<=2;n++)detailBox(x+n*w*.105,3.48,fz+(front==="south"?1.3:-1.3),.07,.52,.07,iron);
-  detailBox(x,2.65,fz+(front==="south"?.48:-.48),w*.42,.42,.12,brass);
+  facadeBox(0,3.25,.9,w*.58,.16,.9,wood);
+  facadeBox(0,3.7,1.3,w*.58,.12,.12,iron);
+  for(let n=-2;n<=2;n++)facadeBox(n*w*.105,3.48,1.3,.07,.52,.07,iron);
+  facadeBox(0,2.65,.48,w*.42,.42,.12,brass);
   // Drainpipes and air-conditioning units break up the repeated building shapes.
   for(const side of [-1,1]){
    const px=x+side*(w/2-.42);detailBox(px,h*.48,fz+(front==="south"?.4:-.4),.12,h*.82,.12,iron);
