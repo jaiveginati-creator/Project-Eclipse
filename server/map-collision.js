@@ -161,7 +161,7 @@ function addShield(list, x, z, rotation = 0) {
  // Market counters, fountain, planters and street furniture.
  addBox(list,0,.36,0,6.9,.72,6.9);
  for(const [x,z] of [[-8,-9],[8,-8],[-9,9],[9,9],[-17,1],[17,-1]])addBox(list,x,.55,z,3.4,1.1,.82);
- for(const [x,z] of [[-22,0],[22,0],[0,-22],[0,22],[-32,0],[32,0]])addBox(list,x,.5,z,2.4,1,1.1);
+ for(const [x,z] of [[-22,0],[22,0],[-32,0],[32,0]])addBox(list,x,.5,z,2.4,1,1.1);
  for(const [x,z] of [[-14,-14],[14,-14],[-14,14],[14,14]])addBox(list,x,.32,z,2.5,.65,2.5);
  for(const [x,z] of [[-43,-43],[-17,-42],[14,-42],[42,-43],[-43,42],[-16,43],[16,42],[43,42]])addBox(list,x,11.1,z,1.7,1.7,1.7);
 }
