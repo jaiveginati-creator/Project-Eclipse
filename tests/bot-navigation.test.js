@@ -105,13 +105,16 @@ test('A* can route a Bazaar bot around real server collision to the A-site compo
     { x: from.x, y: 1.7, z: from.z },
     { x: to.x, y: 1.7, z: to.z }
   );
-  const path = findPath({
-    map: 'bazaar',
-    start: { x: 0, z: 5 },
-    goal: { x: 31, z: -31 },
-    isBlocked: blocked,
-    canMove
+  const start = { x: 0, z: 5 };
+  const goal = { x: 31, z: -31 };
+  const gridOnlyPath = findPath({ map: 'bazaar', start, goal, isBlocked: blocked });
+  const path = findPath({ map: 'bazaar', start, goal, isBlocked: blocked, canMove });
+  console.log('Bazaar navigation diagnostics', {
+    gridOnlyLength: gridOnlyPath.length,
+    edgeValidatedLength: path.length,
+    gridOnlyPath
   });
-  assert.ok(path.length > 2, 'expected a connected route from mid to A site');
+  assert.ok(gridOnlyPath.length > 2, 'map occupancy grid has no route from mid to A site');
+  assert.ok(path.length > 2, 'swept collision checks reject every route from mid to A site');
   for (let i = 1; i < path.length; i++) assert.equal(canMove(path[i - 1], path[i]), true);
 });
