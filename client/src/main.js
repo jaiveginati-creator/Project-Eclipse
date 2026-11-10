@@ -545,8 +545,9 @@ function buildBazaar(){
   const t=.58,door=Math.min(3.2,w*.22),cx=x,cz=z;
   // Flat roof, rear wall and side returns; the street-facing wall is split around a real entrance.
   box(x,h+.05,z,w+.18,.22,d+.18,shadowStone,false);
-  box(x,h/2,z-d/2,w,h,t,mat);box(x-w/2,h/2,z,t,h,d,mat);box(x+w/2,h/2,z,t,h,d,mat);
-  const fz=front==="south"?z+d/2:z-d/2,fx=front==="east"?x+w/2:x-w/2;
+  const fz=front==="south"?z+d/2:front==="north"?z-d/2:null,fx=front==="east"?x+w/2:x-w/2;
+  if(fz!==null){box(x,h/2,front==="south"?z-d/2:z+d/2,w,h,t,mat);box(x-w/2,h/2,z,t,h,d,mat);box(x+w/2,h/2,z,t,h,d,mat);}
+  else{box(front==="east"?x-w/2:x+w/2,h/2,z,t,h,d,mat);box(x,h/2,z-d/2,w,h,t,mat);box(x,h/2,z+d/2,w,h,t,mat);}
   if(front==="south"||front==="north"){
    const gap=door,side=(w-gap)/2;
    box(x-(gap/2+side/2),h/2,fz,side,h,t,mat);box(x+(gap/2+side/2),h/2,fz,side,h,t,mat);
